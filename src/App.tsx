@@ -205,7 +205,7 @@ export default function App() {
   ];
 
   return (
-    <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#f8fafc] text-[#1e293b]"}`}>
+    <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#F8F9FA] text-[#111827]"}`}>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
@@ -217,7 +217,7 @@ export default function App() {
 
       {/* ── SIDEBAR ── */}
       <aside className={`fixed left-0 top-0 h-full w-[260px] border-r flex flex-col py-6 z-40 transition-all duration-300 ${
-        isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-slate-200"
+        isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"
       } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
 
         <div className="px-6 mb-8 flex items-center justify-between">
@@ -247,8 +247,10 @@ export default function App() {
                   isActive
                     ? isDarkMode
                       ? "bg-[#2d3449] text-[#82ffc8] border-l-4 border-[#47ffbc]"
-                      : "bg-[#f1f5f9] text-[#006c4b] border-l-4 border-[#006c4b]"
-                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/20"
+                      : "bg-[#F0FDF9] text-[#1AE7A6] border-l-4 border-[#1AE7A6]"
+                    : isDarkMode
+                      ? "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/20"
+                      : "text-[#374151] hover:text-[#111827] hover:bg-[#F0FDF9]/60"
                 }`}
               >
                 <span className="material-symbols-outlined transition-transform group-hover:scale-105 duration-150">
@@ -275,7 +277,7 @@ export default function App() {
             return (
               <>
                 <p className={`text-xl font-black font-mono ${pct >= 75 ? "text-primary" : "text-error"}`}>{pct.toFixed(1)}%</p>
-                <div className="w-full h-1.5 bg-[#2d3449] rounded-full mt-2 overflow-hidden">
+                <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
                   <div className={`h-full rounded-full ${pct >= 75 ? "bg-primary" : "bg-error"}`} style={{ width: `${Math.min(100, pct)}%` }} />
                 </div>
                 <p className="text-[10px] text-on-surface-variant mt-1">{attended}/{total} classes attended</p>
@@ -290,7 +292,7 @@ export default function App() {
 
         {/* ── HEADER ── */}
         <header className={`h-16 border-b flex justify-between items-center px-4 sm:px-6 sticky top-0 z-30 transition-colors duration-300 ${
-          isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-slate-200"
+          isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"
         }`}>
           <div className="flex items-center gap-3">
             {/* Hamburger (mobile) */}
@@ -367,10 +369,11 @@ export default function App() {
                 onMarkAttendance={handleMarkAttendance}
                 onOpenAttendanceLog={handleOpenAttendanceLog}
                 setActiveTab={setActiveTab}
+                isDarkMode={isDarkMode}
               />
             )}
             {activeTab === "attendance" && (
-              <AttendancePage subjects={subjects} onUpdateSubjectHours={handleUpdateSubjectHours} />
+              <AttendancePage subjects={subjects} onUpdateSubjectHours={handleUpdateSubjectHours} isDarkMode={isDarkMode} />
             )}
             {activeTab === "resources" && (
               <ResourcesPage subjects={subjects} />
@@ -387,13 +390,13 @@ export default function App() {
               <TimetablePage onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")} />
             )}
             {activeTab === "analytics" && (
-              <AnalyticsPage subjects={subjects} />
+              <AnalyticsPage subjects={subjects} isDarkMode={isDarkMode} />
             )}
           </div>
         </div>
 
         {/* ── MOBILE BOTTOM NAV ── */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t flex items-center justify-around h-16 bg-[#0b1326] border-[#3b4a42]/30 px-2">
+        <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t flex items-center justify-around h-16 px-2 ${isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"}`}>
           {navItems.slice(0, 5).map((nav) => {
             const isActive = activeTab === nav.id;
             return (

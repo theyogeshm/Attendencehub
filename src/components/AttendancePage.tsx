@@ -10,9 +10,10 @@ import { Calculator, Calendar, ArrowUpRight, Award, Trash2, Edit } from "lucide-
 interface AttendancePageProps {
   subjects: Subject[];
   onUpdateSubjectHours: (id: string, attended: number, total: number) => void;
+  isDarkMode: boolean;
 }
 
-export default function AttendancePage({ subjects, onUpdateSubjectHours }: AttendancePageProps) {
+export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkMode }: AttendancePageProps) {
   // Calculator Form States
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(subjects[0]?.id || "");
   const [classesToMiss, setClassesToMiss] = useState<number>(1);
@@ -50,7 +51,9 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours }: Atten
       projectedPercentage = rate.toFixed(1);
       if (rate >= 75) {
         projectedStatusBadge = "Safe";
-        projectedStatusColor = "text-[#1ae7a6] bg-[#1ae7a6]/10 border-[#1ae7a6]/20";
+        projectedStatusColor = isDarkMode
+          ? "text-[#1ae7a6] bg-[#1ae7a6]/10 border-[#1ae7a6]/20"
+          : "text-[#065F46] bg-[#D1FAE5] border-[#065F46]/20";
         verdictText = `"You're in the clear. Go grab that coffee!"`;
       } else {
         projectedStatusBadge = "Danger";
@@ -67,8 +70,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours }: Atten
         <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
           <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">AGGREGATE ATTENDANCE</p>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-extrabold text-[#1ae7a6] tracking-tight">{aggregateAttendance.toFixed(1)}%</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${aggregateAttendance >= 75 ? 'bg-[#1ae7a6]/10 text-[#1ae7a6]' : 'bg-error/10 text-error'}`}>
+            <span className={`text-3xl font-extrabold tracking-tight ${isDarkMode ? "text-[#1ae7a6]" : "text-[#00C896]"}`}>{aggregateAttendance.toFixed(1)}%</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${aggregateAttendance >= 75 ? (isDarkMode ? "bg-[#1ae7a6]/10 text-[#1ae7a6]" : "bg-[#D1FAE5] text-[#065F46]") : "bg-error/10 text-error"}`}>
               {aggregateAttendance >= 75 ? 'SAFE' : 'RISKY'}
             </span>
           </div>
@@ -119,7 +122,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours }: Atten
                         <h4 className="font-bold text-base text-on-surface tracking-tight">{sub.name}</h4>
                         <p className="text-xs text-on-surface-variant mt-1">{sub.prof} • {sub.time}</p>
                       </div>
-                      <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono ${isSafe ? 'bg-primary/10 text-[#47ffbc]' : 'bg-error/10 text-error'}`}>
+                      <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono ${isSafe ? (isDarkMode ? "bg-primary/10 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
                         {isSafe ? "Safe" : "Danger"}
                       </span>
                     </div>
@@ -167,7 +170,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours }: Atten
                       {/* Bar indicator */}
                       <div className="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden">
                         <div 
-                          className={`h-full progress-glow transition-all duration-300 ${isSafe ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-error'}`}
+                          className={`h-full progress-glow transition-all duration-300 ${isSafe ? (isDarkMode ? "bg-gradient-to-r from-primary to-secondary" : "bg-[#00C896]") : (isDarkMode ? "bg-error" : "bg-[#E53E3E]")}`}
                           style={{ width: `${Math.min(100, attendanceRate)}%` }}
                         ></div>
                       </div>

@@ -26,6 +26,7 @@ interface DashboardPageProps {
   onMarkAttendance: (subjectId: string, status: AttendanceStatus) => void;
   onOpenAttendanceLog: (date?: number) => void;
   setActiveTab: (tab: string) => void;
+  isDarkMode: boolean;
 }
 
 // Day index → timetable day key
@@ -48,6 +49,7 @@ export default function DashboardPage({
   onMarkAttendance,
   onOpenAttendanceLog,
   setActiveTab,
+  isDarkMode,
 }: DashboardPageProps) {
   const today = new Date();
   const todayDayIndex = today.getDay(); // 0=Sun,1=Mon,...,6=Sat
@@ -121,10 +123,10 @@ export default function DashboardPage({
             <span className="material-symbols-outlined text-[#82ffc8] text-xl">analytics</span>
           </div>
           <div className="mt-3">
-            <h3 className="text-3xl font-bold text-[#82ffc8] font-sans tracking-tight">{aggregateAtt.toFixed(1)}%</h3>
-            <div className="w-full bg-[#2d3449] h-1.5 rounded-full mt-2 overflow-hidden">
+            <h3 className={`text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>{aggregateAtt.toFixed(1)}%</h3>
+            <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
               <div
-                className="h-full bg-gradient-to-r from-primary-container to-secondary rounded-full transition-all duration-700"
+                className={`h-full rounded-full transition-all duration-700 ${isDarkMode ? "bg-gradient-to-r from-primary-container to-secondary" : "bg-[#00C896]"}`}
                 style={{ width: `${Math.min(100, aggregateAtt)}%` }}
               />
             </div>
@@ -183,7 +185,7 @@ export default function DashboardPage({
             <span className="material-symbols-outlined text-[#7bd0ff] text-xl">calendar_month</span>
           </div>
           <div className="mt-3">
-            <h3 className="text-3xl font-bold text-[#7bd0ff] font-sans tracking-tight">Week {academicWeek}</h3>
+            <h3 className={`text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#7bd0ff]" : "text-[#111827]"}`}>Week {academicWeek}</h3>
             <p className="text-[10px] text-on-surface-variant mt-1.5">
               {today.toLocaleDateString("en-IN", { weekday: "long", month: "short", day: "numeric" })}
             </p>
@@ -241,8 +243,8 @@ export default function DashboardPage({
                     <div className="flex items-center gap-4">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center border border-outline-variant transition-colors ${
                         isLab
-                          ? "bg-[#222a3d] text-secondary group-hover:bg-secondary group-hover:text-[#001e2c]"
-                          : "bg-[#222a3d] text-primary group-hover:bg-[#1ae7a6] group-hover:text-[#002114]"
+                          ? (isDarkMode ? "bg-[#222a3d]" : "bg-[#F3F4F6]") + " text-secondary group-hover:bg-secondary group-hover:text-[#001e2c]"
+                          : (isDarkMode ? "bg-[#222a3d]" : "bg-[#F3F4F6]") + " text-primary group-hover:bg-[#1ae7a6] group-hover:text-[#002114]"
                       }`}>
                         <span className="material-symbols-outlined text-[22px]">{icon}</span>
                       </div>
@@ -250,13 +252,19 @@ export default function DashboardPage({
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-semibold text-sm text-on-surface">{slot.subjectName}</h4>
                           <span className={`text-[9px] px-2 py-0.5 rounded uppercase font-bold font-mono ${
-                            isLab ? "bg-secondary/10 text-secondary" : "bg-[rgba(26,231,166,0.1)] text-[#1AE7A6]"
+                            isLab
+                              ? "bg-secondary/10 text-secondary"
+                              : isDarkMode
+                                ? "bg-[rgba(26,231,166,0.1)] text-[#1AE7A6]"
+                                : "bg-[#D1FAE5] text-[#065F46]"
                           }`}>
                             {slot.type ?? "LEC"}
                           </span>
                           {attPct && (
                             <span className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold ${
-                              Number(attPct) >= 75 ? "bg-primary/10 text-primary" : "bg-error/10 text-error"
+                              Number(attPct) >= 75
+                                ? isDarkMode ? "bg-primary/10 text-primary" : "bg-[#D1FAE5] text-[#065F46]"
+                                : isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]"
                             }`}>
                               {attPct}%
                             </span>
@@ -391,7 +399,9 @@ export default function DashboardPage({
                     onClick={() => past ? onOpenAttendanceLog(day) : undefined}
                     className={`relative py-1 rounded-lg text-[11px] font-medium transition-colors ${
                       tod
-                        ? "bg-primary text-[#002114] font-extrabold shadow-sm ring-2 ring-primary-container ring-offset-1 ring-offset-[#0b1326]"
+                        ? isDarkMode
+                          ? "bg-primary text-[#002114] font-extrabold shadow-sm ring-2 ring-primary-container ring-offset-1 ring-offset-[#0b1326]"
+                          : "bg-[#1AE7A6] text-white font-extrabold shadow-sm ring-2 ring-[#1AE7A6]/30 ring-offset-1 ring-offset-white"
                         : past
                         ? "hover:bg-[#222a3d] text-on-surface-variant cursor-pointer hover:text-primary"
                         : "text-on-surface-variant/60 cursor-default"
@@ -451,7 +461,7 @@ export default function DashboardPage({
 
           {/* Hackathon strip */}
           <div className="relative rounded-2xl overflow-hidden h-36 group shadow-md border border-outline-variant">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0b1326] via-[#1a2a3e] to-[#0b1326]" />
+            <div className={`absolute inset-0 bg-gradient-to-br ${isDarkMode ? "from-[#0b1326] via-[#1a2a3e] to-[#0b1326]" : "from-[#F0FDF9] via-[#ECFDF5] to-[#F0FDF9]"}`} />
             <div className="absolute inset-0 flex flex-col justify-end p-4">
               <span className="text-[10px] font-mono text-primary font-bold uppercase tracking-widest block mb-1">Upcoming Hackathon</span>
               <h5 className="text-on-surface font-bold text-sm mb-1.5 leading-tight">Code-A-Thon 2026</h5>

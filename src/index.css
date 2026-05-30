@@ -118,3 +118,84 @@ body {
   font-family: "Poppins", system-ui, sans-serif;
   background-color: #0b1326;
 }
+
+/* ── LIGHT MODE OVERRIDES ────────────────────────────────────────────────── */
+
+/* 1. CSS custom property overrides under .light class */
+.light {
+  --color-background: #F8F9FA;
+  --color-surface: #FFFFFF;
+  --color-surface-dim: #F3F4F6;
+  --color-surface-bright: #FFFFFF;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #F8F9FA;
+  --color-surface-container: #FFFFFF;
+  --color-surface-container-high: #F3F4F6;
+  --color-surface-container-highest: #E5E7EB;
+  --color-surface-variant: #F9FAFB;
+  --color-on-surface: #111827;
+  --color-on-surface-variant: #6B7280;
+  --color-on-background: #111827;
+  --color-outline: #D1D5DB;
+  --color-outline-variant: #E5E7EB;
+
+  /* Safe/green overrides */
+  --color-primary: #00C896;
+  --color-primary-container: #00C896;
+  --color-primary-fixed: #00C896;
+  --color-primary-fixed-dim: #00C896;
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #FFFFFF;
+  --color-on-primary-fixed: #065F46;
+
+  /* Danger/red overrides */
+  --color-error: #E53E3E;
+  --color-error-container: #FEE2E2;
+  --color-on-error: #FFFFFF;
+  --color-on-error-container: #991B1B;
+}
+
+/* 2. Body background for light mode */
+.light body {
+  background-color: #F8F9FA;
+}
+
+/* 3. Glass card — clean white with shadow in light mode */
+.light .glass-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 4. Scrollbar for light mode */
+.light .custom-scrollbar::-webkit-scrollbar-track { background: #F8F9FA; }
+.light .custom-scrollbar::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
+.light .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* 5. Hardcoded dark background overrides */
+html.light .bg-\[\#0b1326\] { background-color: #FFFFFF; }
+html.light .bg-\[\#060e20\] { background-color: #F3F4F6; }
+html.light .bg-\[\#171f33\] { background-color: #E5E7EB; }
+html.light .bg-\[\#1a2a3e\] { background-color: #F8FAFC; }
+html.light .bg-\[\#222a3d\] { background-color: #F3F4F6; }
+html.light .bg-\[\#2d3449\] { background-color: #E5E7EB; }
+html.light .bg-\[\#131b2e\] { background-color: #F8F9FA; }
+
+/* 6. Hardcoded hover background overrides */
+html.light .hover\:bg-\[\#2d3449\]:hover { background-color: #F3F4F6; }
+html.light .hover\:bg-\[\#222a3d\]:hover { background-color: #F3F4F6; }
+
+/* 7. Hardcoded text color overrides */
+html.light .text-\[\#82ffc8\] { color: #00C896; }
+html.light .text-\[\#7bd0ff\] { color: #374151; }
+html.light .text-\[\#bacbbf\] { color: #6B7280; }
+html.light .text-\[\#dae2fd\] { color: #374151; }
+
+/* 8. Hardcoded green value overrides */
+html.light .text-\[\#1ae7a6\] { color: #00C896; }
+html.light .text-\[\#47ffbc\] { color: #065F46; }
+html.light .bg-\[\#1ae7a6\]\/10 { background-color: #D1FAE5; }
+html.light .bg-\[rgba\(26\,231\,166\,0\.1\)\] { background-color: #D1FAE5; }
+html.light .text-\[\#1AE7A6\] { color: #00C896; }

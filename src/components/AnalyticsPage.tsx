@@ -13,9 +13,10 @@ import {
 
 interface AnalyticsPageProps {
   subjects: Subject[];
+  isDarkMode: boolean;
 }
 
-export default function AnalyticsPage({ subjects }: AnalyticsPageProps) {
+export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPageProps) {
   const [simulateCount, setSimulateCount] = useState<number>(2);
 
   // Weekly attendance data — week-by-week trend (static demonstration, 8 weeks)
@@ -107,7 +108,7 @@ export default function AnalyticsPage({ subjects }: AnalyticsPageProps) {
 
                   {/* Bar */}
                   <div
-                    className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? "bg-error" : "bg-primary"}`}
+                    className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? (isDarkMode ? "bg-error" : "bg-[#FF6B6B]") : (isDarkMode ? "bg-primary" : "bg-[#00C896]")}`}
                     style={{ height: `${bar.pct}%` }}
                   />
                   <span className="mt-2 text-[10px] text-on-surface-variant font-bold font-mono">{bar.week}</span>
@@ -119,20 +120,20 @@ export default function AnalyticsPage({ subjects }: AnalyticsPageProps) {
           {/* Legend */}
           <div className="flex items-center gap-6 pt-2 border-t border-outline-variant/30">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-primary" />
+              <div className={`w-3 h-3 rounded-sm ${isDarkMode ? "bg-primary" : "bg-[#00C896]"}`} />
               <span className="text-[10px] text-on-surface-variant">Above 75% (Safe)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-error" />
+              <div className={`w-3 h-3 rounded-sm ${isDarkMode ? "bg-error" : "bg-[#FF6B6B]"}`} />
               <span className="text-[10px] text-on-surface-variant">Below 75% (Danger)</span>
             </div>
           </div>
         </div>
 
         {/* Danger Zone Alerts */}
-        <div className="lg:col-span-4 glass-card rounded-2xl p-6 flex flex-col">
+        <div className={`lg:col-span-4 rounded-2xl p-6 flex flex-col ${isDarkMode ? "glass-card" : "bg-[#FFF5F5] border-[1.5px] border-[#FF6B6B]"}`}>
           <div>
-            <h3 className="font-bold text-base text-error flex items-center gap-1.5 mb-1">
+            <h3 className={`font-bold text-base flex items-center gap-1.5 mb-1 ${isDarkMode ? "text-error" : "text-[#CC0000]"}`}>
               <AlertTriangle className="w-4 h-4" />
               <span>Danger Zone</span>
             </h3>
@@ -154,14 +155,14 @@ export default function AnalyticsPage({ subjects }: AnalyticsPageProps) {
                   return (
                     <div
                       key={sub.id}
-                      className="p-3.5 bg-error-container/10 border border-error/20 hover:border-error/40 hover:bg-error-container/15 rounded-xl flex justify-between items-center transition-all cursor-pointer"
+                      className={`p-3.5 rounded-xl flex justify-between items-center transition-all cursor-pointer ${isDarkMode ? "bg-error-container/10 border border-error/20 hover:border-error/40 hover:bg-error-container/15" : "bg-[#FFF5F5] border border-[#FF6B6B]/50 hover:border-[#FF6B6B] hover:bg-[#FFF0F0]"}`}
                     >
                       <div>
-                        <p className="text-xs font-bold text-error">{sub.name}</p>
+                        <p className={`text-xs font-bold ${isDarkMode ? "text-error" : "text-[#CC0000]"}`}>{sub.name}</p>
                         <p className="text-2xl font-black mt-0.5 text-on-surface leading-none font-mono">{rate.toFixed(0)}%</p>
                       </div>
                       <div className="text-right space-y-1">
-                        <span className="text-[9px] text-error font-bold font-mono px-2 py-0.5 bg-error/10 border border-error/20 rounded block">
+                        <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded block ${isDarkMode ? "text-error bg-error/10 border border-error/20" : "text-[#CC0000] bg-[#FFF5F5] border border-[#FF6B6B]/40"}`}>
                           NEED +{needed} CLASSES
                         </span>
                         <span className="text-[9px] text-on-surface-variant font-mono block">{sub.attendanceCount}/{sub.totalClasses} attended</span>
