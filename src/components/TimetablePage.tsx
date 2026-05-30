@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { TimetableSlot } from "../types";
 import { TIMETABLE_SLOTS } from "../data";
-import { Download, Edit2, Lightbulb, Bell, Calendar, ChevronRight, Info } from "lucide-react";
+import { Download, Edit2, Lightbulb, Bell, Calendar, ChevronRight } from "lucide-react";
 
 interface TimetablePageProps {
   onMarkAttendance: (subjectId: string, isPresent: boolean) => void;
@@ -72,103 +72,121 @@ export default function TimetablePage({ onMarkAttendance }: TimetablePageProps) 
         </div>
       </div>
 
-      {/* Grid container with responsive warnings */}
+      {/* Timetable Grid — horizontal scroll on ALL screen sizes */}
       <div className="glass-card rounded-2xl overflow-hidden border border-outline-variant shadow-lg">
-        {/* Mobile Landscape suggestion */}
-        <div className="lg:hidden p-4 bg-secondary-container/10 text-secondary rounded-xl mb-4 mx-4 mt-4 flex items-center gap-2">
-          <Info className="w-4 h-4 flex-shrink-0" />
-          <p className="text-xs font-semibold">Swipe horizontal or rotate screen for the full 8-slot weekly grid.</p>
-        </div>
+        <div className="overflow-x-auto w-full timetable-scroll">
+          <table style={{ minWidth: '900px', borderCollapse: 'collapse', width: '100%' }}>
 
-        <div className="overflow-x-auto custom-scrollbar">
-          <div className="min-w-[1000px] bg-outline-variant/30 grid grid-cols-[100px_repeat(8,_1fr)] gap-[1px]">
-            
-            {/* First Row of headers (TimeSlots) */}
-            <div className="bg-[#131b2e] flex items-center justify-center p-4 text-center font-bold text-[11px] text-on-surface-variant font-mono">
-              DAYS
-            </div>
-            {timeSlots.map((time) => (
-              <div 
-                key={time} 
-                className={`bg-[#131b2e] flex items-center justify-center p-4 text-center font-bold text-[11px] font-mono ${
-                  time === "12:00 - 01:00" ? 'text-on-surface-variant' : 'text-primary'
-                }`}
-              >
-                {time}
-              </div>
-            ))}
+            {/* ── Sticky header row ── */}
+            <thead className="sticky top-0" style={{ zIndex: 2 }}>
+              <tr>
+                {/* DAYS corner cell — sticky on both axes */}
+                <th
+                  className="sticky left-0 bg-[#131b2e] text-center font-bold text-[11px] text-on-surface-variant font-mono border-b border-r border-outline-variant/30"
+                  style={{ width: '70px', minWidth: '70px', padding: '14px 10px', zIndex: 3 }}
+                >
+                  DAYS
+                </th>
+                {timeSlots.map((time) => (
+                  <th
+                    key={time}
+                    className={`bg-[#131b2e] text-center font-bold text-[11px] font-mono border-b border-r border-outline-variant/30 ${
+                      time === "12:00 - 01:00" ? 'text-on-surface-variant' : 'text-primary'
+                    }`}
+                    style={{ minWidth: '100px', padding: '14px 8px' }}
+                  >
+                    {time}
+                  </th>
+                ))}
+              </tr>
+            </thead>
 
-            {/* Days blocks row by row */}
-            {days.map((day) => {
-              const isToday = day === todayKey;
-              return (
-                <div key={day} className="contents">
-                  {/* Days column */}
-                  <div className={`flex items-center justify-center p-4 text-center font-bold text-xs font-mono bg-[#131b2e] border-b border-outline-variant/30 ${isToday ? 'text-primary' : 'text-on-surface'}`}>
-                    {day}
-                  </div>
-                  
-                  {/* Timeslots blocks */}
-                  {timeSlots.map((time, idx) => {
-                    const slot = getSlot(day, time);
-                    if (!slot) return null; // handled if colSpan overlaps
+            {/* ── Table body ── */}
+            <tbody>
+              {days.map((day) => {
+                const isToday = day === todayKey;
+                return (
+                  <tr key={day}>
 
-                    const isLunch = slot.isLunch;
-                    const isColSpan2 = slot.colSpan === 2;
-                    let styleStr = "p-3 relative flex flex-col justify-between border-b border-outline-variant/10 text-left min-h-[90px] transition-all cursor-pointer ";
-                    
-                    // Specific highlight styles
-                    if (isLunch) {
-                      styleStr += "bg-surface-container-highest/60 text-center items-center justify-center font-mono font-bold text-[10px] tracking-widest text-on-surface-variant";
-                    } else if (isToday) {
-                      styleStr += "bg-primary-container/5 hover:bg-primary-container/15 border-b-2 border-primary-fixed ";
-                    } else {
-                      styleStr += "bg-[#171f33] hover:bg-[#2d3449] ";
-                    }
+                    {/* Sticky DAYS column */}
+                    <td
+                      className={`sticky left-0 text-center font-bold text-xs font-mono bg-[#131b2e] border-b border-r border-outline-variant/30 ${
+                        isToday ? 'text-primary' : 'text-on-surface'
+                      }`}
+                      style={{ width: '70px', minWidth: '70px', padding: '14px 10px', zIndex: 1 }}
+                    >
+                      {day}
+                    </td>
 
-                    if (slot.specialColor === "secondary") {
-                      styleStr += "border-l-2 border-secondary bg-secondary-container/5 ";
-                    } else if (slot.specialColor === "primary-live" || slot.specialColor === "primary") {
-                      styleStr += "border-l-2 border-primary bg-primary-container/10 ";
-                    } else if (slot.specialColor === "error") {
-                      styleStr += "border-l-2 border-error bg-error-container/5 ";
-                    }
+                    {/* Time slot cells */}
+                    {timeSlots.map((time, idx) => {
+                      const slot = getSlot(day, time);
+                      if (!slot) return null;
 
-                    return (
-                      <div 
-                        key={`${day}-${idx}`}
-                        className={`${styleStr} ${isColSpan2 ? 'col-span-2' : ''}`}
-                        onClick={() => handleCellClick(slot)}
-                      >
-                        {isLunch ? (
-                          <span>LUNCH</span>
-                        ) : (
-                          <>
-                            <div>
-                              <span className={`block font-semibold text-xs tracking-tight ${
+                      const isLunch = slot.isLunch;
+                      const isColSpan2 = slot.colSpan === 2;
+                      const isFreeSlot = slot.subjectName === "Free Slot" || slot.subjectName === "Library";
+
+                      let cellClass = "border border-outline-variant/10 align-top transition-all cursor-pointer ";
+
+                      if (isLunch) {
+                        cellClass += "bg-surface-container-highest/60 text-center ";
+                      } else if (isToday) {
+                        cellClass += "bg-primary-container/5 hover:bg-primary-container/15 border-b-2 border-primary-fixed ";
+                      } else {
+                        cellClass += "bg-[#171f33] hover:bg-[#2d3449] ";
+                      }
+
+                      if (slot.specialColor === "secondary") {
+                        cellClass += "border-l-2 border-secondary bg-secondary-container/5 ";
+                      } else if (slot.specialColor === "primary-live" || slot.specialColor === "primary") {
+                        cellClass += "border-l-2 border-primary bg-primary-container/10 ";
+                      } else if (slot.specialColor === "error") {
+                        cellClass += "border-l-2 border-error bg-error-container/5 ";
+                      }
+
+                      if (isFreeSlot) cellClass += "opacity-40 ";
+
+                      return (
+                        <td
+                          key={`${day}-${idx}`}
+                          colSpan={isColSpan2 ? 2 : 1}
+                          onClick={() => handleCellClick(slot)}
+                          className={cellClass}
+                          style={{ height: '90px', padding: '10px 12px', verticalAlign: 'top' }}
+                        >
+                          {isLunch ? (
+                            <span className="text-on-surface-variant font-mono font-bold text-[10px] tracking-widest">
+                              LUNCH
+                            </span>
+                          ) : (
+                            <>
+                              <span className={`block timetable-subject tracking-tight ${
                                 slot.specialColor === "primary-live" ? 'text-primary' : 'text-on-surface'
                               }`}>
                                 {slot.subjectName}
                               </span>
-                              {slot.room && <span className="block text-[10px] text-on-surface-variant mt-0.5">{slot.room}</span>}
-                            </div>
-                            
-                            {/* Live Badge if Wed Maths */}
-                            {slot.specialColor === "primary-live" && (
-                              <span className="self-start text-[8px] bg-primary text-[#002114] font-extrabold px-1.5 py-0.5 rounded font-mono mt-1">
-                                LIVE NOW
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                              {slot.room && (
+                                <span className="block timetable-room text-on-surface-variant mt-0.5 opacity-70">
+                                  {slot.room}
+                                </span>
+                              )}
+                              {slot.specialColor === "primary-live" && (
+                                <span className="inline-block text-[8px] bg-primary text-[#002114] font-extrabold px-1.5 py-0.5 rounded font-mono mt-1">
+                                  LIVE NOW
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
 
-          </div>
+          </table>
         </div>
       </div>
 

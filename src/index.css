@@ -199,3 +199,22 @@ html.light .text-\[\#47ffbc\] { color: #065F46; }
 html.light .bg-\[\#1ae7a6\]\/10 { background-color: #D1FAE5; }
 html.light .bg-\[rgba\(26\,231\,166\,0\.1\)\] { background-color: #D1FAE5; }
 html.light .text-\[\#1AE7A6\] { color: #00C896; }
+
+/* ── TIMETABLE RESPONSIVE STYLES ─────────────────────────────────────────── */
+
+/* Custom horizontal scrollbar — thin, green accent */
+.timetable-scroll { scrollbar-width: thin; scrollbar-color: #1AE7A6 transparent; }
+.timetable-scroll::-webkit-scrollbar { height: 4px; }
+.timetable-scroll::-webkit-scrollbar-track { background: transparent; }
+.timetable-scroll::-webkit-scrollbar-thumb { background: #1AE7A6; border-radius: 10px; }
+.timetable-scroll::-webkit-scrollbar-thumb:hover { background: #00C896; }
+
+/* Subject and room text sizes */
+.timetable-subject { font-size: 13px; font-weight: 600; }
+.timetable-room    { font-size: 11px; }
+
+/* Smaller fonts on very small screens (< 480px) */
+@media (max-width: 480px) {
+  .timetable-subject { font-size: 11px; }
+  .timetable-room    { font-size: 9px; }
+}
