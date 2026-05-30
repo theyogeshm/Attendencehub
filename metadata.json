@@ -1,0 +1,6 @@
+{
+  "name": "DTU Hub",
+  "description": "High-fidelity academic portal featuring a student dashboard, attendance tracker, study resources, assignments timeline, and timetable schedules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
