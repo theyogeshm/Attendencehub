@@ -6,6 +6,8 @@
 import { useState, useEffect } from "react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
 import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS } from "./data";
+import { supabase } from "./lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 // Sub-page components
 import DashboardPage from "./components/DashboardPage";
@@ -14,6 +16,7 @@ import ResourcesPage from "./components/ResourcesPage";
 import AssignmentsPage from "./components/AssignmentsPage";
 import TimetablePage from "./components/TimetablePage";
 import AnalyticsPage from "./components/AnalyticsPage";
+import LoginPage from "./components/LoginPage";
 
 import {
   Sun,
@@ -24,6 +27,7 @@ import {
   MessageSquare,
   Save,
   Edit2,
+  LogOut,
 } from "lucide-react";
 
 // ── Profile type ───────────────────────────────────────────────────────────
@@ -36,11 +40,15 @@ interface StudentProfile {
 }
 
 export default function App() {
-  // Navigation
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Navigation ────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Live persistent states
+  // ── Live persistent states ────────────────────────────────────────────────
   const [subjects, setSubjects] = useState<Subject[]>(() => {
     const saved = localStorage.getItem("DTU_HUB_SUBJECTS");
     return saved ? JSON.parse(saved) : INITIAL_SUBJECTS;
@@ -51,42 +59,42 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_ASSIGNMENTS;
   });
 
-  // Dark / Light Mode
+  // ── Dark / Light Mode ─────────────────────────────────────────────────────
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem("DTU_HUB_THEME");
     return saved !== "light";
   });
 
-  // Global search
+  // ── Global search ─────────────────────────────────────────────────────────
   const [globalSearch, setGlobalSearch] = useState<string>("");
 
-  // Profile
+  // ── Profile ───────────────────────────────────────────────────────────────
   const [profile, setProfile] = useState<StudentProfile>(() => {
     const saved = localStorage.getItem("DTU_HUB_PROFILE");
     return saved ? JSON.parse(saved) : {
-      name: "Aryan Sharma",
-      rollNo: "2K24/CSE/042",
+      name: "Student",
+      rollNo: "2K24/---/---",
       branch: "Computer Science & Engineering",
       semester: "2nd Semester",
       section: "A",
     };
   });
 
-  // Modals
+  // ── Modals ────────────────────────────────────────────────────────────────
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceLogModal, setShowAttendanceLogModal] = useState(false);
   const [attendanceLogDate, setAttendanceLogDate] = useState<number | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
-  // Profile editing state
+  // ── Profile editing state ─────────────────────────────────────────────────
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
 
-  // Feedback form
+  // ── Feedback form ─────────────────────────────────────────────────────────
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackEmail, setFeedbackEmail] = useState("");
 
-  // ── Sync localStorage ────────────────────────────────────────────────────
+  // ── Sync localStorage ─────────────────────────────────────────────────────
   useEffect(() => { localStorage.setItem("DTU_HUB_SUBJECTS", JSON.stringify(subjects)); }, [subjects]);
   useEffect(() => { localStorage.setItem("DTU_HUB_ASSIGNMENTS", JSON.stringify(assignments)); }, [assignments]);
   useEffect(() => { localStorage.setItem("DTU_HUB_PROFILE", JSON.stringify(profile)); }, [profile]);
@@ -101,85 +109,254 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // ── Attendance handler (4 statuses) ─────────────────────────────────────
-  const handleMarkAttendance = (subjectId: string, status: AttendanceStatus) => {
-    setSubjects((prev) =>
-      prev.map((sub) => {
-        if (sub.id !== subjectId) return sub;
-        switch (status) {
-          case "present":
-            return { ...sub, attendanceCount: sub.attendanceCount + 1, totalClasses: sub.totalClasses + 1 };
-          case "absent":
-            return { ...sub, totalClasses: sub.totalClasses + 1 };
-          case "miss":
-            // Miss = absent without counting against — totalClasses increments, present doesn't
-            return { ...sub, totalClasses: sub.totalClasses + 1 };
-          case "leave":
-            // Leave = doesn't count at all (medical/sanctioned)
-            return sub;
-          default:
-            return sub;
-        }
-      })
-    );
+  // ── Auth: listen to session changes ───────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) loadUserData(u);
+      else setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) loadUserData(u);
+      else {
+        setAuthLoading(false);
+        setSubjects(INITIAL_SUBJECTS);
+        setAssignments(INITIAL_ASSIGNMENTS);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Load user data from Supabase ──────────────────────────────────────────
+  const loadUserData = async (u: User) => {
+    setAuthLoading(true);
+    try {
+      // 1. Profile
+      const { data: pData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", u.id)
+        .single();
+
+      if (pData) {
+        setProfile({
+          name:     pData.full_name  || u.user_metadata?.full_name || "Student",
+          rollNo:   pData.roll_no    || "2K24/---/---",
+          branch:   pData.branch     || "Computer Science & Engineering",
+          semester: pData.semester   || "2nd Semester",
+          section:  pData.section    || "A",
+        });
+      } else {
+        // First login — create profile row
+        const displayName = u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
+        await supabase.from("profiles").insert({
+          id:         u.id,
+          email:      u.email,
+          full_name:  displayName,
+          avatar_url: u.user_metadata?.avatar_url ?? null,
+        });
+        setProfile(prev => ({ ...prev, name: displayName }));
+      }
+
+      // 2. Attendance
+      const { data: attData } = await supabase
+        .from("attendance")
+        .select("*")
+        .eq("user_id", u.id);
+
+      if (attData && attData.length > 0) {
+        setSubjects(prev =>
+          prev.map(sub => {
+            const saved = attData.find(a => a.subject_id === sub.id);
+            return saved
+              ? { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes }
+              : sub;
+          })
+        );
+      }
+
+      // 3. Assignments
+      const { data: asgData } = await supabase
+        .from("assignments")
+        .select("*")
+        .eq("user_id", u.id)
+        .order("created_at", { ascending: false });
+
+      if (asgData && asgData.length > 0) {
+        setAssignments(
+          asgData.map(a => ({
+            id:          a.id,
+            title:       a.title,
+            description: a.description,
+            subjectId:   a.subject_id,
+            subjectName: a.subject_name,
+            dueDate:     a.due_date,
+            status:      a.status as "URGENT" | "UPCOMING" | "COMPLETED",
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("loadUserData error:", err);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // ── Sign out ──────────────────────────────────────────────────────────────
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSubjects(INITIAL_SUBJECTS);
+    setAssignments(INITIAL_ASSIGNMENTS);
+    setProfile({ name: "Student", rollNo: "2K24/---/---", branch: "Computer Science & Engineering", semester: "2nd Semester", section: "A" });
+    setShowProfileModal(false);
+  };
+
+  // ── Attendance handler (4 statuses) ──────────────────────────────────────
+  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus) => {
+    const currentSub = subjects.find(s => s.id === subjectId);
+    if (!currentSub) return;
+
+    let updated = { ...currentSub };
+    switch (status) {
+      case "present": updated = { ...currentSub, attendanceCount: currentSub.attendanceCount + 1, totalClasses: currentSub.totalClasses + 1 }; break;
+      case "absent":
+      case "miss":    updated = { ...currentSub, totalClasses: currentSub.totalClasses + 1 }; break;
+      case "leave":   break; // no change
+    }
+
+    setSubjects(prev => prev.map(sub => sub.id === subjectId ? updated : sub));
+
+    if (user && status !== "leave") {
+      await supabase.from("attendance").upsert({
+        user_id:          user.id,
+        subject_id:       updated.id,
+        subject_name:     updated.name,
+        attendance_count: updated.attendanceCount,
+        total_classes:    updated.totalClasses,
+        updated_at:       new Date().toISOString(),
+      }, { onConflict: "user_id,subject_id" });
+    }
+
     const labels: Record<AttendanceStatus, string> = {
       present: "✅ Present marked",
-      absent: "❌ Absent marked",
-      miss: "☕ Missed (counted as absent)",
-      leave: "✈️ Leave — not counted",
+      absent:  "❌ Absent marked",
+      miss:    "☕ Missed (counted as absent)",
+      leave:   "✈️ Leave — not counted",
     };
-    const name = subjects.find(s => s.id === subjectId)?.name ?? subjectId;
-    // brief non-blocking toast via title temporarily (avoids alert() blocking)
-    console.log(`${labels[status]} for ${name}`);
+    console.log(`${labels[status]} for ${currentSub.name}`);
   };
 
-  // ── Attendance adjustment (from attendance page) ─────────────────────────
-  const handleUpdateSubjectHours = (id: string, attended: number, total: number) => {
-    setSubjects((prev) =>
-      prev.map((sub) =>
-        sub.id === id ? { ...sub, attendanceCount: Math.max(0, attended), totalClasses: Math.max(0, total) } : sub
-      )
+  // ── Attendance adjustment (from attendance page) ──────────────────────────
+  const handleUpdateSubjectHours = async (id: string, attended: number, total: number) => {
+    const newAttended = Math.max(0, attended);
+    const newTotal    = Math.max(0, total);
+
+    setSubjects(prev =>
+      prev.map(sub => sub.id === id ? { ...sub, attendanceCount: newAttended, totalClasses: newTotal } : sub)
     );
+
+    if (user) {
+      const sub = subjects.find(s => s.id === id);
+      if (sub) {
+        await supabase.from("attendance").upsert({
+          user_id:          user.id,
+          subject_id:       id,
+          subject_name:     sub.name,
+          attendance_count: newAttended,
+          total_classes:    newTotal,
+          updated_at:       new Date().toISOString(),
+        }, { onConflict: "user_id,subject_id" });
+      }
+    }
   };
 
-  // ── Assignments CRUD ─────────────────────────────────────────────────────
-  const handleAddAssignment = (newAsg: Omit<Assignment, "id">) => {
-    const id = `asg-${Date.now()}`;
-    setAssignments((prev) => [{ ...newAsg, id }, ...prev]);
+  // ── Assignments CRUD ──────────────────────────────────────────────────────
+  const handleAddAssignment = async (newAsg: Omit<Assignment, "id">) => {
+    if (user) {
+      const { data, error } = await supabase
+        .from("assignments")
+        .insert({
+          user_id:      user.id,
+          title:        newAsg.title,
+          description:  newAsg.description,
+          subject_id:   newAsg.subjectId,
+          subject_name: newAsg.subjectName,
+          due_date:     newAsg.dueDate,
+          status:       newAsg.status,
+        })
+        .select()
+        .single();
+      if (!error && data) {
+        setAssignments(prev => [{
+          id:          data.id,
+          title:       data.title,
+          description: data.description,
+          subjectId:   data.subject_id,
+          subjectName: data.subject_name,
+          dueDate:     data.due_date,
+          status:      data.status,
+        }, ...prev]);
+      }
+    } else {
+      setAssignments(prev => [{ ...newAsg, id: `asg-${Date.now()}` }, ...prev]);
+    }
   };
 
-  const handleToggleAssignment = (id: string) => {
-    setAssignments((prev) =>
-      prev.map((asg) =>
-        asg.id === id ? { ...asg, status: asg.status === "COMPLETED" ? "UPCOMING" : "COMPLETED" } : asg
-      )
-    );
+  const handleToggleAssignment = async (id: string) => {
+    const asg = assignments.find(a => a.id === id);
+    if (!asg) return;
+    const newStatus = asg.status === "COMPLETED" ? "UPCOMING" : "COMPLETED";
+    setAssignments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+    if (user) {
+      await supabase.from("assignments").update({ status: newStatus }).eq("id", id).eq("user_id", user.id);
+    }
   };
 
-  const handleDeleteAssignment = (id: string) => {
-    setAssignments((prev) => prev.filter((asg) => asg.id !== id));
+  const handleDeleteAssignment = async (id: string) => {
+    setAssignments(prev => prev.filter(a => a.id !== id));
+    if (user) {
+      await supabase.from("assignments").delete().eq("id", id).eq("user_id", user.id);
+    }
   };
 
-  // ── Profile Save ─────────────────────────────────────────────────────────
-  const handleSaveProfile = () => {
+  // ── Profile Save (+ Supabase upsert) ─────────────────────────────────────
+  const handleSaveProfile = async () => {
     setProfile(editProfile);
     setIsEditingProfile(false);
+    if (user) {
+      await supabase.from("profiles").upsert({
+        id:         user.id,
+        email:      user.email,
+        full_name:  editProfile.name,
+        roll_no:    editProfile.rollNo,
+        branch:     editProfile.branch,
+        semester:   editProfile.semester,
+        section:    editProfile.section,
+        updated_at: new Date().toISOString(),
+      });
+    }
   };
 
-  // ── Header title ─────────────────────────────────────────────────────────
+  // ── Header title ──────────────────────────────────────────────────────────
   const getHeaderTitle = () => {
     const m: Record<string, string> = {
-      dashboard: `Welcome back, ${profile.name.split(" ")[0]}`,
-      attendance: "Attendance Tracker",
-      resources: "Academic Resources",
+      dashboard:   `Welcome back, ${profile.name.split(" ")[0]}`,
+      attendance:  "Attendance Tracker",
+      resources:   "Academic Resources",
       assignments: "Assignments Timeline",
-      timetable: "Weekly Schedule Grid",
-      analytics: "Academic Analytics",
+      timetable:   "Weekly Schedule Grid",
+      analytics:   "Academic Analytics",
     };
     return m[activeTab] ?? "DTU Hub";
   };
 
-  // ── Feedback submit ──────────────────────────────────────────────────────
+  // ── Feedback submit ───────────────────────────────────────────────────────
   const handleSubmitFeedback = () => {
     if (!feedbackText.trim()) { alert("Please enter feedback."); return; }
     console.log("Feedback:", feedbackText, feedbackEmail);
@@ -188,13 +365,13 @@ export default function App() {
     alert("Thank you for your feedback! 🙏");
   };
 
-  // ── Open attendance log modal ────────────────────────────────────────────
+  // ── Open attendance log modal ─────────────────────────────────────────────
   const handleOpenAttendanceLog = (date?: number) => {
     setAttendanceLogDate(date ?? null);
     setShowAttendanceLogModal(true);
   };
 
-  // ── Nav items ────────────────────────────────────────────────────────────
+  // ── Nav items ─────────────────────────────────────────────────────────────
   const navItems = [
     { id: "dashboard",   label: "Dashboard",   icon: "dashboard" },
     { id: "attendance",  label: "Attendance",  icon: "event_available" },
@@ -204,6 +381,35 @@ export default function App() {
     { id: "analytics",   label: "Analytics",   icon: "leaderboard" },
   ];
 
+  // ── Google avatar URL ─────────────────────────────────────────────────────
+  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
+  const initials  = profile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Loading screen
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0b1326] flex flex-col items-center justify-center gap-5">
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[#1AE7A6] to-[#00C896] flex items-center justify-center shadow-2xl shadow-[#1AE7A6]/30">
+          <span className="material-symbols-outlined text-[#002114] text-3xl">school</span>
+        </div>
+        <div className="w-7 h-7 border-2 border-[#1AE7A6] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#bacbbf] text-sm font-mono">Loading your workspace...</p>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Auth gate — show login if not signed in
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Main App
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#F8F9FA] text-[#111827]"}`}>
 
@@ -267,23 +473,45 @@ export default function App() {
           })}
         </nav>
 
-        {/* Sidebar footer — attendance summary */}
-        <div className="mx-4 mt-4 p-4 rounded-xl bg-surface-container border border-outline-variant/50">
-          <p className="text-[10px] text-on-surface-variant font-mono uppercase tracking-wider mb-1">Overall Attendance</p>
-          {(() => {
-            const total = subjects.reduce((s, x) => s + x.totalClasses, 0);
-            const attended = subjects.reduce((s, x) => s + x.attendanceCount, 0);
-            const pct = total > 0 ? (attended / total) * 100 : 0;
-            return (
-              <>
-                <p className={`text-xl font-black font-mono ${pct >= 75 ? "text-primary" : "text-error"}`}>{pct.toFixed(1)}%</p>
-                <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
-                  <div className={`h-full rounded-full ${pct >= 75 ? "bg-primary" : "bg-error"}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                </div>
-                <p className="text-[10px] text-on-surface-variant mt-1">{attended}/{total} classes attended</p>
-              </>
-            );
-          })()}
+        {/* Sidebar footer — attendance summary + logout */}
+        <div className="mx-4 mt-4 space-y-3">
+          <div className="p-4 rounded-xl bg-surface-container border border-outline-variant/50">
+            <p className="text-[10px] text-on-surface-variant font-mono uppercase tracking-wider mb-1">Overall Attendance</p>
+            {(() => {
+              const total   = subjects.reduce((s, x) => s + x.totalClasses, 0);
+              const attended = subjects.reduce((s, x) => s + x.attendanceCount, 0);
+              const pct     = total > 0 ? (attended / total) * 100 : 0;
+              return (
+                <>
+                  <p className={`text-xl font-black font-mono ${pct >= 75 ? "text-primary" : "text-error"}`}>{pct.toFixed(1)}%</p>
+                  <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
+                    <div className={`h-full rounded-full ${pct >= 75 ? "bg-primary" : "bg-error"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                  </div>
+                  <p className="text-[10px] text-on-surface-variant mt-1">{attended}/{total} classes attended</p>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Signed-in user + logout */}
+          <div className="flex items-center gap-2 px-2">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={profile.name} className="w-7 h-7 rounded-full object-cover border border-primary/40" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-[9px] font-black text-[#002114]">{initials}</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-on-surface truncate">{profile.name}</p>
+              <p className="text-[9px] text-on-surface-variant truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
+              title="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -351,10 +579,16 @@ export default function App() {
             {/* Avatar → Profile */}
             <button
               onClick={() => { setEditProfile(profile); setIsEditingProfile(false); setShowProfileModal(true); }}
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-[#002114] text-sm hover:scale-105 cursor-pointer transition-transform border-2 border-primary-container"
+              className="w-9 h-9 rounded-full overflow-hidden hover:scale-105 cursor-pointer transition-transform border-2 border-primary-container"
               title="View Profile"
             >
-              {profile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-[#002114] text-sm">
+                  {initials}
+                </div>
+              )}
             </button>
           </div>
         </header>
@@ -451,13 +685,18 @@ export default function App() {
 
               {/* Avatar */}
               <div className="flex flex-col items-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-black text-[#002114] text-3xl border-4 border-primary-container mb-3">
-                  {profile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                </div>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={profile.name} className="w-20 h-20 rounded-full object-cover border-4 border-primary-container mb-3" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-black text-[#002114] text-3xl border-4 border-primary-container mb-3">
+                    {initials}
+                  </div>
+                )}
                 {!isEditingProfile && (
                   <>
                     <h3 className="text-lg font-bold text-on-surface">{profile.name}</h3>
                     <p className="text-primary text-xs font-mono font-bold mt-0.5">{profile.rollNo}</p>
+                    {user.email && <p className="text-on-surface-variant text-[10px] mt-0.5">{user.email}</p>}
                   </>
                 )}
               </div>
@@ -466,10 +705,10 @@ export default function App() {
                 /* Edit Form */
                 <div className="space-y-3">
                   {[
-                    { label: "Full Name", key: "name", type: "text" },
-                    { label: "Roll Number", key: "rollNo", type: "text" },
-                    { label: "Branch", key: "branch", type: "text" },
-                    { label: "Semester", key: "semester", type: "text" },
+                    { label: "Full Name",    key: "name",     type: "text" },
+                    { label: "Roll Number",  key: "rollNo",   type: "text" },
+                    { label: "Branch",       key: "branch",   type: "text" },
+                    { label: "Semester",     key: "semester", type: "text" },
                   ].map(({ label, key, type }) => (
                     <div key={key}>
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">{label}</label>
@@ -511,10 +750,10 @@ export default function App() {
                 /* View Mode */
                 <div className="space-y-2">
                   {[
-                    { label: "Branch", value: profile.branch },
+                    { label: "Branch",   value: profile.branch },
                     { label: "Semester", value: profile.semester },
-                    { label: "Section", value: profile.section },
-                    { label: "Roll Number", value: profile.rollNo },
+                    { label: "Section",  value: profile.section },
+                    { label: "Roll No.", value: profile.rollNo },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex justify-between border-b border-outline-variant/30 py-1.5">
                       <span className="text-on-surface-variant text-xs font-medium">{label}</span>
@@ -539,6 +778,14 @@ export default function App() {
                     <Edit2 className="w-3.5 h-3.5" />
                     Edit Profile
                   </button>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full border border-error/30 text-error py-2.5 rounded-xl font-bold text-xs hover:bg-error/10 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign Out
+                  </button>
                 </div>
               )}
             </div>
@@ -554,9 +801,7 @@ export default function App() {
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="font-bold text-lg text-on-surface mb-1">
-                Attendance Log
-              </h3>
+              <h3 className="font-bold text-lg text-on-surface mb-1">Attendance Log</h3>
               <p className="text-xs text-on-surface-variant font-mono mb-5">
                 {attendanceLogDate
                   ? `${attendanceLogDate} ${new Date().toLocaleString("default", { month: "long" })} ${new Date().getFullYear()}`
