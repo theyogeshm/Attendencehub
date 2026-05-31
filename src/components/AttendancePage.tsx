@@ -100,8 +100,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
 
         <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
-          <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">ACADEMIC WEEK</p>
-          <p className="text-3xl font-extrabold text-[#7bd0ff] tracking-tight">Week 12</p>
+          <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">STATUS</p>
+          <p className="text-3xl font-extrabold text-[#7bd0ff] tracking-tight">Active</p>
         </div>
       </div>
 

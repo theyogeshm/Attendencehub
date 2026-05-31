@@ -781,6 +781,7 @@ export default function App() {
               <Route path="/assignments" element={
                 <AssignmentsPage
                   assignments={assignments}
+                  subjects={subjects}
                   onAddAssignment={handleAddAssignment}
                   onToggleAssignment={handleToggleAssignment}
                   onDeleteAssignment={handleDeleteAssignment}

@@ -5,43 +5,18 @@
 
 import { Subject, Assignment, TimetableSlot } from "./types";
 
-// ── DTU CSE Subjects from dtu_subjects.json (Semesters 1–5) ─────────────────
+// ── DTU CSE Subjects by Semester ─────────────────────────────────────────────
+// NOTE: Add the real subject names for each semester below.
+// These are used during onboarding and profile semester changes.
 export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
-  1: [
-    "Basic ECE",
-    "Mathematics I",
-    "Web Design",
-    "Programming Fundamentals",
-    "Engineering Graphics II",
-  ],
-  2: [
-    "Basics of ML & Applications",
-    "Discrete Structures",
-    "Data Structures and Algorithms",
-    "Mathematics II",
-    "Physics",
-  ],
-  3: [
-    "Object Oriented Programming",
-    "Operating System Design",
-    "Algorithm Design and Analysis",
-    "Digital Electronics",
-    "Software Engineering",
-  ],
-  4: [
-    "Database Management System",
-    "Probability and Statistics",
-    "Theory of Computation",
-    "Computer Communication Networks",
-    "Computer Organisation and Architecture",
-  ],
-  5: [
-    "Engineering Economics",
-    "Machine Learning",
-    "Information Theory and Coding",
-    "Computer Graphics",
-    "Computer Networks",
-  ],
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+  5: [],
+  6: [],
+  7: [],
+  8: [],
 };
 
 // ── Helper: convert a list of subject name strings into Subject objects ───────
@@ -64,75 +39,9 @@ export const INITIAL_SUBJECTS: Subject[] = [];
 
 export const INITIAL_ASSIGNMENTS: Assignment[] = [];
 
-// ─── TIMETABLE: Matches dtuhub.js blueprint schedule ───────────────────────
-// MO: Discrete(8-10), Data Lab(12-2), Physics(2-4)
-// TU: EVS(8-10), Discrete(10-11), Physics Lab(12-2), Maths(2-3)
-// WE: Maths(10-11), Physics(12-1), Data(1-3)
-// TH: Data(10-11), Maths(1-3)
-// FR: Discrete(10-11), Basic ML(12-1), Basic ML Lab(2-4)
+// ── Timetable slots — to be filled in by admin ───────────────────────────────
+export const TIMETABLE_SLOTS: TimetableSlot[] = [];
 
-export const TIMETABLE_SLOTS: TimetableSlot[] = [
-  // ── MONDAY ──
-  { day: "MON", timeSlot: "08:00 - 09:00", subjectName: "Discrete Maths", room: "LHC-102", type: "LEC", specialColor: "primary", colSpan: 2 },
-  // 09:00 skipped (colSpan 2 from 08-10)
-  { day: "MON", timeSlot: "10:00 - 11:00", subjectName: "Free Slot", room: "" },
-  { day: "MON", timeSlot: "11:00 - 12:00", subjectName: "Free Slot", room: "" },
-  { day: "MON", timeSlot: "12:00 - 01:00", subjectName: "LUNCH", room: "", isLunch: true },
-  { day: "MON", timeSlot: "01:00 - 02:00", subjectName: "Data Structures Lab", room: "Lab-A", type: "LAB", specialColor: "secondary", colSpan: 2 },
-  // 02:00 skipped (colSpan 2 from 1-3)
-  { day: "MON", timeSlot: "03:00 - 04:00", subjectName: "Engineering Physics", room: "LHC-201", type: "LEC", specialColor: "primary", colSpan: 2 },
-  // 04:00 would be end
+// ── Subject name → ID map (used for attendance marking from timetable) ────────
+export const SUBJECT_NAME_TO_ID: Record<string, string> = {};
 
-  // ── TUESDAY ──
-  { day: "TUE", timeSlot: "08:00 - 09:00", subjectName: "EVS", room: "Seminar Hall", type: "LEC", specialColor: "primary", colSpan: 2 },
-  // 09:00 skipped
-  { day: "TUE", timeSlot: "10:00 - 11:00", subjectName: "Discrete Maths", room: "LHC-102", type: "LEC" },
-  { day: "TUE", timeSlot: "11:00 - 12:00", subjectName: "Free Slot", room: "" },
-  { day: "TUE", timeSlot: "12:00 - 01:00", subjectName: "LUNCH", room: "", isLunch: true },
-  { day: "TUE", timeSlot: "01:00 - 02:00", subjectName: "Physics Lab", room: "Lab-C", type: "LAB", specialColor: "secondary", colSpan: 2 },
-  // 02:00 skipped
-  { day: "TUE", timeSlot: "03:00 - 04:00", subjectName: "Mathematics IV", room: "LHC-202", type: "LEC" },
-
-  // ── WEDNESDAY ──
-  { day: "WED", timeSlot: "08:00 - 09:00", subjectName: "Free Slot", room: "" },
-  { day: "WED", timeSlot: "09:00 - 10:00", subjectName: "Free Slot", room: "" },
-  { day: "WED", timeSlot: "10:00 - 11:00", subjectName: "Mathematics IV", room: "LHC-202", type: "LEC", specialColor: "primary" },
-  { day: "WED", timeSlot: "11:00 - 12:00", subjectName: "Free Slot", room: "" },
-  { day: "WED", timeSlot: "12:00 - 01:00", subjectName: "Engineering Physics", room: "LHC-201", type: "LEC" },
-  { day: "WED", timeSlot: "01:00 - 02:00", subjectName: "Data Structures", room: "LHC-301", type: "LEC", specialColor: "secondary", colSpan: 2 },
-  // 02:00 skipped
-  { day: "WED", timeSlot: "03:00 - 04:00", subjectName: "Free Slot", room: "" },
-
-  // ── THURSDAY ──
-  { day: "THU", timeSlot: "08:00 - 09:00", subjectName: "Free Slot", room: "" },
-  { day: "THU", timeSlot: "09:00 - 10:00", subjectName: "Free Slot", room: "" },
-  { day: "THU", timeSlot: "10:00 - 11:00", subjectName: "Data Structures", room: "LHC-301", type: "LEC" },
-  { day: "THU", timeSlot: "11:00 - 12:00", subjectName: "Free Slot", room: "" },
-  { day: "THU", timeSlot: "12:00 - 01:00", subjectName: "LUNCH", room: "", isLunch: true },
-  { day: "THU", timeSlot: "01:00 - 02:00", subjectName: "Mathematics IV", room: "LHC-202", type: "LEC", specialColor: "primary", colSpan: 2 },
-  // 02:00 skipped
-  { day: "THU", timeSlot: "03:00 - 04:00", subjectName: "Free Slot", room: "" },
-
-  // ── FRIDAY ──
-  { day: "FRI", timeSlot: "08:00 - 09:00", subjectName: "Free Slot", room: "" },
-  { day: "FRI", timeSlot: "09:00 - 10:00", subjectName: "Free Slot", room: "" },
-  { day: "FRI", timeSlot: "10:00 - 11:00", subjectName: "Discrete Maths", room: "LHC-102", type: "LEC" },
-  { day: "FRI", timeSlot: "11:00 - 12:00", subjectName: "Free Slot", room: "" },
-  { day: "FRI", timeSlot: "12:00 - 01:00", subjectName: "Basic ML", room: "LHC-104", type: "LEC" },
-  { day: "FRI", timeSlot: "01:00 - 02:00", subjectName: "LUNCH", room: "", isLunch: true },
-  { day: "FRI", timeSlot: "02:00 - 03:00", subjectName: "Basic ML Lab", room: "Lab-B", type: "LAB", specialColor: "secondary", colSpan: 2 },
-  // 03:00 skipped
-];
-
-// ── Maps subject name → subject id (for attendance marking from timetable) ──
-export const SUBJECT_NAME_TO_ID: Record<string, string> = {
-  "Mathematics IV": "maths",
-  "Engineering Physics": "physics",
-  "Discrete Maths": "discrete",
-  "Data Structures": "ds",
-  "Data Structures Lab": "ds",
-  "EVS": "evs",
-  "Basic ML": "ml",
-  "Basic ML Lab": "ml",
-  "Physics Lab": "physics",
-};

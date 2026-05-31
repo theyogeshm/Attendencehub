@@ -4,7 +4,7 @@
  */
 
 import { useState, type FormEvent } from "react";
-import { Assignment } from "../types";
+import { Assignment, Subject } from "../types";
 import { 
   Rocket, 
   CheckCircle, 
@@ -22,6 +22,7 @@ import {
 
 interface AssignmentsPageProps {
   assignments: Assignment[];
+  subjects: Subject[];
   onAddAssignment: (assignment: Omit<Assignment, "id">) => void;
   onToggleAssignment: (id: string) => void;
   onDeleteAssignment: (id: string) => void;
@@ -29,6 +30,7 @@ interface AssignmentsPageProps {
 
 export default function AssignmentsPage({
   assignments,
+  subjects,
   onAddAssignment,
   onToggleAssignment,
   onDeleteAssignment,
@@ -36,7 +38,7 @@ export default function AssignmentsPage({
   // Filters & Form States
   const [activeFilter, setActiveFilter] = useState<"All" | "Pending" | "Overdue">("All");
   
-  const [formSubject, setFormSubject] = useState("Mathematics IV");
+  const [formSubject, setFormSubject] = useState(() => subjects[0]?.name ?? "");
   const [formTitle, setFormTitle] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -140,12 +142,11 @@ export default function AssignmentsPage({
                   onChange={(e) => setFormSubject(e.target.value)}
                   className="w-full bg-[#0b1326] border border-outline-variant rounded-xl px-3.5 py-2.5 text-xs text-on-surface outline-none cursor-pointer"
                 >
-                  <option>Mathematics IV</option>
-                  <option>Engineering Physics</option>
-                  <option>Discrete Maths</option>
-                  <option>Data Structures</option>
-                  <option>EVS</option>
-                  <option>Basic ML</option>
+                  {subjects.length === 0 ? (
+                    <option value="" disabled>No subjects — set up profile first</option>
+                  ) : (
+                    subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)
+                  )}
                 </select>
               </div>
 
