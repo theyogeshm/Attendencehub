@@ -30,6 +30,7 @@ import {
   Save,
   Edit2,
   LogOut,
+  Trash2,
 } from "lucide-react";
 
 // ── Profile type ───────────────────────────────────────────────────────────
@@ -355,6 +356,20 @@ export default function App() {
     setProfile({ name: "Student", rollNo: "2K24/---/---", branch: "Computer Science & Engineering", semester: "2nd Semester", section: "A" });
     setShowProfileModal(false);
     setShowOnboarding(false);
+  };
+
+  const handleResetAllAttendance = async () => {
+    if (!user) return;
+    if (!window.confirm("Are you sure you want to completely RESET all your attendance data? This action cannot be undone.")) return;
+    
+    const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
+    if (error) {
+      console.error("[Attendance Hub] Failed to reset attendance", error);
+      showToast("Failed to reset attendance", "error");
+    } else {
+      showToast("All attendance data cleared successfully.", "success");
+      loadUserData(user);
+    }
   };
 
   // ── Attendance handler (5 statuses) ──────────────────────────────────────
@@ -1042,6 +1057,14 @@ export default function App() {
                     <LogOut className="w-3.5 h-3.5" />
                     Sign Out
                   </button>
+
+                  <button
+                    onClick={handleResetAllAttendance}
+                    className="mt-4 w-full border border-error/50 bg-error/10 text-error py-2.5 rounded-xl font-bold text-xs hover:bg-error hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Reset All Attendance
+                  </button>
                 </div>
               )}
             </div>
@@ -1086,8 +1109,11 @@ export default function App() {
                         >-A</button>
                         <button
                           onClick={() => handleMarkAttendance(sub.id, "clear", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
-                          className="text-[10px] font-bold border border-outline-variant/30 text-on-surface-variant px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-surface-variant hover:text-white transition-all"
-                        >Clear</button>
+                          className="text-[10px] font-bold border border-error/50 text-error px-2.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
+                          title="Delete this date's entry"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   );
