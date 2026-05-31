@@ -164,7 +164,7 @@ export default function App() {
   // ── Load user data from Supabase ──────────────────────────────────────────
   const loadUserData = async (u: User) => {
     setAuthLoading(true);
-    console.log("[Attendance Hub] loadUserData started...");
+
     const t0 = performance.now();
     try {
       // 1. Fetch profile FIRST — gate everything on onboarding_done
@@ -174,9 +174,7 @@ export default function App() {
         .select("*")
         .eq("id", u.id)
         .single();
-      console.log(`[Attendance Hub] Profile fetch took ${(performance.now() - pStart).toFixed(2)}ms`);
 
-      console.log("[Attendance Hub] Profile loaded:", pData, pErr);
 
       if (pData) {
         setProfile({
@@ -191,13 +189,13 @@ export default function App() {
 
         // If onboarding not completed, show it and STOP — don't load other data yet
         if (pData.onboarding_done !== true) {
-          console.log("[Attendance Hub] Onboarding not done — showing modal");
+
           setShowOnboarding(true);
           setAuthLoading(false);
           return;
         }
 
-        console.log("[Attendance Hub] Onboarding done — going to dashboard");
+
       } else {
         // Brand new user — create profile row, trigger onboarding
         const displayName = u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
@@ -208,7 +206,7 @@ export default function App() {
           avatar_url:      u.user_metadata?.avatar_url ?? null,
           onboarding_done: false,
         });
-        console.log("[Attendance Hub] New user — profile created, showing onboarding");
+
         setProfile(prev => ({ ...prev, name: displayName }));
         setShowOnboarding(true);
         setAuthLoading(false);
@@ -221,17 +219,16 @@ export default function App() {
         supabase.from("attendance").select("*").eq("user_id", u.id),
         supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
       ]);
-      console.log(`[Attendance Hub] Parallel fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
 
       const attData = attRes.data;
-      console.log("[Attendance Hub] Attendance rows from Supabase:", attData?.length ?? 0, attData);
-      if (attRes.error) console.error("[Attendance Hub] Attendance fetch error:", attRes.error);
+
+
 
       // Merge subjects with saved attendance in ONE operation (avoid React batching issue)
       // attData may have multiple rows per subject (one per date) — aggregate them
       if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
         const baseSubjects = subjectNamestoSubjects(pData.subjects);
-        console.log("[Attendance Hub] Base subjects from profile:", baseSubjects.map(s => `${s.name}(${s.id})`));
+
         if (attData && attData.length > 0) {
           // NEW schema: (user_id, subject, date, status)
           // Group by subject name, count present rows for attendanceCount,
@@ -245,26 +242,25 @@ export default function App() {
             if (s !== "leave") agg[key].total_classes += 1;
             if (s === "present") agg[key].attendance_count += 1;
           }
-          console.log("[Attendance Hub] Aggregated by subject name:", agg);
 
           const merged = baseSubjects.map(sub => {
             const key = sub.name.toLowerCase().trim();
             const saved = agg[key];
             if (saved) {
-              console.log(`[Attendance Hub] ✅ Matched "${sub.name}": ${saved.attendance_count}/${saved.total_classes}`);
+
               return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
             }
-            console.log(`[Attendance Hub] ⚠️ No attendance record for "${sub.name}" — defaulting to 0/0`);
+
             return { ...sub, attendanceCount: 0, totalClasses: 0 };
           });
-          console.log("[Attendance Hub] Final merged subjects:", merged);
+
           setSubjects(merged);
         } else {
-          console.log("[Attendance Hub] No attendance data — subjects reset to 0/0 counts");
+
           setSubjects(baseSubjects.map(s => ({ ...s, attendanceCount: 0, totalClasses: 0 })));
         }
       } else {
-        console.log("[Attendance Hub] No subjects in profile — keeping current state");
+
       }
 
       const asgData = asgRes.data;
@@ -281,7 +277,7 @@ export default function App() {
           if (dummyTitles.includes(a.title)) {
             // Delete from Supabase in the background
             supabase.from("assignments").delete().eq("id", a.id).then(({ error }) => {
-              if (error) console.error("Failed to clean up dummy assignment:", error);
+
             });
             return false;
           }
@@ -304,9 +300,9 @@ export default function App() {
         }
       }
 
-      console.log(`[Attendance Hub] loadUserData done in ${(performance.now() - t0).toFixed(2)}ms`);
+
     } catch (err) {
-      console.error("[Attendance Hub] loadUserData error:", err);
+
     } finally {
       setAuthLoading(false);
     }
@@ -337,7 +333,7 @@ export default function App() {
 
     // 3. Save to Supabase in the background — never block the UI
     const saveStart = performance.now();
-    console.log("[Attendance Hub] Saving to Supabase in background...");
+
     supabase
       .from("profiles")
       .upsert({
@@ -352,12 +348,12 @@ export default function App() {
         updated_at:      new Date().toISOString(),
       })
       .then(({ error }) => {
-        console.log(`[Attendance Hub] Background save took ${(performance.now() - saveStart).toFixed(0)}ms`);
+
         if (error) {
-          console.error("[Attendance Hub] Background save FAILED:", error);
+
           showToast("Saved locally. Cloud sync failed — check connection.", "error");
         } else {
-          console.log("[Attendance Hub] \u2705 Supabase save confirmed — onboarding_done=true");
+
           showToast("Profile saved! Welcome to Attendance Hub \uD83C\uDF89");
         }
       });
@@ -379,10 +375,10 @@ export default function App() {
     
     const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
     if (error) {
-      console.error("[Attendance Hub] ❌ Failed to reset attendance:", error);
+
       showToast("Failed to reset attendance", "error");
     } else {
-      console.log(`[Attendance Hub] ✅ All attendance deleted for user_id: ${user.id}`);
+
       showToast("All attendance data cleared successfully.", "success");
       loadUserData(user);
     }
@@ -393,7 +389,6 @@ export default function App() {
     const currentSub = subjects.find(s => s.id === subjectId);
     if (!currentSub) return;
     const dateStr = targetDate || new Date().toISOString().split("T")[0];
-    console.log(`[Attendance Hub] 📌 Marking ${status} for "${currentSub.name}" on ${dateStr} (user_id: ${user?.id})`);
 
     if (user && status === "clear") {
       const { error: delErr } = await supabase.from("attendance")
@@ -402,10 +397,10 @@ export default function App() {
         .eq("subject", currentSub.name)
         .eq("date", dateStr);
       if (delErr) {
-        console.error(`[Attendance Hub] ❌ Delete failed:`, JSON.stringify(delErr));
+
         showToast("Failed to clear attendance.", "error");
       } else {
-        console.log(`[Attendance Hub] 🗑️ Cleared "${currentSub.name}" on ${dateStr}`);
+
         showToast("Attendance cleared for that date.", "success");
         loadUserData(user);
       }
@@ -435,15 +430,15 @@ export default function App() {
       }, { onConflict: "user_id,subject,date" });
       const ms = (performance.now() - saveStart).toFixed(2);
       if (attErr) {
-        console.error(`[Attendance Hub] ❌ Attendance UPSERT FAILED in ${ms}ms:`, JSON.stringify(attErr), "code:", attErr.code, "details:", attErr.details, "hint:", attErr.hint);
-        showToast("Failed to save attendance. Check console for details.", "error");
+
+        showToast("Failed to save attendance. Please try again.", "error");
         // Roll back optimistic update
         loadUserData(user);
       } else {
-        console.log(`[Attendance Hub] ✅ Saved in ${ms}ms: user_id=${user.id}, subject="${currentSub.name}", date=${dateStr}, status=${status}`);
+
       }
     } else if (status === "leave") {
-      console.log(`[Attendance Hub] ✈️ Leave marked for "${currentSub.name}" on ${dateStr} — not saved to DB`);
+
     }
 
     const labels: Record<AttendanceStatus, string> = {
@@ -453,7 +448,7 @@ export default function App() {
       leave:   "✈️ Leave",
       clear:   "🗑️ Cleared",
     };
-    console.log(`${labels[status]} for ${currentSub.name}`);
+
   };
 
   // ── Attendance adjustment (from attendance page) ──────────────────────────
@@ -466,7 +461,7 @@ export default function App() {
     );
 
     if (user) {
-      console.warn("[Attendance Hub] Manual adjustments are local-only in the new event-based schema.");
+
     }
   };
 
@@ -581,7 +576,7 @@ export default function App() {
   // ── Feedback submit ───────────────────────────────────────────────────────
   const handleSubmitFeedback = () => {
     if (!feedbackText.trim()) { alert("Please enter feedback."); return; }
-    console.log("Feedback:", feedbackText, feedbackEmail);
+
     setFeedbackText(""); setFeedbackEmail("");
     setShowFeedbackModal(false);
     alert("Thank you for your feedback! 🙏");
@@ -591,16 +586,16 @@ export default function App() {
   const fetchLogForDate = async (dateStr: string) => {
     if (!user) return;
     setLogLoading(true);
-    console.log(`[Attendance Hub] 📅 Fetching attendance for date: ${dateStr} (user_id: ${user.id})`);
+
     const { data, error } = await supabase
       .from("attendance")
       .select("*")
       .eq("user_id", user.id)
       .eq("date", dateStr);
     if (error) {
-      console.error(`[Attendance Hub] ❌ Failed to fetch log for ${dateStr}:`, JSON.stringify(error));
+
     } else {
-      console.log(`[Attendance Hub] ✅ Fetched ${data?.length ?? 0} rows for ${dateStr}:`, data);
+
       const fetched = data ?? [];
       // Schema: (user_id, subject, date, status)
       // Build full subject list; match fetched rows by subject name
@@ -1189,17 +1184,17 @@ export default function App() {
                               <button
                                 onClick={async () => {
                                   if (!attendanceLogDateStr || !user) return;
-                                  console.log(`[Attendance Hub] 🗑️ Deleting "${sub.subjectName}" on ${attendanceLogDateStr}`);
+
                                   const { error: delErr } = await supabase.from("attendance")
                                     .delete()
                                     .eq("user_id", user.id)
                                     .eq("subject", sub.subjectName)
                                     .eq("date", attendanceLogDateStr);
                                   if (delErr) {
-                                    console.error("[Attendance Hub] ❌ Delete failed:", JSON.stringify(delErr));
+
                                     showToast("Delete failed", "error");
                                   } else {
-                                    console.log(`[Attendance Hub] ✅ Deleted "${sub.subjectName}" on ${attendanceLogDateStr}`);
+
                                     showToast(`Cleared ${sub.subjectName} for this date.`, "success");
                                     await fetchLogForDate(attendanceLogDateStr);
                                     loadUserData(user);

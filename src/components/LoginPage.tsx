@@ -41,7 +41,7 @@ export default function LoginPage() {
             <span className="material-symbols-outlined text-[#002114] text-4xl font-black">school</span>
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#7bd0ff] border-2 border-[#0b1326] animate-pulse" />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">DTU <span className="text-[#1AE7A6]">Hub</span></h1>
+          <h1 className="text-4xl font-black text-white tracking-tight">Attendance <span className="text-[#1AE7A6]">Hub</span></h1>
           <p className="text-[#bacbbf] text-sm mt-2 font-medium">Your smart academic companion</p>
         </div>
 
