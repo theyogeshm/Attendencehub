@@ -226,17 +226,40 @@ export default function App() {
 
       const asgData = asgRes.data;
       if (asgData && asgData.length > 0) {
-        setAssignments(
-          asgData.map(a => ({
-            id:          a.id,
-            title:       a.title,
-            description: a.description,
-            subjectId:   a.subject_id,
-            subjectName: a.subject_name,
-            dueDate:     a.due_date,
-            status:      a.status as "URGENT" | "UPCOMING" | "COMPLETED",
-          }))
-        );
+        // Automatically clean up old dummy assignments from previous versions
+        const dummyTitles = [
+          "Data Structures Lab Report", 
+          "Discrete Maths Problem Set", 
+          "Physics Lab Experiment", 
+          "ML Assignment 1 — Linear Regression"
+        ];
+        
+        const validAsgData = asgData.filter(a => {
+          if (dummyTitles.includes(a.title)) {
+            // Delete from Supabase in the background
+            supabase.from("assignments").delete().eq("id", a.id).then(({ error }) => {
+              if (error) console.error("Failed to clean up dummy assignment:", error);
+            });
+            return false;
+          }
+          return true;
+        });
+
+        if (validAsgData.length > 0) {
+          setAssignments(
+            validAsgData.map(a => ({
+              id:          a.id,
+              title:       a.title,
+              description: a.description,
+              subjectId:   a.subject_id,
+              subjectName: a.subject_name,
+              dueDate:     a.due_date,
+              status:      a.status as "URGENT" | "UPCOMING" | "COMPLETED",
+            }))
+          );
+        } else {
+          setAssignments([]);
+        }
       }
 
       console.log(`[Attendance Hub] loadUserData done in ${(performance.now() - t0).toFixed(2)}ms`);
