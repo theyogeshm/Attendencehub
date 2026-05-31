@@ -93,7 +93,14 @@ export default function App() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // ── Per-date attendance log state (never uses global subjects) ────────────
-  interface LogEntry { subjectId: string; subjectName: string; attendanceCount: number; totalClasses: number; subjectType?: string; }
+  interface LogEntry {
+    subjectId: string;
+    subjectName: string;
+    attendanceCount: number;
+    totalClasses: number;
+    subjectType?: string;
+    status?: string; // "present" | "absent" | "miss" | "leave" | undefined
+  }
   const [logSubjects, setLogSubjects] = useState<LogEntry[]>([]);
   const [logLoading, setLogLoading] = useState(false);
 
@@ -426,6 +433,7 @@ export default function App() {
         subject_id:       updated.id,
         subject_name:     updated.name,
         date:             dateStr,
+        status:           status,
         attendance_count: dayAttended,
         total_classes:    dayTotal,
         updated_at:       new Date().toISOString(),
@@ -611,16 +619,18 @@ export default function App() {
       console.error(`[Attendance Hub] ❌ Failed to fetch log for ${dateStr}:`, error);
     } else {
       console.log(`[Attendance Hub] ✅ Fetched ${data?.length ?? 0} rows for ${dateStr}:`, data);
-      // Build a complete list: all subjects, merged with fetched data
       const fetched = data ?? [];
+      // Always build a full list of ALL subjects; include status from row if present
       const entries: LogEntry[] = subjects.map(sub => {
-        const row = fetched.find(r => r.subject_id === sub.id || r.subject_name?.toLowerCase().trim() === sub.name?.toLowerCase().trim());
+        const row = fetched.find(r => r.subject_id === sub.id ||
+          r.subject_name?.toLowerCase().trim() === sub.name?.toLowerCase().trim());
         return {
           subjectId:       sub.id,
           subjectName:     sub.name,
           attendanceCount: row?.attendance_count ?? 0,
           totalClasses:    row?.total_classes    ?? 0,
           subjectType:     sub.type,
+          status:          row?.status ?? undefined,
         };
       });
       setLogSubjects(entries);
@@ -1127,81 +1137,102 @@ export default function App() {
 
               <h3 className="font-bold text-lg text-on-surface mb-1">Attendance Log</h3>
               <p className="text-xs text-on-surface-variant font-mono mb-5">
-                {attendanceLogDate
-                  ? `${attendanceLogDate} ${new Date().toLocaleString("default", { month: "long" })} ${new Date().getFullYear()}`
-                  : "Recent entries"}
+                {attendanceLogDateStr ?? new Date().toISOString().split('T')[0]}
               </p>
 
               {logLoading ? (
-                <div className="text-center py-8 text-on-surface-variant text-xs">Loading attendance for this date...</div>
+                <div className="text-center py-8 text-on-surface-variant text-xs">Loading...</div>
               ) : (
-              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                {logSubjects.filter(sub => sub.totalClasses > 0).length === 0 ? (
-                  <div className="text-center py-8 text-on-surface-variant text-xs opacity-60">
-                    No attendance was recorded on this date.
-                  </div>
-                ) : (
-                  logSubjects.filter(sub => sub.totalClasses > 0).map((sub) => {
-                  const pct = ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0);
-                  return (
-                    <div key={sub.subjectId} className="bg-surface-container-high p-4 rounded-xl flex justify-between items-center border border-outline-variant/50">
-                      <div>
-                        <p className="font-bold text-xs text-on-surface">{sub.subjectName} <span className="font-mono text-[10px] text-on-surface-variant">({sub.subjectType ?? "LEC"})</span></p>
-                        <p className={`text-[10px] font-mono font-bold mt-0.5 ${Number(pct) >= 75 ? "text-primary" : "text-error"}`}>
-                          {sub.attendanceCount}/{sub.totalClasses} — {pct}% {Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}
-                        </p>
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                  {logSubjects.map((sub) => {
+                    const marked = !!sub.status;
+                    const statusColors: Record<string, string> = {
+                      present: "bg-primary/20 text-primary border-primary/30",
+                      absent:  "bg-error/20 text-error border-error/30",
+                      miss:    "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+                      leave:   "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                    };
+                    const statusLabel: Record<string, string> = {
+                      present: "✅ Present",
+                      absent:  "❌ Absent",
+                      miss:    "☕ Missed",
+                      leave:   "✈️ Leave",
+                    };
+                    return (
+                      <div key={sub.subjectId} className={`p-3 rounded-xl border transition-all ${
+                        marked ? "bg-surface-container-high border-outline-variant/50" : "bg-surface-container/60 border-outline-variant/20"
+                      }`}>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-xs text-on-surface truncate">
+                              {sub.subjectName}
+                              <span className="font-mono text-[10px] text-on-surface-variant ml-1">({sub.subjectType ?? "LEC"})</span>
+                            </p>
+                            {marked && sub.status && (
+                              <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border mt-1 ${statusColors[sub.status] ?? ""}`}>
+                                {statusLabel[sub.status] ?? sub.status}
+                              </span>
+                            )}
+                            {!marked && (
+                              <p className="text-[10px] text-on-surface-variant mt-0.5 opacity-60">Not marked yet</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1 items-center flex-shrink-0">
+                            {!marked ? (
+                              <>
+                                {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => (
+                                  <button
+                                    key={s}
+                                    onClick={async () => {
+                                      if (!attendanceLogDateStr) return;
+                                      await handleMarkAttendance(sub.subjectId, s, attendanceLogDateStr);
+                                      await fetchLogForDate(attendanceLogDateStr);
+                                      loadUserData(user!);
+                                    }}
+                                    className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
+                                      s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary hover:text-[#002114]"
+                                      : s === "absent" ? "border-error/30 text-error bg-[#131b2e] hover:bg-error hover:text-white"
+                                      : s === "miss"   ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500 hover:text-black"
+                                      :                  "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500 hover:text-white"
+                                    }`}
+                                    title={`Mark ${s}`}
+                                  >
+                                    {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
+                                  </button>
+                                ))}
+                              </>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  if (!attendanceLogDateStr || !user) return;
+                                  console.log(`[Attendance Hub] 🗑️ Deleting ${sub.subjectName} on ${attendanceLogDateStr}`);
+                                  const { error: delErr } = await supabase.from("attendance")
+                                    .delete()
+                                    .eq("user_id", user.id)
+                                    .eq("subject_id", sub.subjectId)
+                                    .eq("date", attendanceLogDateStr);
+                                  if (delErr) {
+                                    console.error("[Attendance Hub] ❌ Delete failed:", delErr);
+                                    showToast("Delete failed", "error");
+                                  } else {
+                                    console.log(`[Attendance Hub] ✅ Deleted ${sub.subjectName} on ${attendanceLogDateStr}`);
+                                    showToast(`Cleared ${sub.subjectName} for this date.`, "success");
+                                    await fetchLogForDate(attendanceLogDateStr);
+                                    loadUserData(user);
+                                  }
+                                }}
+                                className="text-[10px] font-bold border border-error/50 text-error px-2 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
+                                title="Delete this record for this date"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-1.5 items-center">
-                        <button
-                          onClick={async () => {
-                            if (!attendanceLogDateStr) return;
-                            await handleMarkAttendance(sub.subjectId, "present", attendanceLogDateStr);
-                            fetchLogForDate(attendanceLogDateStr);
-                            loadUserData(user!);
-                          }}
-                          className="text-[10px] font-bold border border-primary/30 text-primary px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-primary hover:text-[#002114] transition-all"
-                          title="Mark present for this date"
-                        >+P</button>
-                        <button
-                          onClick={async () => {
-                            if (!attendanceLogDateStr) return;
-                            await handleMarkAttendance(sub.subjectId, "absent", attendanceLogDateStr);
-                            fetchLogForDate(attendanceLogDateStr);
-                            loadUserData(user!);
-                          }}
-                          className="text-[10px] font-bold border border-error/30 text-error px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all"
-                          title="Mark absent for this date"
-                        >-A</button>
-                        <button
-                          onClick={async () => {
-                            if (!attendanceLogDateStr || !user) return;
-                            console.log(`[Attendance Hub] 🗑️ Deleting ${sub.subjectName} on ${attendanceLogDateStr}`);
-                            const { error: delErr } = await supabase.from("attendance")
-                              .delete()
-                              .eq("user_id", user.id)
-                              .eq("subject_id", sub.subjectId)
-                              .eq("date", attendanceLogDateStr);
-                            if (delErr) {
-                              console.error("[Attendance Hub] ❌ Delete failed:", delErr);
-                              showToast("Delete failed", "error");
-                            } else {
-                              console.log(`[Attendance Hub] ✅ Deleted ${sub.subjectName} on ${attendanceLogDateStr}`);
-                              showToast(`Cleared ${sub.subjectName} for this date.`, "success");
-                              fetchLogForDate(attendanceLogDateStr);
-                              loadUserData(user);
-                            }
-                          }}
-                          className="text-[10px] font-bold border border-error/50 text-error px-2.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
-                          title="Delete this subject's record for this date"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-                )}
-              </div>
+                    );
+                  })}
+                </div>
               )}
 
               <div className="mt-5 text-right">
