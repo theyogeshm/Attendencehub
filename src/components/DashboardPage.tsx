@@ -5,7 +5,6 @@
 
 import { useState, useMemo } from "react";
 import { Subject, Assignment, AttendanceStatus } from "../types";
-import { TIMETABLE_SLOTS } from "../data";
 import {
   CheckCircle,
   XCircle,

@@ -19,21 +19,19 @@ interface AnalyticsPageProps {
 export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPageProps) {
   const [simulateCount, setSimulateCount] = useState<number>(2);
 
-  // Weekly attendance data — week-by-week trend (static demonstration, 8 weeks)
-  const weeklyTrends = [
-    { week: "W1", pct: 75 },
-    { week: "W2", pct: 82 },
-    { week: "W3", pct: 68 },
-    { week: "W4", pct: 91 },
-    { week: "W5", pct: 78 },
-    { week: "W6", pct: 72 },
-    { week: "W7", pct: 80 },
-    { week: "W8", pct: 88 },
-  ];
+  // Real per-subject attendance data for the chart
+  const subjectBars = subjects
+    .filter(s => s.totalClasses > 0)
+    .map(s => ({
+      name: s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name,
+      fullName: s.name,
+      pct: Math.round((s.attendanceCount / s.totalClasses) * 100),
+    }));
+
 
   // Real danger subjects (< 75%) computed from props — exclude subjects with no data
   const dangerSubjects = subjects.filter((s) => {
-    if (s.totalClasses === 0) return false; // no data yet, not in danger
+    if (s.totalClasses === 0) return false;
     const rate = (s.attendanceCount / s.totalClasses) * 100;
     return rate < 75;
   });
@@ -43,7 +41,6 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
 
   // Classes needed to get back to 75%
   const classesNeeded = (sub: Subject) => {
-    // (attended + x) / (total + x) >= 0.75 → solve for x
     const target = 0.75;
     const { attendanceCount: a, totalClasses: t } = sub;
     if (t === 0) return 0;
@@ -56,22 +53,8 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
     const currentRate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
     const projectedTotal = s.totalClasses + simulateCount;
     const projectedRate = projectedTotal > 0 ? (s.attendanceCount / projectedTotal) * 100 : 0;
-    return {
-      ...s,
-      currentRate,
-      projectedRate,
-      isSafe: projectedRate >= 75,
-    };
+    return { ...s, currentRate, projectedRate, isSafe: projectedRate >= 75 };
   });
-
-  const ICON_MAP: Record<string, string> = {
-    maths: "calculate",
-    physics: "biotech",
-    discrete: "scatter_plot",
-    ds: "account_tree",
-    evs: "eco",
-    ml: "neurology",
-  };
 
   return (
     <div className="space-y-6">
@@ -84,32 +67,32 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* Weekly Attendance Trend Bar Chart */}
+        {/* Subject Attendance Bar Chart */}
         <div className="lg:col-span-8 glass-card rounded-2xl p-6 flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-base flex items-center gap-1.5 text-on-surface">
               <span className="material-symbols-outlined text-primary text-xl">monitoring</span>
-              <span>Weekly Attendance Trend</span>
+              <span>Subject Attendance Overview</span>
             </h3>
-            <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-3 py-1 rounded-xl">Last 8 Weeks</span>
+            <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-3 py-1 rounded-xl">Current Semester</span>
           </div>
 
           {hasAttendanceData ? (
             <>
               {/* Y-axis labels + bars */}
               <div className="relative flex items-end h-56 gap-2 pt-4">
-                {/* 75% line */}
-                <div className="absolute left-0 right-0 border-t border-dashed border-error/40" style={{ bottom: `${(75 / 100) * 100}%` }}>
+                {/* 75% threshold line */}
+                <div className="absolute left-0 right-0 border-t border-dashed border-error/40" style={{ bottom: `${75}%` }}>
                   <span className="absolute -top-4 left-0 text-[9px] text-error font-mono font-bold">75% threshold</span>
                 </div>
 
-                {weeklyTrends.map((bar, i) => {
+                {subjectBars.map((bar, i) => {
                   const isBelowThreshold = bar.pct < 75;
                   return (
                     <div key={i} className="flex-1 group relative flex flex-col items-center justify-end h-full">
                       {/* Tooltip */}
                       <div className="absolute -top-8 bg-surface-container-high border border-outline px-2 py-1 rounded-xl text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
-                        {bar.pct}% attendance
+                        {bar.fullName}: {bar.pct}%
                       </div>
 
                       {/* Bar */}
@@ -117,7 +100,7 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
                         className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? (isDarkMode ? "bg-error" : "bg-[#FF6B6B]") : (isDarkMode ? "bg-primary" : "bg-[#00C896]")}`}
                         style={{ height: `${bar.pct}%` }}
                       />
-                      <span className="mt-2 text-[10px] text-on-surface-variant font-bold font-mono">{bar.week}</span>
+                      <span className="mt-2 text-[10px] text-on-surface-variant font-bold font-mono truncate w-full text-center">{bar.name}</span>
                     </div>
                   );
                 })}
