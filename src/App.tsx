@@ -294,10 +294,9 @@ export default function App() {
               id:          a.id,
               title:       a.title,
               description: a.description,
-              subjectId:   a.subject_id,
-              subjectName: a.subject_name,
+              subject:     a.subject,
               dueDate:     a.due_date,
-              status:      a.status as "URGENT" | "UPCOMING" | "COMPLETED",
+              done:        a.done,
             }))
           );
         } else {
@@ -467,22 +466,7 @@ export default function App() {
     );
 
     if (user) {
-      const sub = subjects.find(s => s.id === id);
-      if (sub) {
-        // Manual adjustments use a special sentinel date so they don't conflict with daily records
-        const manualDate = "0001-01-01";
-        const { error } = await supabase.from("attendance").upsert({
-          user_id:          user.id,
-          subject_id:       id,
-          subject_name:     sub.name,
-          date:             manualDate,
-          attendance_count: newAttended,
-          total_classes:    newTotal,
-          updated_at:       new Date().toISOString(),
-        }, { onConflict: "user_id,subject_id,date" });
-        if (error) console.error("[Attendance Hub] Manual adjustment save failed:", error);
-        else console.log(`[Attendance Hub] ✅ Manual adjustment saved for "${sub.name}": ${newAttended}/${newTotal}`);
-      }
+      console.warn("[Attendance Hub] Manual adjustments are local-only in the new event-based schema.");
     }
   };
 
@@ -495,10 +479,9 @@ export default function App() {
           user_id:      user.id,
           title:        newAsg.title,
           description:  newAsg.description,
-          subject_id:   newAsg.subjectId,
-          subject_name: newAsg.subjectName,
+          subject:      newAsg.subject,
           due_date:     newAsg.dueDate,
-          status:       newAsg.status,
+          done:         newAsg.done,
         })
         .select()
         .single();
@@ -507,10 +490,9 @@ export default function App() {
           id:          data.id,
           title:       data.title,
           description: data.description,
-          subjectId:   data.subject_id,
-          subjectName: data.subject_name,
+          subject:     data.subject,
           dueDate:     data.due_date,
-          status:      data.status,
+          done:        data.done,
         }, ...prev]);
       }
     } else {
@@ -521,10 +503,10 @@ export default function App() {
   const handleToggleAssignment = async (id: string) => {
     const asg = assignments.find(a => a.id === id);
     if (!asg) return;
-    const newStatus = asg.status === "COMPLETED" ? "UPCOMING" : "COMPLETED";
-    setAssignments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+    const newDone = !asg.done;
+    setAssignments(prev => prev.map(a => a.id === id ? { ...a, done: newDone } : a));
     if (user) {
-      await supabase.from("assignments").update({ status: newStatus }).eq("id", id).eq("user_id", user.id);
+      await supabase.from("assignments").update({ done: newDone }).eq("id", id).eq("user_id", user.id);
     }
   };
 

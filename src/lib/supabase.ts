@@ -21,10 +21,10 @@ export type DbProfile = {
 export type DbAttendance = {
   id: string;
   user_id: string;
-  subject_id: string;
-  subject_name: string;
-  attendance_count: number;
-  total_classes: number;
+  subject: string;
+  date: string;
+  status: 'present' | 'absent' | 'miss' | 'leave';
+  created_at: string;
 };
 
 export type DbAssignment = {
@@ -32,9 +32,8 @@ export type DbAssignment = {
   user_id: string;
   title: string;
   description: string;
-  subject_id: string;
-  subject_name: string;
+  subject: string;
   due_date: string;
-  status: 'URGENT' | 'UPCOMING' | 'COMPLETED';
+  done: boolean;
   created_at: string;
 };

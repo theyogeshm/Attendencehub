@@ -21,10 +21,9 @@ export interface Assignment {
   id: string;
   title: string;
   description: string;
-  subjectId: string;
-  subjectName: string;
+  subject: string;
   dueDate: string; // "Due in 4 hours" or "Oct 24, 2023" or YYYY-MM-DD
-  status: "URGENT" | "UPCOMING" | "COMPLETED";
+  done: boolean;
 }
 
 export interface TimetableSlot {

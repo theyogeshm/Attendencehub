@@ -64,7 +64,7 @@ export default function DashboardPage({
   const totalHeld = subjects.reduce((s, x) => s + x.totalClasses, 0);
   const aggregateAtt = totalHeld > 0 ? (totalAttended / totalHeld) * 100 : 0;
 
-  const pendingAssignments = assignments.filter((a) => a.status !== "COMPLETED").length;
+  const pendingAssignments = assignments.filter((a) => !a.done).length;
 
   // Academic week (week of the year, approximate)
   const startOfYear = new Date(today.getFullYear(), 0, 1);

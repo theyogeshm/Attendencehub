@@ -45,6 +45,22 @@ export default function AssignmentsPage({
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Utility to determine dynamic status
+  const getTaskStatus = (task: Assignment): "COMPLETED" | "URGENT" | "UPCOMING" => {
+    if (task.done) return "COMPLETED";
+    if (!task.dueDate) return "UPCOMING";
+    const diffMs = new Date(task.dueDate).getTime() - Date.now();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 24) return "URGENT"; // Overdue or due soon
+    return "UPCOMING";
+  };
+
+  const formatDisplayDate = (dStr: string) => {
+    if (!dStr) return "No due date";
+    const dateObj = new Date(dStr);
+    return dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   // Submitting form submission handler
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -53,27 +69,12 @@ export default function AssignmentsPage({
       return;
     }
 
-    // Parse status based on Due date or mark default as UPCOMING
-    let status: "URGENT" | "UPCOMING" | "COMPLETED" = "UPCOMING";
-    let formattedDue = "Due soon";
-
-    if (formDueDate) {
-      formattedDue = `Due: ${formDueDate}`;
-      const diffMs = new Date(formDueDate).getTime() - Date.now();
-      const diffHours = diffMs / (1000 * 60 * 60);
-      if (diffHours > 0 && diffHours < 24) {
-        status = "URGENT";
-        formattedDue = "Due in less than 24 hours";
-      }
-    }
-
     onAddAssignment({
       title: formTitle,
       description: formDesc,
-      subjectId: formSubject.toLowerCase().replace(/\s+/g, "-"),
-      subjectName: formSubject,
-      dueDate: formattedDue,
-      status: status,
+      subject: formSubject,
+      dueDate: formDueDate, // Raw date string
+      done: false,
     });
 
     // Reset fields cleanly
@@ -89,23 +90,22 @@ export default function AssignmentsPage({
     // Search filter
     const matchesSearch = 
       a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.description.toLowerCase().includes(searchQuery.toLowerCase());
     
     if (!matchesSearch) return false;
 
     // Timeline tab filter
     if (activeFilter === "All") return true;
-    if (activeFilter === "Pending") return a.status !== "COMPLETED";
+    if (activeFilter === "Pending") return !a.done;
     if (activeFilter === "Overdue") {
-      // simulate "Operating Systems" or custom due date calculations
-      return a.status === "URGENT";
+      return getTaskStatus(a) === "URGENT";
     }
     return true;
   });
 
-  const pendingCount = assignments.filter((a) => a.status !== "COMPLETED").length;
-  const completedCount = assignments.filter((a) => a.status === "COMPLETED").length;
+  const pendingCount = assignments.filter((a) => !a.done).length;
+  const completedCount = assignments.filter((a) => a.done).length;
 
   return (
     <div className="space-y-6">
@@ -237,7 +237,8 @@ export default function AssignmentsPage({
             <div className="divide-y divide-outline-variant">
               {filteredAssignments.length > 0 ? (
                 filteredAssignments.map((task) => {
-                  const isCompleted = task.status === "COMPLETED";
+                  const isCompleted = task.done;
+                  const dynamicStatus = getTaskStatus(task);
                   return (
                     <div 
                       key={task.id} 
@@ -271,11 +272,11 @@ export default function AssignmentsPage({
                           <span className={`text-[9px] font-extrabold tracking-wider px-2 py-0.5 rounded font-mono ${
                             isCompleted 
                               ? "bg-primary/10 text-primary border border-primary/20" 
-                              : task.status === "URGENT" 
+                              : dynamicStatus === "URGENT" 
                                 ? "bg-error/10 text-error border border-error/20" 
                                 : "bg-surface-variant text-on-surface-variant border border-outline-variant"
                           }`}>
-                            {isCompleted ? "COMPLETED" : task.status}
+                            {dynamicStatus}
                           </span>
                         </div>
 
@@ -283,14 +284,14 @@ export default function AssignmentsPage({
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 pt-3">
                           <div className="flex items-center gap-1.5 text-on-surface-variant">
                             <BookOpen className="w-3.5 h-3.5 text-on-surface-variant" />
-                            <span className="text-xs">{task.subjectName}</span>
+                            <span className="text-xs">{task.subject}</span>
                           </div>
                           
                           <div className={`flex items-center gap-1.5 font-medium ${
-                            task.status === "URGENT" && !isCompleted ? 'text-error' : 'text-on-surface-variant'
+                            dynamicStatus === "URGENT" && !isCompleted ? 'text-error' : 'text-on-surface-variant'
                           }`}>
                             <Clock className="w-3.5 h-3.5" />
-                            <span className="text-xs">{task.dueDate}</span>
+                            <span className="text-xs">{formatDisplayDate(task.dueDate)}</span>
                           </div>
                         </div>
 
