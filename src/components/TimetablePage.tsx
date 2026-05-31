@@ -44,6 +44,41 @@ export default function TimetablePage({ onMarkAttendance }: TimetablePageProps) 
   };
 
   return (
+    <>
+      {/* ── COMING SOON ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+
+        {/* Animated icon container */}
+        <div className="relative mb-8">
+          <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-[#1AE7A6]/15 to-[#7bd0ff]/10 border border-[#1AE7A6]/20 flex items-center justify-center shadow-2xl shadow-[#1AE7A6]/10">
+            <span className="material-symbols-outlined text-[#1AE7A6] text-6xl" style={{ fontVariationSettings: "'FILL' 0" }}>calendar_month</span>
+          </div>
+          {/* Pulse ring */}
+          <div className="absolute inset-0 rounded-3xl border-2 border-[#1AE7A6]/30 animate-ping" style={{ animationDuration: '2.5s' }} />
+        </div>
+
+        {/* Heading */}
+        <h2 className="text-3xl font-black text-white mb-3 tracking-tight">
+          Timetable{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1AE7A6] to-[#7bd0ff]">
+            Coming Soon
+          </span>
+        </h2>
+
+        {/* Subtext */}
+        <p className="text-[#bacbbf] text-sm font-medium max-w-xs leading-relaxed">
+          Section-wise timetables will be available soon!
+        </p>
+
+        {/* Decorative pill */}
+        <div className="mt-8 flex items-center gap-2 bg-[#1AE7A6]/8 border border-[#1AE7A6]/20 px-5 py-2.5 rounded-full">
+          <span className="w-2 h-2 rounded-full bg-[#1AE7A6] animate-pulse" />
+          <span className="text-[#1AE7A6] text-xs font-bold font-mono tracking-wide">IN DEVELOPMENT</span>
+        </div>
+      </div>
+
+      {/* ── HIDDEN: existing timetable code preserved ───────────────────────── */}
+      <div style={{ display: "none" }}>
     <div className="space-y-6">
       
       {/* Title Header with interactive actions */}
@@ -386,5 +421,7 @@ export default function TimetablePage({ onMarkAttendance }: TimetablePageProps) 
       )}
 
     </div>
+      </div>{/* end hidden */}
+    </>
   );
 }

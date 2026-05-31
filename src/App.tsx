@@ -5,7 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
-import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS } from "./data";
+import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects } from "./data";
+import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -86,6 +87,9 @@ export default function App() {
   const [attendanceLogDate, setAttendanceLogDate] = useState<number | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
+  // ── Onboarding ────────────────────────────────────────────────────────────
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   // ── Profile editing state ─────────────────────────────────────────────────
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
@@ -152,16 +156,28 @@ export default function App() {
           semester: pData.semester   || "2nd Semester",
           section:  pData.section    || "A",
         });
+
+        // Load subjects saved from onboarding (if any)
+        if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
+          setSubjects(subjectNamestoSubjects(pData.subjects));
+        }
+
+        // Show onboarding if not yet completed
+        if (!pData.onboarding_done) {
+          setShowOnboarding(true);
+        }
       } else {
-        // First login — create profile row
+        // First login — create profile row, trigger onboarding
         const displayName = u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
         await supabase.from("profiles").insert({
-          id:         u.id,
-          email:      u.email,
-          full_name:  displayName,
-          avatar_url: u.user_metadata?.avatar_url ?? null,
+          id:              u.id,
+          email:           u.email,
+          full_name:       displayName,
+          avatar_url:      u.user_metadata?.avatar_url ?? null,
+          onboarding_done: false,
         });
         setProfile(prev => ({ ...prev, name: displayName }));
+        setShowOnboarding(true);
       }
 
       // 2. Attendance
@@ -208,6 +224,26 @@ export default function App() {
     }
   };
 
+  // ── Onboarding complete callback ──────────────────────────────────────────
+  const handleOnboardingComplete = async (result: { branch: string; semester: string; subjects: string[] }) => {
+    const newSubjects = subjectNamestoSubjects(result.subjects);
+    setSubjects(newSubjects);
+    setProfile(prev => ({ ...prev, branch: result.branch, semester: result.semester }));
+    setShowOnboarding(false);
+
+    // Persist to Supabase
+    if (user) {
+      await supabase.from("profiles").upsert({
+        id:              user.id,
+        branch:          result.branch,
+        semester:        result.semester,
+        subjects:        result.subjects,
+        onboarding_done: true,
+        updated_at:      new Date().toISOString(),
+      });
+    }
+  };
+
   // ── Sign out ──────────────────────────────────────────────────────────────
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -215,6 +251,7 @@ export default function App() {
     setAssignments(INITIAL_ASSIGNMENTS);
     setProfile({ name: "Student", rollNo: "2K24/---/---", branch: "Computer Science & Engineering", semester: "2nd Semester", section: "A" });
     setShowProfileModal(false);
+    setShowOnboarding(false);
   };
 
   // ── Attendance handler (4 statuses) ──────────────────────────────────────
@@ -405,6 +442,11 @@ export default function App() {
   // ═══════════════════════════════════════════════════════════════════════════
   if (!user) {
     return <LoginPage />;
+  }
+
+  // ── Show onboarding above the full app ────────────────────────────────────
+  if (showOnboarding) {
+    return <OnboardingModal userName={profile.name} onComplete={handleOnboardingComplete} />;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

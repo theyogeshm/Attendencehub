@@ -1,0 +1,60 @@
+{
+  "university": "DTU",
+  "branches": [
+    {
+      "branch": "CSE",
+      "semesters": [
+        {
+          "sem": 1,
+          "subjects": [
+            "Basic ECE",
+            "Mathematics I",
+            "Web Design",
+            "Programming Fundamentals",
+            "Engineering Graphics II"
+          ]
+        },
+        {
+          "sem": 2,
+          "subjects": [
+            "Basics of ML & Applications",
+            "Discrete Structures",
+            "Data Structures and Algorithms",
+            "Mathematics II",
+            "Physics"
+          ]
+        },
+        {
+          "sem": 3,
+          "subjects": [
+            "Object Oriented Programming",
+            "Operating System Design",
+            "Algorithm Design and Analysis",
+            "Digital Electronics",
+            "Software Engineering"
+          ]
+        },
+        {
+          "sem": 4,
+          "subjects": [
+            "Database Management System",
+            "Probability and Statistics",
+            "Theory of Computation",
+            "Computer Communication Networks",
+            "Computer Organisation and Architecture"
+          ]
+        },
+        {
+          "sem": 5,
+          "subjects": [
+            "Engineering Economics",
+            "Machine Learning",
+            "Information Theory and Coding",
+            "Computer Graphics",
+            "Computer Networks"
+          ]
+        }
+      ]
+    }
+  ]
+}

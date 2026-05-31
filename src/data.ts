@@ -5,6 +5,61 @@
 
 import { Subject, Assignment, TimetableSlot } from "./types";
 
+// ── DTU CSE Subjects from dtu_subjects.json (Semesters 1–5) ─────────────────
+export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
+  1: [
+    "Basic ECE",
+    "Mathematics I",
+    "Web Design",
+    "Programming Fundamentals",
+    "Engineering Graphics II",
+  ],
+  2: [
+    "Basics of ML & Applications",
+    "Discrete Structures",
+    "Data Structures and Algorithms",
+    "Mathematics II",
+    "Physics",
+  ],
+  3: [
+    "Object Oriented Programming",
+    "Operating System Design",
+    "Algorithm Design and Analysis",
+    "Digital Electronics",
+    "Software Engineering",
+  ],
+  4: [
+    "Database Management System",
+    "Probability and Statistics",
+    "Theory of Computation",
+    "Computer Communication Networks",
+    "Computer Organisation and Architecture",
+  ],
+  5: [
+    "Engineering Economics",
+    "Machine Learning",
+    "Information Theory and Coding",
+    "Computer Graphics",
+    "Computer Networks",
+  ],
+};
+
+// ── Helper: convert a list of subject name strings into Subject objects ───────
+export const subjectNamestoSubjects = (names: string[]): Subject[] =>
+  names.map((name, idx) => ({
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + idx,
+    name,
+    code: "",
+    prof: "",
+    time: "",
+    room: "",
+    attendanceCount: 0,
+    totalClasses: 0,
+    category: "Core" as Subject["category"],
+    description: "",
+    type: "LEC" as Subject["type"],
+  }));
+
 export const INITIAL_SUBJECTS: Subject[] = [
   {
     id: "maths",

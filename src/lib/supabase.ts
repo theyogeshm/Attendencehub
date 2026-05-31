@@ -14,6 +14,8 @@ export type DbProfile = {
   branch: string | null;
   semester: string | null;
   section: string | null;
+  subjects: string[] | null;
+  onboarding_done: boolean | null;
 };
 
 export type DbAttendance = {
