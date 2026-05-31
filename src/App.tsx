@@ -233,32 +233,35 @@ export default function App() {
         const baseSubjects = subjectNamestoSubjects(pData.subjects);
         console.log("[Attendance Hub] Base subjects from profile:", baseSubjects.map(s => `${s.name}(${s.id})`));
         if (attData && attData.length > 0) {
-          // Aggregate: sum attendance_count and total_classes across ALL dates per subject
-          const agg: Record<string, { attendance_count: number; total_classes: number; subject_name: string }> = {};
+          // NEW schema: (user_id, subject, date, status)
+          // Group by subject name, count present rows for attendanceCount,
+          // count all non-leave rows for totalClasses
+          const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
           for (const row of attData) {
-            const key = row.subject_id;
-            if (!agg[key]) agg[key] = { attendance_count: 0, total_classes: 0, subject_name: row.subject_name ?? "" };
-            agg[key].attendance_count += row.attendance_count ?? 0;
-            agg[key].total_classes    += row.total_classes ?? 0;
+            const key = (row.subject ?? "").toLowerCase().trim();
+            if (!key) continue;
+            if (!agg[key]) agg[key] = { attendance_count: 0, total_classes: 0 };
+            const s = (row.status ?? "").toLowerCase();
+            if (s !== "leave") agg[key].total_classes += 1;
+            if (s === "present") agg[key].attendance_count += 1;
           }
+          console.log("[Attendance Hub] Aggregated by subject name:", agg);
 
           const merged = baseSubjects.map(sub => {
-            // Match by subject_id first, then fall back to subject_name
-            const saved =
-              agg[sub.id] ??
-              Object.values(agg).find(a => a.subject_name?.toLowerCase().trim() === sub.name?.toLowerCase().trim());
+            const key = sub.name.toLowerCase().trim();
+            const saved = agg[key];
             if (saved) {
               console.log(`[Attendance Hub] ✅ Matched "${sub.name}": ${saved.attendance_count}/${saved.total_classes}`);
               return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
             }
             console.log(`[Attendance Hub] ⚠️ No attendance record for "${sub.name}" — defaulting to 0/0`);
-            return sub;
+            return { ...sub, attendanceCount: 0, totalClasses: 0 };
           });
           console.log("[Attendance Hub] Final merged subjects:", merged);
           setSubjects(merged);
         } else {
-          console.log("[Attendance Hub] No attendance data — subjects reset to 0 counts");
-          setSubjects(baseSubjects);
+          console.log("[Attendance Hub] No attendance data — subjects reset to 0/0 counts");
+          setSubjects(baseSubjects.map(s => ({ ...s, attendanceCount: 0, totalClasses: 0 })));
         }
       } else {
         console.log("[Attendance Hub] No subjects in profile — keeping current state");
@@ -390,68 +393,65 @@ export default function App() {
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
     const currentSub = subjects.find(s => s.id === subjectId);
     if (!currentSub) return;
-    const dateStr = targetDate || new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-
-    let updated = { ...currentSub };
-    if (status !== "clear") {
-      switch (status) {
-        case "present": updated = { ...currentSub, attendanceCount: currentSub.attendanceCount + 1, totalClasses: currentSub.totalClasses + 1 }; break;
-        case "absent":
-        case "miss":    updated = { ...currentSub, totalClasses: currentSub.totalClasses + 1 }; break;
-        case "leave":   break; // no change
-      }
-      setSubjects(prev => prev.map(sub => sub.id === subjectId ? updated : sub));
-    }
+    const dateStr = targetDate || new Date().toISOString().split("T")[0];
+    console.log(`[Attendance Hub] 📌 Marking ${status} for "${currentSub.name}" on ${dateStr} (user_id: ${user?.id})`);
 
     if (user && status === "clear") {
-      const delStart = performance.now();
       const { error: delErr } = await supabase.from("attendance")
         .delete()
         .eq("user_id", user.id)
-        .eq("subject_id", subjectId)
+        .eq("subject", currentSub.name)
         .eq("date", dateStr);
-      
-      const ms = (performance.now() - delStart).toFixed(2);
       if (delErr) {
-        console.error(`[Attendance Hub] ❌ Failed to clear attendance:`, delErr);
+        console.error(`[Attendance Hub] ❌ Delete failed:`, JSON.stringify(delErr));
         showToast("Failed to clear attendance.", "error");
       } else {
-        console.log(`[Attendance Hub] 🗑️ Attendance cleared in ${ms}ms for ${updated.name} on ${dateStr}`);
+        console.log(`[Attendance Hub] 🗑️ Cleared "${currentSub.name}" on ${dateStr}`);
         showToast("Attendance cleared for that date.", "success");
-        loadUserData(user); // refresh to fix counts
+        loadUserData(user);
       }
       return;
     }
 
+    // Optimistic local update (for instant UI feedback on Dashboard)
+    if (status !== "leave") {
+      setSubjects(prev => prev.map(sub => {
+        if (sub.id !== subjectId) return sub;
+        const isPresent = status === "present";
+        return { ...sub,
+          attendanceCount: sub.attendanceCount + (isPresent ? 1 : 0),
+          totalClasses:    sub.totalClasses + 1,
+        };
+      }));
+    }
+
     if (user && status !== "leave") {
-      // Per-day values: each class is 0 or 1 for that date
-      const dayAttended = status === "present" ? 1 : 0;
-      const dayTotal    = 1; // one class held today
       const saveStart = performance.now();
+      // Schema: (id, user_id, subject, date, status, created_at)
       const { error: attErr } = await supabase.from("attendance").upsert({
-        user_id:          user.id,
-        subject_id:       updated.id,
-        subject_name:     updated.name,
-        date:             dateStr,
-        status:           status,
-        attendance_count: dayAttended,
-        total_classes:    dayTotal,
-        updated_at:       new Date().toISOString(),
-      }, { onConflict: "user_id,subject_id,date" });
+        user_id: user.id,
+        subject: currentSub.name,
+        date:    dateStr,
+        status:  status,
+      }, { onConflict: "user_id,subject,date" });
       const ms = (performance.now() - saveStart).toFixed(2);
       if (attErr) {
-        console.error(`[Attendance Hub] ❌ Attendance save FAILED in ${ms}ms:`, attErr);
-        showToast("Failed to save attendance. Check connection.", "error");
+        console.error(`[Attendance Hub] ❌ Attendance UPSERT FAILED in ${ms}ms:`, JSON.stringify(attErr), "code:", attErr.code, "details:", attErr.details, "hint:", attErr.hint);
+        showToast("Failed to save attendance. Check console for details.", "error");
+        // Roll back optimistic update
+        loadUserData(user);
       } else {
-        console.log(`[Attendance Hub] ✅ Attendance saved in ${ms}ms — ${updated.name} on ${dateStr}: ${dayAttended}/${dayTotal} (user_id: ${user.id})`);
+        console.log(`[Attendance Hub] ✅ Saved in ${ms}ms: user_id=${user.id}, subject="${currentSub.name}", date=${dateStr}, status=${status}`);
       }
+    } else if (status === "leave") {
+      console.log(`[Attendance Hub] ✈️ Leave marked for "${currentSub.name}" on ${dateStr} — not saved to DB`);
     }
 
     const labels: Record<AttendanceStatus, string> = {
       present: "✅ Present marked",
       absent:  "❌ Absent marked",
-      miss:    "☕ Missed (counted as absent)",
-      leave:   "✈️ Leave — not counted",
+      miss:    "☕ Missed",
+      leave:   "✈️ Leave",
       clear:   "🗑️ Cleared",
     };
     console.log(`${labels[status]} for ${currentSub.name}`);
@@ -609,26 +609,28 @@ export default function App() {
   const fetchLogForDate = async (dateStr: string) => {
     if (!user) return;
     setLogLoading(true);
-    console.log(`[Attendance Hub] 📅 Fetching attendance for date: ${dateStr}`);
+    console.log(`[Attendance Hub] 📅 Fetching attendance for date: ${dateStr} (user_id: ${user.id})`);
     const { data, error } = await supabase
       .from("attendance")
       .select("*")
       .eq("user_id", user.id)
       .eq("date", dateStr);
     if (error) {
-      console.error(`[Attendance Hub] ❌ Failed to fetch log for ${dateStr}:`, error);
+      console.error(`[Attendance Hub] ❌ Failed to fetch log for ${dateStr}:`, JSON.stringify(error));
     } else {
       console.log(`[Attendance Hub] ✅ Fetched ${data?.length ?? 0} rows for ${dateStr}:`, data);
       const fetched = data ?? [];
-      // Always build a full list of ALL subjects; include status from row if present
+      // Schema: (user_id, subject, date, status)
+      // Build full subject list; match fetched rows by subject name
       const entries: LogEntry[] = subjects.map(sub => {
-        const row = fetched.find(r => r.subject_id === sub.id ||
-          r.subject_name?.toLowerCase().trim() === sub.name?.toLowerCase().trim());
+        const row = fetched.find(r =>
+          (r.subject ?? "").toLowerCase().trim() === sub.name.toLowerCase().trim()
+        );
         return {
           subjectId:       sub.id,
           subjectName:     sub.name,
-          attendanceCount: row?.attendance_count ?? 0,
-          totalClasses:    row?.total_classes    ?? 0,
+          attendanceCount: row ? (row.status === "present" ? 1 : 0) : 0,
+          totalClasses:    row && row.status !== "leave" ? 1 : 0,
           subjectType:     sub.type,
           status:          row?.status ?? undefined,
         };
@@ -1205,17 +1207,17 @@ export default function App() {
                               <button
                                 onClick={async () => {
                                   if (!attendanceLogDateStr || !user) return;
-                                  console.log(`[Attendance Hub] 🗑️ Deleting ${sub.subjectName} on ${attendanceLogDateStr}`);
+                                  console.log(`[Attendance Hub] 🗑️ Deleting "${sub.subjectName}" on ${attendanceLogDateStr}`);
                                   const { error: delErr } = await supabase.from("attendance")
                                     .delete()
                                     .eq("user_id", user.id)
-                                    .eq("subject_id", sub.subjectId)
+                                    .eq("subject", sub.subjectName)
                                     .eq("date", attendanceLogDateStr);
                                   if (delErr) {
-                                    console.error("[Attendance Hub] ❌ Delete failed:", delErr);
+                                    console.error("[Attendance Hub] ❌ Delete failed:", JSON.stringify(delErr));
                                     showToast("Delete failed", "error");
                                   } else {
-                                    console.log(`[Attendance Hub] ✅ Deleted ${sub.subjectName} on ${attendanceLogDateStr}`);
+                                    console.log(`[Attendance Hub] ✅ Deleted "${sub.subjectName}" on ${attendanceLogDateStr}`);
                                     showToast(`Cleared ${sub.subjectName} for this date.`, "success");
                                     await fetchLogForDate(attendanceLogDateStr);
                                     loadUserData(user);
