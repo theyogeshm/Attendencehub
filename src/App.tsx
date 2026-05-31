@@ -173,10 +173,7 @@ export default function App() {
           section:  pData.section    || "1",
         });
 
-        // Load subjects saved from onboarding (if any)
-        if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
-          setSubjects(subjectNamestoSubjects(pData.subjects));
-        }
+        // Note: subjects are loaded further below, merged with attendance data in one pass
 
         // If onboarding not completed, show it and STOP — don't load other data yet
         if (pData.onboarding_done !== true) {
@@ -213,15 +210,29 @@ export default function App() {
       console.log(`[Attendance Hub] Parallel fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
 
       const attData = attRes.data;
-      if (attData && attData.length > 0) {
-        setSubjects(prev =>
-          prev.map(sub => {
+      console.log("[Attendance Hub] Attendance rows from Supabase:", attData?.length ?? 0, attData);
+      if (attRes.error) console.error("[Attendance Hub] Attendance fetch error:", attRes.error);
+
+      // Merge subjects with saved attendance in ONE operation (avoid React batching issue)
+      if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
+        const baseSubjects = subjectNamestoSubjects(pData.subjects);
+        if (attData && attData.length > 0) {
+          const merged = baseSubjects.map(sub => {
             const saved = attData.find(a => a.subject_id === sub.id);
-            return saved
-              ? { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes }
-              : sub;
-          })
-        );
+            if (saved) {
+              console.log(`[Attendance Hub] Merging attendance for "${sub.name}": ${saved.attendance_count}/${saved.total_classes}`);
+              return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
+            }
+            return sub;
+          });
+          console.log("[Attendance Hub] Final merged subjects:", merged);
+          setSubjects(merged);
+        } else {
+          console.log("[Attendance Hub] No attendance data found — subjects loaded with 0 counts");
+          setSubjects(baseSubjects);
+        }
+      } else {
+        console.log("[Attendance Hub] No subjects in profile — keeping current state");
       }
 
       const asgData = asgRes.data;
@@ -348,7 +359,7 @@ export default function App() {
 
     if (user && status !== "leave") {
       const saveStart = performance.now();
-      await supabase.from("attendance").upsert({
+      const { error: attErr } = await supabase.from("attendance").upsert({
         user_id:          user.id,
         subject_id:       updated.id,
         subject_name:     updated.name,
@@ -356,7 +367,13 @@ export default function App() {
         total_classes:    updated.totalClasses,
         updated_at:       new Date().toISOString(),
       }, { onConflict: "user_id,subject_id" });
-      console.log(`[Attendance Hub] Mark attendance save took ${(performance.now() - saveStart).toFixed(2)}ms`);
+      const ms = (performance.now() - saveStart).toFixed(2);
+      if (attErr) {
+        console.error(`[Attendance Hub] ❌ Attendance save FAILED in ${ms}ms:`, attErr);
+        showToast("Failed to save attendance. Check connection.", "error");
+      } else {
+        console.log(`[Attendance Hub] ✅ Attendance saved in ${ms}ms — ${updated.name}: ${updated.attendanceCount}/${updated.totalClasses} (user_id: ${user.id})`);
+      }
     }
 
     const labels: Record<AttendanceStatus, string> = {

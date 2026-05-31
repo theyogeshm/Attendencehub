@@ -239,7 +239,7 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
             >
               <div className="flex justify-between items-start">
                 <span className="material-symbols-outlined text-xl text-on-surface-variant">
-                  {ICON_MAP[sub.id] ?? "school"}
+                  school
                 </span>
                 <span className="text-[9px] font-mono font-bold text-on-surface-variant">{sub.currentRate.toFixed(0)}% now</span>
               </div>
