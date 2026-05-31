@@ -51,18 +51,18 @@ export default function App() {
 
   // ── Live persistent states ────────────────────────────────────────────────
   const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const saved = localStorage.getItem("DTU_HUB_SUBJECTS");
+    const saved = localStorage.getItem("ATTENDANCE_HUB_SUBJECTS");
     return saved ? JSON.parse(saved) : INITIAL_SUBJECTS;
   });
 
   const [assignments, setAssignments] = useState<Assignment[]>(() => {
-    const saved = localStorage.getItem("DTU_HUB_ASSIGNMENTS");
+    const saved = localStorage.getItem("ATTENDANCE_HUB_ASSIGNMENTS");
     return saved ? JSON.parse(saved) : INITIAL_ASSIGNMENTS;
   });
 
   // ── Dark / Light Mode ─────────────────────────────────────────────────────
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem("DTU_HUB_THEME");
+    const saved = localStorage.getItem("ATTENDANCE_HUB_THEME");
     return saved !== "light";
   });
 
@@ -71,7 +71,7 @@ export default function App() {
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [profile, setProfile] = useState<StudentProfile>(() => {
-    const saved = localStorage.getItem("DTU_HUB_PROFILE");
+    const saved = localStorage.getItem("ATTENDANCE_HUB_PROFILE");
     return saved ? JSON.parse(saved) : {
       name: "Student",
       rollNo: "2K24/---/---",
@@ -106,17 +106,17 @@ export default function App() {
   const [feedbackEmail, setFeedbackEmail] = useState("");
 
   // ── Sync localStorage ─────────────────────────────────────────────────────
-  useEffect(() => { localStorage.setItem("DTU_HUB_SUBJECTS", JSON.stringify(subjects)); }, [subjects]);
-  useEffect(() => { localStorage.setItem("DTU_HUB_ASSIGNMENTS", JSON.stringify(assignments)); }, [assignments]);
-  useEffect(() => { localStorage.setItem("DTU_HUB_PROFILE", JSON.stringify(profile)); }, [profile]);
+  useEffect(() => { localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(subjects)); }, [subjects]);
+  useEffect(() => { localStorage.setItem("ATTENDANCE_HUB_ASSIGNMENTS", JSON.stringify(assignments)); }, [assignments]);
+  useEffect(() => { localStorage.setItem("ATTENDANCE_HUB_PROFILE", JSON.stringify(profile)); }, [profile]);
   useEffect(() => {
     const root = window.document.documentElement;
     if (isDarkMode) {
       root.classList.add("dark"); root.classList.remove("light");
-      localStorage.setItem("DTU_HUB_THEME", "dark");
+      localStorage.setItem("ATTENDANCE_HUB_THEME", "dark");
     } else {
       root.classList.remove("dark"); root.classList.add("light");
-      localStorage.setItem("DTU_HUB_THEME", "light");
+      localStorage.setItem("ATTENDANCE_HUB_THEME", "light");
     }
   }, [isDarkMode]);
 
@@ -147,7 +147,7 @@ export default function App() {
   // ── Load user data from Supabase ──────────────────────────────────────────
   const loadUserData = async (u: User) => {
     setAuthLoading(true);
-    console.log("[DTU Hub] loadUserData started...");
+    console.log("[Attendance Hub] loadUserData started...");
     const t0 = performance.now();
     try {
       // 1. Fetch profile FIRST — gate everything on onboarding_done
@@ -157,9 +157,9 @@ export default function App() {
         .select("*")
         .eq("id", u.id)
         .single();
-      console.log(`[DTU Hub] Profile fetch took ${(performance.now() - pStart).toFixed(2)}ms`);
+      console.log(`[Attendance Hub] Profile fetch took ${(performance.now() - pStart).toFixed(2)}ms`);
 
-      console.log("[DTU Hub] Profile loaded:", pData, pErr);
+      console.log("[Attendance Hub] Profile loaded:", pData, pErr);
 
       if (pData) {
         setProfile({
@@ -177,13 +177,13 @@ export default function App() {
 
         // If onboarding not completed, show it and STOP — don't load other data yet
         if (pData.onboarding_done !== true) {
-          console.log("[DTU Hub] Onboarding not done — showing modal");
+          console.log("[Attendance Hub] Onboarding not done — showing modal");
           setShowOnboarding(true);
           setAuthLoading(false);
           return;
         }
 
-        console.log("[DTU Hub] Onboarding done — going to dashboard");
+        console.log("[Attendance Hub] Onboarding done — going to dashboard");
       } else {
         // Brand new user — create profile row, trigger onboarding
         const displayName = u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
@@ -194,7 +194,7 @@ export default function App() {
           avatar_url:      u.user_metadata?.avatar_url ?? null,
           onboarding_done: false,
         });
-        console.log("[DTU Hub] New user — profile created, showing onboarding");
+        console.log("[Attendance Hub] New user — profile created, showing onboarding");
         setProfile(prev => ({ ...prev, name: displayName }));
         setShowOnboarding(true);
         setAuthLoading(false);
@@ -207,7 +207,7 @@ export default function App() {
         supabase.from("attendance").select("*").eq("user_id", u.id),
         supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
       ]);
-      console.log(`[DTU Hub] Parallel fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
+      console.log(`[Attendance Hub] Parallel fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
 
       const attData = attRes.data;
       if (attData && attData.length > 0) {
@@ -236,9 +236,9 @@ export default function App() {
         );
       }
 
-      console.log(`[DTU Hub] loadUserData done in ${(performance.now() - t0).toFixed(2)}ms`);
+      console.log(`[Attendance Hub] loadUserData done in ${(performance.now() - t0).toFixed(2)}ms`);
     } catch (err) {
-      console.error("[DTU Hub] loadUserData error:", err);
+      console.error("[Attendance Hub] loadUserData error:", err);
     } finally {
       setAuthLoading(false);
     }
@@ -269,7 +269,7 @@ export default function App() {
 
     // 3. Save to Supabase in the background — never block the UI
     const saveStart = performance.now();
-    console.log("[DTU Hub] Saving to Supabase in background...");
+    console.log("[Attendance Hub] Saving to Supabase in background...");
     supabase
       .from("profiles")
       .upsert({
@@ -284,13 +284,13 @@ export default function App() {
         updated_at:      new Date().toISOString(),
       })
       .then(({ error }) => {
-        console.log(`[DTU Hub] Background save took ${(performance.now() - saveStart).toFixed(0)}ms`);
+        console.log(`[Attendance Hub] Background save took ${(performance.now() - saveStart).toFixed(0)}ms`);
         if (error) {
-          console.error("[DTU Hub] Background save FAILED:", error);
+          console.error("[Attendance Hub] Background save FAILED:", error);
           showToast("Saved locally. Cloud sync failed — check connection.", "error");
         } else {
-          console.log("[DTU Hub] \u2705 Supabase save confirmed — onboarding_done=true");
-          showToast("Profile saved! Welcome to DTU Hub \uD83C\uDF89");
+          console.log("[Attendance Hub] \u2705 Supabase save confirmed — onboarding_done=true");
+          showToast("Profile saved! Welcome to Attendance Hub \uD83C\uDF89");
         }
       });
   };
@@ -330,7 +330,7 @@ export default function App() {
         total_classes:    updated.totalClasses,
         updated_at:       new Date().toISOString(),
       }, { onConflict: "user_id,subject_id" });
-      console.log(`[DTU Hub] Mark attendance save took ${(performance.now() - saveStart).toFixed(2)}ms`);
+      console.log(`[Attendance Hub] Mark attendance save took ${(performance.now() - saveStart).toFixed(2)}ms`);
     }
 
     const labels: Record<AttendanceStatus, string> = {
@@ -443,7 +443,7 @@ export default function App() {
       timetable:   "Weekly Schedule Grid",
       analytics:   "Academic Analytics",
     };
-    return m[activeTab] ?? "DTU Hub";
+    return m[activeTab] ?? "Attendance Hub";
   };
 
   // ── Feedback submit ───────────────────────────────────────────────────────
@@ -545,7 +545,7 @@ export default function App() {
           <div>
             <h1 className="text-xl font-extrabold tracking-tight text-primary-container font-sans flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[24px]">terminal</span>
-              <span>DTU Hub</span>
+              <span>Attendance Hub</span>
             </h1>
             <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • Section {profile.section}</p>
           </div>
@@ -976,7 +976,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-on-surface">Send Feedback</h3>
-                  <p className="text-[10px] text-on-surface-variant">Help improve DTU Hub</p>
+                  <p className="text-[10px] text-on-surface-variant">Help improve Attendance Hub</p>
                 </div>
               </div>
 
