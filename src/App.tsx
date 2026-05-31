@@ -214,21 +214,36 @@ export default function App() {
       if (attRes.error) console.error("[Attendance Hub] Attendance fetch error:", attRes.error);
 
       // Merge subjects with saved attendance in ONE operation (avoid React batching issue)
+      // attData may have multiple rows per subject (one per date) — aggregate them
       if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
         const baseSubjects = subjectNamestoSubjects(pData.subjects);
+        console.log("[Attendance Hub] Base subjects from profile:", baseSubjects.map(s => `${s.name}(${s.id})`));
         if (attData && attData.length > 0) {
+          // Aggregate: sum attendance_count and total_classes across ALL dates per subject
+          const agg: Record<string, { attendance_count: number; total_classes: number; subject_name: string }> = {};
+          for (const row of attData) {
+            const key = row.subject_id;
+            if (!agg[key]) agg[key] = { attendance_count: 0, total_classes: 0, subject_name: row.subject_name ?? "" };
+            agg[key].attendance_count += row.attendance_count ?? 0;
+            agg[key].total_classes    += row.total_classes ?? 0;
+          }
+
           const merged = baseSubjects.map(sub => {
-            const saved = attData.find(a => a.subject_id === sub.id);
+            // Match by subject_id first, then fall back to subject_name
+            const saved =
+              agg[sub.id] ??
+              Object.values(agg).find(a => a.subject_name?.toLowerCase().trim() === sub.name?.toLowerCase().trim());
             if (saved) {
-              console.log(`[Attendance Hub] Merging attendance for "${sub.name}": ${saved.attendance_count}/${saved.total_classes}`);
+              console.log(`[Attendance Hub] ✅ Matched "${sub.name}": ${saved.attendance_count}/${saved.total_classes}`);
               return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
             }
+            console.log(`[Attendance Hub] ⚠️ No attendance record for "${sub.name}" — defaulting to 0/0`);
             return sub;
           });
           console.log("[Attendance Hub] Final merged subjects:", merged);
           setSubjects(merged);
         } else {
-          console.log("[Attendance Hub] No attendance data found — subjects loaded with 0 counts");
+          console.log("[Attendance Hub] No attendance data — subjects reset to 0 counts");
           setSubjects(baseSubjects);
         }
       } else {
@@ -358,21 +373,26 @@ export default function App() {
     setSubjects(prev => prev.map(sub => sub.id === subjectId ? updated : sub));
 
     if (user && status !== "leave") {
+      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      // Per-day values: each class is 0 or 1 for that date
+      const dayAttended = status === "present" ? 1 : 0;
+      const dayTotal    = 1; // one class held today
       const saveStart = performance.now();
       const { error: attErr } = await supabase.from("attendance").upsert({
         user_id:          user.id,
         subject_id:       updated.id,
         subject_name:     updated.name,
-        attendance_count: updated.attendanceCount,
-        total_classes:    updated.totalClasses,
+        date:             today,
+        attendance_count: dayAttended,
+        total_classes:    dayTotal,
         updated_at:       new Date().toISOString(),
-      }, { onConflict: "user_id,subject_id" });
+      }, { onConflict: "user_id,subject_id,date" });
       const ms = (performance.now() - saveStart).toFixed(2);
       if (attErr) {
         console.error(`[Attendance Hub] ❌ Attendance save FAILED in ${ms}ms:`, attErr);
         showToast("Failed to save attendance. Check connection.", "error");
       } else {
-        console.log(`[Attendance Hub] ✅ Attendance saved in ${ms}ms — ${updated.name}: ${updated.attendanceCount}/${updated.totalClasses} (user_id: ${user.id})`);
+        console.log(`[Attendance Hub] ✅ Attendance saved in ${ms}ms — ${updated.name} on ${today}: ${dayAttended}/${dayTotal} (user_id: ${user.id})`);
       }
     }
 
@@ -397,14 +417,19 @@ export default function App() {
     if (user) {
       const sub = subjects.find(s => s.id === id);
       if (sub) {
-        await supabase.from("attendance").upsert({
+        // Manual adjustments use a special sentinel date so they don't conflict with daily records
+        const manualDate = "0001-01-01";
+        const { error } = await supabase.from("attendance").upsert({
           user_id:          user.id,
           subject_id:       id,
           subject_name:     sub.name,
+          date:             manualDate,
           attendance_count: newAttended,
           total_classes:    newTotal,
           updated_at:       new Date().toISOString(),
-        }, { onConflict: "user_id,subject_id" });
+        }, { onConflict: "user_id,subject_id,date" });
+        if (error) console.error("[Attendance Hub] Manual adjustment save failed:", error);
+        else console.log(`[Attendance Hub] ✅ Manual adjustment saved for "${sub.name}": ${newAttended}/${newTotal}`);
       }
     }
   };
