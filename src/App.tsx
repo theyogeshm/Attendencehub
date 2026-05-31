@@ -575,11 +575,11 @@ export default function App() {
 
   // ── Feedback submit ───────────────────────────────────────────────────────
   const handleSubmitFeedback = () => {
-    if (!feedbackText.trim()) { alert("Please enter feedback."); return; }
+    if (!feedbackText.trim()) { showToast("Please enter your feedback.", "error"); return; }
 
     setFeedbackText(""); setFeedbackEmail("");
     setShowFeedbackModal(false);
-    alert("Thank you for your feedback! 🙏");
+    showToast("Thank you for your feedback! 🙏");
   };
 
   // ── Fetch attendance for a specific date from Supabase ───────────────────
@@ -868,7 +868,7 @@ export default function App() {
 
             {/* Notification bell */}
             <button
-              onClick={() => alert("All caught up! No new notifications.")}
+              onClick={() => showToast("All caught up! No new notifications.")}
               className="p-2 rounded-xl text-on-surface-variant hover:text-primary transition-colors cursor-pointer relative"
             >
               <Bell className="w-4 h-4" />
@@ -915,12 +915,13 @@ export default function App() {
                 <ResourcesPage subjects={subjects} />
               } />
               <Route path="/assignments" element={
-                <AssignmentsPage
+              <AssignmentsPage
                   assignments={assignments}
                   subjects={subjects}
                   onAddAssignment={handleAddAssignment}
                   onToggleAssignment={handleToggleAssignment}
                   onDeleteAssignment={handleDeleteAssignment}
+                  onToast={showToast}
                 />
               } />
               <Route path="/timetable" element={

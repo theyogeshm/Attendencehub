@@ -202,16 +202,16 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                           
                           <div className="flex gap-2 text-xs">
                             <button 
-                              onClick={() => alert(`Downloading ${selectedSubject.name} ${pack.year} Question paper PDF...`)}
-                              className="flex items-center gap-1 bg-primary text-[#002114] px-4 py-2 rounded-xl font-bold hover:brightness-110 cursor-pointer transition-all active:scale-95 text-[11px]"
+                              disabled
+                              className="flex items-center gap-1 bg-primary text-[#002114] px-4 py-2 rounded-xl font-bold opacity-60 cursor-not-allowed text-[11px]"
                             >
                               <Download className="w-3.5 h-3.5" />
                               <span>Paper PDF</span>
                             </button>
                             {pack.hasSolution ? (
                               <button 
-                                onClick={() => alert(`Opening solutions for ${selectedSubject.name} ${pack.year} paper...`)}
-                                className="flex items-center gap-1 border border-outline text-on-surface hover:bg-[#2d3449] px-3 py-2 rounded-xl font-bold cursor-pointer transition-all text-[11px]"
+                                disabled
+                                className="flex items-center gap-1 border border-outline text-on-surface px-3 py-2 rounded-xl font-bold opacity-60 cursor-not-allowed text-[11px]"
                               >
                                 <CheckCircle className="w-3.5 h-3.5 text-primary" />
                                 <span>Solved</span>
@@ -235,8 +235,8 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                       
                       {/* Scholar Notes */}
                       <button 
-                        onClick={() => alert("Loading handwritten scholar notes package... (9.4 MB PDF)")}
-                        className="flex flex-col items-center justify-center p-6 bg-[#2d3449]/20 rounded-2xl border-2 border-dashed border-[#3b4a42] hover:border-primary transition-all group text-center cursor-pointer"
+                        disabled
+                        className="flex flex-col items-center justify-center p-6 bg-[#2d3449]/20 rounded-2xl border-2 border-dashed border-[#3b4a42] text-center opacity-60 cursor-not-allowed"
                       >
                         <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform text-primary">
                           <span className="material-symbols-outlined text-2xl">edit_note</span>
@@ -247,8 +247,8 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
 
                       {/* AI Generated Summarized notes */}
                       <button 
-                        onClick={() => alert("Initializing AI summarizing model... Loaded 4 detailed revision flashcards.")}
-                        className="flex flex-col items-center justify-center p-6 bg-secondary-container/5 rounded-2xl border-2 border-dashed border-secondary/30 hover:border-secondary transition-all group text-center cursor-pointer"
+                        disabled
+                        className="flex flex-col items-center justify-center p-6 bg-secondary-container/5 rounded-2xl border-2 border-dashed border-secondary/30 text-center opacity-60 cursor-not-allowed"
                       >
                         <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform text-secondary">
                           <Sparkles className="w-5 h-5" />
@@ -265,8 +265,8 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
               {/* Footer action downloads */}
               <div className="pt-6 border-t border-outline-variant mt-8">
                 <button 
-                  onClick={() => alert(`Starting full package download for ${selectedSubject.name} (Zip file, 18.5 MB)`)}
-                  className="w-full py-3.5 bg-primary-fixed text-[#002114] font-bold rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all cursor-pointer active:scale-95 text-xs shadow-md"
+                  disabled
+                  className="w-full py-3.5 bg-primary-fixed text-[#002114] font-bold rounded-xl flex items-center justify-center gap-2 opacity-60 cursor-not-allowed text-xs shadow-md"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download Full Packaged Bundle</span>

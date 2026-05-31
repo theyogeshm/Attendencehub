@@ -184,8 +184,8 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
 
           <div className="pt-4 border-t border-outline-variant mt-auto">
             <button
-              onClick={() => alert("Opening attendance recovery plan...")}
-              className="w-full inline-flex items-center justify-center gap-1.5 text-primary text-xs font-bold hover:underline cursor-pointer"
+              disabled
+              className="w-full inline-flex items-center justify-center gap-1.5 text-primary text-xs font-bold opacity-50 cursor-not-allowed"
             >
               <span>View Recovery Plan</span>
               <ArrowRight className="w-3.5 h-3.5" />

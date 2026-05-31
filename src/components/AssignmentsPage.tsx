@@ -26,6 +26,7 @@ interface AssignmentsPageProps {
   onAddAssignment: (assignment: Omit<Assignment, "id">) => void;
   onToggleAssignment: (id: string) => void;
   onDeleteAssignment: (id: string) => void;
+  onToast: (msg: string, type?: "success" | "error") => void;
 }
 
 export default function AssignmentsPage({
@@ -34,6 +35,7 @@ export default function AssignmentsPage({
   onAddAssignment,
   onToggleAssignment,
   onDeleteAssignment,
+  onToast,
 }: AssignmentsPageProps) {
   // Filters & Form States
   const [activeFilter, setActiveFilter] = useState<"All" | "Pending" | "Overdue">("All");
@@ -65,7 +67,7 @@ export default function AssignmentsPage({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) {
-      alert("Please enter an assignment title.");
+      onToast("Please enter an assignment title.", "error");
       return;
     }
 
@@ -73,7 +75,7 @@ export default function AssignmentsPage({
       title: formTitle,
       description: formDesc,
       subject: formSubject,
-      dueDate: formDueDate, // Raw date string
+      dueDate: formDueDate,
       done: false,
     });
 
@@ -82,7 +84,7 @@ export default function AssignmentsPage({
     setFormDueDate("");
     setFormDesc("");
 
-    alert("Task has been recorded. Check the timeline to monitor!");
+    onToast("Assignment added!");
   };
 
   // Filter & Search Logic
@@ -299,11 +301,7 @@ export default function AssignmentsPage({
 
                       {/* Delete action wrapper button */}
                       <button 
-                        onClick={() => {
-                          if (confirm("Are you sure you want to dismiss this assignment?")) {
-                            onDeleteAssignment(task.id);
-                          }
-                        }}
+                        onClick={() => onDeleteAssignment(task.id)}
                         className="p-1 px-1.5 sm:opacity-0 group-hover:opacity-100 transition-opacity hover:text-error text-on-surface-variant cursor-pointer rounded-lg hover:bg-[#222a3d]"
                         title="Dismiss Task"
                       >
@@ -325,15 +323,11 @@ export default function AssignmentsPage({
               )}
             </div>
 
-            {/* List footer */}
+            {/* List footer - shows total count */}
             <div className="p-4 text-center bg-[#131b2e]/30 border-t border-outline-variant">
-              <button 
-                onClick={() => alert("Showing archived papers... Log cleared.")}
-                className="text-[11px] font-mono font-bold text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>View Completed Archive</span>
-                <span className="material-symbols-outlined text-sm font-bold">keyboard_arrow_down</span>
-              </button>
+              <span className="text-[11px] font-mono font-bold text-on-surface-variant">
+                {assignments.filter(a => a.done).length} of {assignments.length} completed
+              </span>
             </div>
 
           </section>

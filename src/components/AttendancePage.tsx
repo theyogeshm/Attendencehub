@@ -270,8 +270,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
                 <button 
                   type="button"
-                  onClick={() => alert("Attendance profile synced with calendar. Reminders enabled!")}
-                  className="w-full bg-surface-container-high border border-outline-variant text-[#dae2fd] hover:text-white hover:border-primary py-3 rounded-xl font-bold text-xs hover:shadow-md hover:scale-[1.01] active:scale-95 transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                  disabled
+                  className="w-full bg-surface-container-high border border-outline-variant text-[#dae2fd] opacity-60 cursor-not-allowed py-3 rounded-xl font-bold text-xs transition-all text-center flex items-center justify-center gap-1.5"
                 >
                   <span>Sync with Calendar</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
