@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef } from "react";
-import { DTU_CSE_SUBJECTS } from "../data";
+import dtuData from "../../dtu_subjects.json";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface OnboardingResult {
@@ -68,7 +68,15 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   const handleNext = () => {
     if (!canGoNext) return;
     transition(() => {
-      setSubjects(isAutoFill ? [...DTU_CSE_SUBJECTS[semester]] : []);
+      let initialSubjects: string[] = [];
+      if (isAutoFill) {
+        const cseBranch = dtuData.branches.find(b => b.branch === "CSE");
+        const semData = cseBranch?.semesters.find(s => s.sem === semester);
+        if (semData) {
+          initialSubjects = [...semData.subjects];
+        }
+      }
+      setSubjects(initialSubjects);
       setNewSubject("");
       setStep(2);
     });
