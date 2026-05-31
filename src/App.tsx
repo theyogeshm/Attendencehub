@@ -1075,6 +1075,7 @@ export default function App() {
                           {pct}% — {Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}
                         </p>
                       </div>
+                      <div className="flex gap-1.5">
                         <button
                           onClick={() => handleMarkAttendance(sub.id, "present", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
                           className="text-[10px] font-bold border border-primary/30 text-primary px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-primary hover:text-[#002114] transition-all"

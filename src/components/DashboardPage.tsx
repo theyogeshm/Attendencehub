@@ -18,6 +18,7 @@ import {
   BookOpen,
   GraduationCap,
 } from "lucide-react";
+import { TIMETABLE_SLOTS } from "../data";
 
 interface DashboardPageProps {
   subjects: Subject[];
