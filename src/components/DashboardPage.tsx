@@ -123,7 +123,9 @@ export default function DashboardPage({
             <span className="material-symbols-outlined text-[#82ffc8] text-xl">analytics</span>
           </div>
           <div className="mt-3">
-            <h3 className={`text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>{aggregateAtt.toFixed(1)}%</h3>
+            <h3 className={`text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>
+              {totalHeld > 0 ? `${aggregateAtt.toFixed(1)}%` : "N/A"}
+            </h3>
             <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
               <div
                 className={`h-full rounded-full transition-all duration-700 ${isDarkMode ? "bg-gradient-to-r from-primary-container to-secondary" : "bg-[#00C896]"}`}

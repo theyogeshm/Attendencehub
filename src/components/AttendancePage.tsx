@@ -65,6 +65,16 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
   return (
     <div className="space-y-6">
+      {subjects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4 bg-surface-container-low rounded-2xl border border-outline-variant">
+          <Award className="w-16 h-16 text-outline mb-4 opacity-50" />
+          <h2 className="text-2xl font-bold text-on-surface mb-2 tracking-tight">No subjects found</h2>
+          <p className="text-on-surface-variant text-sm max-w-sm">
+            Please set up your profile with your branch and semester to see your subjects here.
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Overall Stats Summary Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
         <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
@@ -316,6 +326,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

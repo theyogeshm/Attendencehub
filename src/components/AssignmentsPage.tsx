@@ -314,7 +314,11 @@ export default function AssignmentsPage({
               ) : (
                 <div className="p-12 text-center text-on-surface-variant flex flex-col items-center justify-center">
                   <FolderMinus className="w-12 h-12 mb-3 text-outline" />
-                  <p className="text-sm font-semibold">No assignments found for the selected category filter.</p>
+                  <p className="text-sm font-semibold">
+                    {assignments.length === 0 
+                      ? "No assignments yet. Add your first one!" 
+                      : "No assignments found for the selected category filter."}
+                  </p>
                 </div>
               )}
             </div>

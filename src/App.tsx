@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Subject, Assignment, AttendanceStatus } from "./types";
-import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects } from "./data";
+import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS } from "./data";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
@@ -420,10 +420,34 @@ export default function App() {
 
   // ── Profile Save (+ Supabase upsert) ─────────────────────────────────────
   const handleSaveProfile = async () => {
+    const isSemesterChanged = profile.semester !== editProfile.semester;
+    const isBranchChanged = profile.branch !== editProfile.branch;
+
     setProfile(editProfile);
     setIsEditingProfile(false);
+
+    let newSubjectsList: string[] | null = null;
+
+    if (isSemesterChanged || isBranchChanged) {
+      const semMatch = editProfile.semester.match(/\d+/);
+      const semNum = semMatch ? parseInt(semMatch[0], 10) : 1;
+      
+      if (editProfile.branch.toLowerCase().includes("computer science") || editProfile.branch.toUpperCase() === "CSE") {
+        const subNames = DTU_CSE_SUBJECTS[semNum] || [];
+        if (subNames.length > 0) {
+          newSubjectsList = subNames;
+          setSubjects(subjectNamestoSubjects(subNames));
+          showToast(`Subjects updated for ${editProfile.semester}`);
+        }
+      } else {
+        newSubjectsList = [];
+        setSubjects([]);
+        showToast(`Subjects cleared for ${editProfile.branch}. Please add manually.`);
+      }
+    }
+
     if (user) {
-      await supabase.from("profiles").upsert({
+      const updateData: any = {
         id:         user.id,
         email:      user.email,
         full_name:  editProfile.name,
@@ -432,7 +456,13 @@ export default function App() {
         semester:   editProfile.semester,
         section:    editProfile.section,
         updated_at: new Date().toISOString(),
-      });
+      };
+      
+      if (newSubjectsList !== null) {
+        updateData.subjects = newSubjectsList;
+      }
+      
+      await supabase.from("profiles").upsert(updateData);
     }
   };
 
