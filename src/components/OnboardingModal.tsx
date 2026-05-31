@@ -17,7 +17,7 @@ interface OnboardingResult {
 
 interface Props {
   userName: string;
-  onComplete: (result: OnboardingResult) => void;
+  onComplete: (result: OnboardingResult) => Promise<void> | void;
 }
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -91,14 +91,18 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    await new Promise(r => setTimeout(r, 280));
-    onComplete({
-      branch:   isOtherBranch ? customBranch.trim() : branch,
-      semester: `${semester}${sfx(semester)} Semester`,
-      section:  String(section),
-      rollNo:   rollNo.trim(),
-      subjects,
-    });
+    try {
+      await onComplete({
+        branch:   isOtherBranch ? customBranch.trim() : branch,
+        semester: `${semester}${sfx(semester)} Semester`,
+        section:  String(section),
+        rollNo:   rollNo.trim(),
+        subjects,
+      });
+    } finally {
+      // we only reach here if modal didn't unmount (e.g. on error)
+      setSaving(false);
+    }
   };
 
   // ── Chip button helper ─────────────────────────────────────────────────

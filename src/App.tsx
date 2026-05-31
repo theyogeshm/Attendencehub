@@ -140,13 +140,17 @@ export default function App() {
   // ── Load user data from Supabase ──────────────────────────────────────────
   const loadUserData = async (u: User) => {
     setAuthLoading(true);
+    console.log("[DTU Hub] loadUserData started...");
+    const t0 = performance.now();
     try {
       // 1. Fetch profile FIRST — gate everything on onboarding_done
+      const pStart = performance.now();
       const { data: pData, error: pErr } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", u.id)
         .single();
+      console.log(`[DTU Hub] Profile fetch took ${(performance.now() - pStart).toFixed(2)}ms`);
 
       console.log("[DTU Hub] Profile loaded:", pData, pErr);
 
@@ -190,12 +194,15 @@ export default function App() {
         return; // don't load attendance/assignments for new users
       }
 
-      // 2. Attendance (only reached if onboarding_done = true)
-      const { data: attData } = await supabase
-        .from("attendance")
-        .select("*")
-        .eq("user_id", u.id);
+      // 2 & 3. Fetch Attendance and Assignments IN PARALLEL
+      const parallelStart = performance.now();
+      const [attRes, asgRes] = await Promise.all([
+        supabase.from("attendance").select("*").eq("user_id", u.id),
+        supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
+      ]);
+      console.log(`[DTU Hub] Parallel attendance & assignments fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
 
+      const attData = attRes.data;
       if (attData && attData.length > 0) {
         setSubjects(prev =>
           prev.map(sub => {
@@ -207,13 +214,7 @@ export default function App() {
         );
       }
 
-      // 3. Assignments
-      const { data: asgData } = await supabase
-        .from("assignments")
-        .select("*")
-        .eq("user_id", u.id)
-        .order("created_at", { ascending: false });
-
+      const asgData = asgRes.data;
       if (asgData && asgData.length > 0) {
         setAssignments(
           asgData.map(a => ({
@@ -227,6 +228,8 @@ export default function App() {
           }))
         );
       }
+      
+      console.log(`[DTU Hub] loadUserData completed in ${(performance.now() - t0).toFixed(2)}ms total`);
     } catch (err) {
       console.error("[DTU Hub] loadUserData error:", err);
     } finally {
@@ -244,6 +247,9 @@ export default function App() {
   }) => {
     // 1. Save to Supabase FIRST — onboarding_done=true written before hiding modal
     if (user) {
+      const saveStart = performance.now();
+      console.log("[DTU Hub] Saving onboarding data to Supabase...");
+      
       const { error } = await supabase.from("profiles").upsert({
         id:              user.id,
         branch:          result.branch,
@@ -254,6 +260,9 @@ export default function App() {
         onboarding_done: true,
         updated_at:      new Date().toISOString(),
       });
+      
+      console.log(`[DTU Hub] Onboarding save took ${(performance.now() - saveStart).toFixed(2)}ms`);
+      
       if (error) {
         console.error("[DTU Hub] Failed to save onboarding data:", error);
         return; // don't hide modal if save failed
@@ -300,6 +309,7 @@ export default function App() {
     setSubjects(prev => prev.map(sub => sub.id === subjectId ? updated : sub));
 
     if (user && status !== "leave") {
+      const saveStart = performance.now();
       await supabase.from("attendance").upsert({
         user_id:          user.id,
         subject_id:       updated.id,
@@ -308,6 +318,7 @@ export default function App() {
         total_classes:    updated.totalClasses,
         updated_at:       new Date().toISOString(),
       }, { onConflict: "user_id,subject_id" });
+      console.log(`[DTU Hub] Mark attendance save took ${(performance.now() - saveStart).toFixed(2)}ms`);
     }
 
     const labels: Record<AttendanceStatus, string> = {
