@@ -924,6 +924,7 @@ export default function App() {
                   onToggleAssignment={handleToggleAssignment}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToast={showToast}
+                  isDarkMode={isDarkMode}
                 />
               } />
               <Route path="/timetable" element={
@@ -1272,6 +1273,7 @@ export default function App() {
         message="Are you sure you want to sign out?"
         confirmLabel="Sign Out"
         confirmDanger
+        isDarkMode={isDarkMode}
         onConfirm={() => { setConfirmLogout(false); handleSignOut(); }}
         onCancel={() => setConfirmLogout(false)}
       />
@@ -1283,6 +1285,7 @@ export default function App() {
         message="This will permanently delete ALL your attendance data. This cannot be undone."
         confirmLabel="Delete All"
         confirmDanger
+        isDarkMode={isDarkMode}
         onConfirm={() => { setConfirmResetAttendance(false); handleResetAllAttendance(); }}
         onCancel={() => setConfirmResetAttendance(false)}
       />
@@ -1294,6 +1297,7 @@ export default function App() {
         message={`Remove attendance record for "${confirmDeleteLog?.subjectName}" on this date?`}
         confirmLabel="Remove"
         confirmDanger
+        isDarkMode={isDarkMode}
         onConfirm={async () => {
           if (!confirmDeleteLog || !attendanceLogDateStr || !user) { setConfirmDeleteLog(null); return; }
           const { error: delErr } = await supabase.from("attendance")

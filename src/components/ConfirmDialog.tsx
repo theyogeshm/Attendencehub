@@ -9,6 +9,7 @@ interface ConfirmDialogProps {
   message: string;
   confirmLabel?: string;
   confirmDanger?: boolean;
+  isDarkMode?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,6 +20,7 @@ export default function ConfirmDialog({
   message,
   confirmLabel = "Confirm",
   confirmDanger = true,
+  isDarkMode = true,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -27,12 +29,17 @@ export default function ConfirmDialog({
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-      style={{ background: "rgba(4,8,15,0.85)", backdropFilter: "blur(8px)" }}
+      style={{ 
+        background: isDarkMode ? "rgba(4,8,15,0.85)" : "rgba(0,0,0,0.5)", 
+        backdropFilter: "blur(8px)" 
+      }}
       onClick={onCancel}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-[#1f2d45] shadow-2xl p-6 flex flex-col gap-4"
-        style={{ background: "#0b1220" }}
+        className={`relative w-full max-w-sm rounded-2xl border shadow-2xl p-6 flex flex-col gap-4 ${
+          isDarkMode ? "border-[#1f2d45]" : "border-[#E5E7EB]"
+        }`}
+        style={{ background: isDarkMode ? "#0b1220" : "#FFFFFF" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Icon */}
@@ -51,20 +58,24 @@ export default function ConfirmDialog({
             </span>
           </div>
           <div>
-            <h3 className="text-sm font-black text-white">{title}</h3>
-            <p className="text-xs text-[#6b7e94] mt-0.5 leading-relaxed">{message}</p>
+            <h3 className={`text-sm font-black ${isDarkMode ? "text-white" : "text-[#111827]"}`}>{title}</h3>
+            <p className={`text-xs mt-0.5 leading-relaxed ${isDarkMode ? "text-[#6b7e94]" : "text-[#111827]"}`}>{message}</p>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-[#1a2535]" />
+        <div className={`h-px ${isDarkMode ? "bg-[#1a2535]" : "bg-[#E5E7EB]"}`} />
 
         {/* Buttons */}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-[#2a3550] text-[#8899aa] hover:border-[#3a4560] hover:text-white transition-all cursor-pointer"
-            style={{ background: "#0d1525" }}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
+              isDarkMode
+                ? "border-[#2a3550] text-[#8899aa] hover:border-[#3a4560] hover:text-white"
+                : "border-transparent bg-[#F3F4F6] text-[#374151] hover:bg-gray-200"
+            }`}
+            style={{ background: isDarkMode ? "#0d1525" : undefined }}
           >
             Cancel
           </button>
@@ -72,8 +83,12 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer active:scale-[0.97] ${
               confirmDanger
-                ? "bg-error text-white hover:brightness-110 shadow-lg shadow-error/20"
-                : "bg-gradient-to-r from-[#1AE7A6] to-[#00C896] text-[#002114] hover:brightness-110"
+                ? isDarkMode 
+                  ? "bg-error text-white hover:brightness-110 shadow-lg shadow-error/20"
+                  : "bg-[#EF4444] text-white hover:brightness-110 shadow-lg shadow-error/20"
+                : isDarkMode
+                  ? "bg-gradient-to-r from-[#1AE7A6] to-[#00C896] text-[#002114] hover:brightness-110"
+                  : "bg-gradient-to-r from-[#1AE7A6] to-[#00C896] text-[#002114] hover:brightness-110"
             }`}
           >
             {confirmLabel}

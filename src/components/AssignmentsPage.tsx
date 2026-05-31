@@ -28,6 +28,7 @@ interface AssignmentsPageProps {
   onToggleAssignment: (id: string) => void;
   onDeleteAssignment: (id: string) => void;
   onToast: (msg: string, type?: "success" | "error") => void;
+  isDarkMode?: boolean;
 }
 
 export default function AssignmentsPage({
@@ -37,6 +38,7 @@ export default function AssignmentsPage({
   onToggleAssignment,
   onDeleteAssignment,
   onToast,
+  isDarkMode = true,
 }: AssignmentsPageProps) {
   // Filters & Form States
   const [activeFilter, setActiveFilter] = useState<"All" | "Pending" | "Overdue">("All");
@@ -344,6 +346,7 @@ export default function AssignmentsPage({
         message="This assignment will be permanently deleted."
         confirmLabel="Delete"
         confirmDanger
+        isDarkMode={isDarkMode}
         onConfirm={() => {
           if (pendingDeleteId) onDeleteAssignment(pendingDeleteId);
           setPendingDeleteId(null);
