@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { DTU_CSE_SUBJECTS } from "../data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -21,22 +21,33 @@ interface Props {
 }
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const SECTIONS  = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+// ── Shared input style (forces dark bg even against browser defaults) ───────
+const inputCls =
+  "w-full rounded-xl px-3 py-2.5 text-sm font-mono text-white outline-none transition-all border border-[#2a3550] focus:border-[#1AE7A6]/70 placeholder-[#4a5a70]";
+const inputStyle: React.CSSProperties = {
+  background: "#0d1525",
+  colorScheme: "dark",
+};
 
 // ══════════════════════════════════════════════════════════════════════════
 export default function OnboardingModal({ userName, onComplete }: Props) {
-  // ── Step 1 state ───────────────────────────────────────────────────────
-  const [step, setStep] = useState<1 | 2>(1);
-  const [branch, setBranch] = useState<"CSE" | "Other">("CSE");
+  // ── Step state ─────────────────────────────────────────────────────────
+  const [step, setStep]       = useState<1 | 2>(1);
+
+  // ── Step 1 fields ──────────────────────────────────────────────────────
+  const [branch, setBranch]   = useState<"CSE" | "Other">("CSE");
   const [semester, setSemester] = useState<number>(1);
   const [section, setSection] = useState<number>(1);
-  const [rollNo, setRollNo] = useState("");
+  const [rollNo, setRollNo]   = useState("");
 
-  // ── Step 2 state ───────────────────────────────────────────────────────
-  const [subjects, setSubjects] = useState<string[]>([]);
+  // ── Step 2 fields ──────────────────────────────────────────────────────
+  const [subjects, setSubjects]     = useState<string[]>([]);
   const [newSubject, setNewSubject] = useState("");
-  const [customBranch, setCustomBranch] = useState(""); // for "Other" branch name
+  const [customBranch, setCustomBranch] = useState("");
   const newSubjectRef = useRef<HTMLInputElement>(null);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]         = useState(false);
 
   // ── Slide animation ────────────────────────────────────────────────────
   const [animIn, setAnimIn] = useState(true);
@@ -45,19 +56,16 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
     setTimeout(() => { fn(); setAnimIn(true); }, 200);
   };
 
-  // ── Derived: what mode are we in? ──────────────────────────────────────
-  const isAutoFill = branch === "CSE" && semester >= 1 && semester <= 5;
-  const isCSEManual = branch === "CSE" && semester >= 6;
+  // ── Derived ────────────────────────────────────────────────────────────
+  const isAutoFill    = branch === "CSE" && semester >= 1 && semester <= 5;
+  const isCSEManual   = branch === "CSE" && semester >= 6;
   const isOtherBranch = branch === "Other";
 
-  const modeLabel = isAutoFill
-    ? "✨ Subjects will be auto-loaded!"
-    : isCSEManual
-    ? "Enter subjects manually for Sem 6–8"
-    : "Enter your branch name & subjects below";
+  // ── Navigation ─────────────────────────────────────────────────────────
+  const canGoNext = rollNo.trim().length > 0;
 
-  // ── Step 1 → Step 2 ────────────────────────────────────────────────────
   const handleNext = () => {
+    if (!canGoNext) return;
     transition(() => {
       setSubjects(isAutoFill ? [...DTU_CSE_SUBJECTS[semester]] : []);
       setNewSubject("");
@@ -65,350 +73,308 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
     });
   };
 
-  // ── Step 2 → Step 1 ────────────────────────────────────────────────────
-  const handleBack = () => {
-    transition(() => setStep(1));
-  };
+  const handleBack = () => transition(() => setStep(1));
 
   // ── Subject management ─────────────────────────────────────────────────
   const addSubject = () => {
     const t = newSubject.trim();
-    if (t && !subjects.includes(t)) setSubjects(prev => [...prev, t]);
+    if (t && !subjects.includes(t)) setSubjects(p => [...p, t]);
     setNewSubject("");
     newSubjectRef.current?.focus();
   };
-
-  const removeSubject = (idx: number) =>
-    setSubjects(prev => prev.filter((_, i) => i !== idx));
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") { e.preventDefault(); addSubject(); }
-  };
+  const removeSubject = (i: number) => setSubjects(p => p.filter((_, j) => j !== i));
+  const onSubjectKey  = (e: React.KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); addSubject(); } };
 
   // ── Save ───────────────────────────────────────────────────────────────
+  const canSave = subjects.length > 0 && (!isOtherBranch || customBranch.trim().length > 0);
+
   const handleSave = async () => {
-    if (subjects.length === 0) return;
-    if (isOtherBranch && !customBranch.trim()) return;
-    if (!rollNo.trim()) return;
+    if (!canSave) return;
     setSaving(true);
     await new Promise(r => setTimeout(r, 280));
     onComplete({
       branch:   isOtherBranch ? customBranch.trim() : branch,
-      semester: `${semester}${semSuffix(semester)} Semester`,
+      semester: `${semester}${sfx(semester)} Semester`,
       section:  String(section),
       rollNo:   rollNo.trim(),
       subjects,
     });
   };
 
+  // ── Chip button helper ─────────────────────────────────────────────────
+  const chipBtn = (active: boolean) =>
+    `py-2.5 rounded-xl text-sm font-black border transition-all cursor-pointer select-none ${
+      active
+        ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/25"
+        : "bg-[#0d1525] border-[#2a3550] text-[#8899aa] hover:border-[#1AE7A6]/50 hover:text-white"
+    }`;
+
   const firstName = userName.split(" ")[0];
-  const canSave =
-    subjects.length > 0 &&
-    rollNo.trim().length > 0 &&
-    (!isOtherBranch || customBranch.trim().length > 0);
 
   // ══════════════════════════════════════════════════════════════════════
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#060b17]/92 backdrop-blur-md">
-      {/* Glow orbs */}
-      <div className="absolute top-[-80px] left-[-80px] w-[460px] h-[460px] rounded-full bg-[#1AE7A6]/6 blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-[-80px] right-[-80px] w-[380px] h-[380px] rounded-full bg-[#7bd0ff]/5 blur-[100px] pointer-events-none" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#04080f]/95 backdrop-blur-lg">
 
-      {/* Modal card */}
+      {/* Ambient glows */}
+      <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full bg-[#1AE7A6]/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-[#3b6fff]/4 blur-[100px] pointer-events-none" />
+
+      {/* Card */}
       <div
-        className="relative w-full max-w-md"
+        className="relative w-full max-w-md max-h-[92vh] flex flex-col"
         style={{
-          opacity: animIn ? 1 : 0,
-          transform: animIn ? "translateY(0) scale(1)" : "translateY(16px) scale(0.97)",
+          opacity:   animIn ? 1 : 0,
+          transform: animIn ? "translateY(0) scale(1)" : "translateY(14px) scale(0.97)",
           transition: "opacity 0.2s ease, transform 0.2s ease",
         }}
       >
-        {/* Progress bar */}
-        <div className="mb-4 flex gap-2">
+        {/* Step progress dots */}
+        <div className="flex items-center justify-center gap-2 mb-4">
           {[1, 2].map(s => (
-            <div key={s} className="h-1 flex-1 rounded-full overflow-hidden bg-[#1e2a42]">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-[#1AE7A6] to-[#00C896] transition-all duration-500"
-                style={{ width: step >= s ? "100%" : "0%" }}
-              />
-            </div>
+            <div
+              key={s}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                step === s ? "w-8 bg-[#1AE7A6]" : step > s ? "w-4 bg-[#1AE7A6]/50" : "w-4 bg-[#2a3550]"
+              }`}
+            />
           ))}
         </div>
 
-        {/* Glass card */}
-        <div className="bg-[#111827]/92 backdrop-blur-xl border border-[#1AE7A6]/12 rounded-3xl p-7 shadow-2xl">
+        {/* Glass card — scrollable body */}
+        <div className="rounded-3xl border border-[#1f2d45] shadow-2xl flex flex-col overflow-hidden" style={{ background: "#0b1220" }}>
 
-          {/* ════ STEP 1: Branch & Semester ════════════════════════════ */}
-          {step === 1 && (
-            <div>
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-7">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#1AE7A6] to-[#00C896] flex items-center justify-center shadow-lg shadow-[#1AE7A6]/25 flex-shrink-0">
-                  <span className="material-symbols-outlined text-[#002114] text-xl">school</span>
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-white leading-tight">
-                    Welcome, {firstName}! 👋
-                  </h2>
-                  <p className="text-[#bacbbf] text-xs mt-0.5">
-                    Let's set up your academic profile
-                  </p>
-                </div>
-              </div>
+          {/* Scrollable area */}
+          <div className="overflow-y-auto custom-scrollbar flex-1 p-6 space-y-5">
 
-              {/* Branch — only CSE & Other */}
-              <div className="mb-5">
-                <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2.5">
-                  Your Branch
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(["CSE", "Other"] as const).map(b => (
-                    <button
-                      key={b}
-                      onClick={() => setBranch(b)}
-                      className={`py-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer border ${
-                        branch === b
-                          ? "bg-[#1AE7A6]/15 border-[#1AE7A6] text-[#1AE7A6] shadow-sm shadow-[#1AE7A6]/20"
-                          : "bg-[#0b1326]/60 border-[#3b4a42]/30 text-[#bacbbf] hover:border-[#1AE7A6]/40 hover:text-white"
-                      }`}
-                    >
-                      {b === "CSE" ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="material-symbols-outlined text-base">terminal</span>
-                          CSE
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="material-symbols-outlined text-base">school</span>
-                          Other Branch
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Semester */}
-              <div className="mb-4">
-                <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2.5">
-                  Current Semester
-                </label>
-                <div className="grid grid-cols-8 gap-1.5">
-                  {SEMESTERS.map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setSemester(s)}
-                      className={`py-3 rounded-xl text-sm font-black transition-all cursor-pointer border ${
-                        semester === s
-                          ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/30"
-                          : "bg-[#0b1326]/60 border-[#3b4a42]/30 text-[#bacbbf] hover:border-[#1AE7A6]/40 hover:text-white"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Smart hint */}
-                <p className={`text-[10px] mt-2.5 font-mono ${isAutoFill ? "text-[#1AE7A6]/80" : "text-[#bacbbf]/50"}`}>
-                  {modeLabel}
-                </p>
-              </div>
-
-              {/* Section (1–9) */}
-              <div className="mb-4">
-                <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2.5">
-                  Section
-                </label>
-                <div className="grid grid-cols-9 gap-1.5">
-                  {[1,2,3,4,5,6,7,8,9].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setSection(s)}
-                      className={`py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer border ${
-                        section === s
-                          ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/30"
-                          : "bg-[#0b1326]/60 border-[#3b4a42]/30 text-[#bacbbf] hover:border-[#1AE7A6]/40 hover:text-white"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Roll Number */}
-              <div className="mb-6">
-                <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2">
-                  Roll Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 2K24/CO/101"
-                  value={rollNo}
-                  onChange={e => setRollNo(e.target.value)}
-                  className="w-full bg-[#0b1326] border border-[#3b4a42]/40 rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#bacbbf]/40 focus:border-[#1AE7A6]/60 focus:outline-none transition-all font-mono"
-                />
-              </div>
-
-              {/* Next */}
-              <button
-                onClick={handleNext}
-                className="w-full py-3.5 bg-gradient-to-r from-[#1AE7A6] to-[#00C896] text-[#002114] rounded-2xl font-black text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#1AE7A6]/25 flex items-center justify-center gap-2"
-              >
-                <span>Next — Set Up Subjects</span>
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </button>
-            </div>
-          )}
-
-          {/* ════ STEP 2: Subject Setup ══════════════════════════════════ */}
-          {step === 2 && (
-            <div>
-              {/* Header row */}
-              <div className="flex items-center justify-between mb-4">
+            {/* ════ STEP 1 ════════════════════════════════════════════ */}
+            {step === 1 && (
+              <>
+                {/* Header */}
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleBack}
-                    className="w-8 h-8 rounded-xl bg-[#0b1326]/60 border border-[#3b4a42]/30 flex items-center justify-center text-[#bacbbf] hover:text-white hover:border-[#1AE7A6]/40 transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-base">arrow_back</span>
-                  </button>
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1AE7A6] to-[#00C896] flex items-center justify-center shadow-lg shadow-[#1AE7A6]/20 flex-shrink-0">
+                    <span className="material-symbols-outlined text-[#002114] text-lg">school</span>
+                  </div>
                   <div>
-                    <h2 className="text-base font-black text-white leading-tight">
-                      {isAutoFill ? "Your Subjects" : "Add Your Subjects"}
-                    </h2>
-                    <p className="text-[#bacbbf] text-[10px] mt-0.5">
-                      {isAutoFill
-                        ? `CSE Sem ${semester} — pre-loaded from JSON`
-                        : isCSEManual
-                        ? `CSE Sem ${semester} — manual entry`
-                        : "Other branch — enter your details below"}
-                    </p>
+                    <h2 className="text-base font-black text-white">Welcome, {firstName}! 👋</h2>
+                    <p className="text-[#6b7e94] text-xs mt-0.5">Set up your academic profile once</p>
                   </div>
                 </div>
 
-                {/* Subject count badge */}
-                <div className="flex items-center gap-1.5 bg-[#1AE7A6]/10 border border-[#1AE7A6]/20 px-2.5 py-1 rounded-xl">
-                  <span className="text-[#1AE7A6] font-black font-mono text-sm">{subjects.length}</span>
-                  <span className="text-[#bacbbf] text-[9px] font-bold uppercase">subs</span>
+                <div className="h-px bg-[#1a2535]" />
+
+                {/* Branch */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest mb-2">Branch</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(["CSE", "Other"] as const).map(b => (
+                      <button
+                        key={b}
+                        onClick={() => setBranch(b)}
+                        className={`py-3 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
+                          branch === b
+                            ? "bg-[#1AE7A6]/12 border-[#1AE7A6] text-[#1AE7A6]"
+                            : "bg-[#0d1525] border-[#2a3550] text-[#8899aa] hover:border-[#1AE7A6]/40 hover:text-white"
+                        }`}
+                      >
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="material-symbols-outlined text-base">
+                            {b === "CSE" ? "terminal" : "school"}
+                          </span>
+                          {b === "CSE" ? "CSE" : "Other Branch"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="h-px bg-[#1e2a42] mb-4" />
+                {/* Semester */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest mb-2">
+                    Semester
+                    {isAutoFill && (
+                      <span className="ml-2 normal-case text-[#1AE7A6]/60 font-normal">✨ subjects auto-loaded</span>
+                    )}
+                  </p>
+                  <div className="grid grid-cols-8 gap-1.5">
+                    {SEMESTERS.map(s => (
+                      <button key={s} onClick={() => setSemester(s)} className={chipBtn(semester === s)}>{s}</button>
+                    ))}
+                  </div>
+                </div>
 
-              {/* ── Other branch: custom branch name input ─────────────── */}
-              {isOtherBranch && (
-                <div className="mb-4">
-                  <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2">
-                    Branch Name
-                  </label>
+                {/* Section */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest mb-2">Section</p>
+                  <div className="grid grid-cols-9 gap-1.5">
+                    {SECTIONS.map(s => (
+                      <button key={s} onClick={() => setSection(s)} className={chipBtn(section === s)}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Roll Number */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest mb-2">
+                    Roll Number <span className="text-red-400">*</span>
+                  </p>
                   <input
                     type="text"
-                    placeholder="e.g. Electronics & Communication"
-                    value={customBranch}
-                    onChange={e => setCustomBranch(e.target.value)}
-                    className="w-full bg-[#0b1326] border border-[#3b4a42]/40 rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#bacbbf]/40 focus:border-[#1AE7A6]/60 focus:outline-none transition-all mb-1"
+                    placeholder="e.g. 2K24/CO/101"
+                    value={rollNo}
+                    onChange={e => setRollNo(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && canGoNext) handleNext(); }}
+                    className={inputCls}
+                    style={inputStyle}
                   />
-                  {!customBranch.trim() && (
-                    <p className="text-[10px] text-[#bacbbf]/40 font-mono">Required before saving</p>
+                  {!rollNo.trim() && (
+                    <p className="text-[10px] text-[#4a5a70] mt-1.5 font-mono">Required to continue</p>
                   )}
                 </div>
-              )}
+              </>
+            )}
 
-              {/* ── Auto-filled chips (CSE Sem 1–5) ───────────────────── */}
-              {isAutoFill && (
-                <div className="mb-4">
-                  <p className="text-[9px] text-[#1AE7A6] font-bold uppercase tracking-widest mb-2.5">
-                    ✨ Pre-filled — tap × to remove
-                  </p>
-                  <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
-                    {subjects.map((sub, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-1.5 bg-[#1AE7A6]/8 border border-[#1AE7A6]/22 text-[#d4fdf1] text-xs font-semibold px-3 py-1.5 rounded-xl"
-                      >
-                        <span className="material-symbols-outlined text-[#1AE7A6] text-sm">book</span>
-                        {sub}
-                        <button
-                          onClick={() => removeSubject(idx)}
-                          className="w-4 h-4 rounded-full bg-[#3b4a42]/40 flex items-center justify-center text-[#bacbbf] hover:bg-red-500/20 hover:text-red-400 transition-all cursor-pointer ml-0.5 flex-shrink-0"
-                        >
-                          <span className="material-symbols-outlined text-[11px]">close</span>
+            {/* ════ STEP 2 ════════════════════════════════════════════ */}
+            {step === 2 && (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      onClick={handleBack}
+                      className="w-8 h-8 rounded-xl border border-[#2a3550] flex items-center justify-center text-[#6b7e94] hover:text-white hover:border-[#1AE7A6]/40 transition-all cursor-pointer"
+                      style={{ background: "#0d1525" }}
+                    >
+                      <span className="material-symbols-outlined text-base">arrow_back</span>
+                    </button>
+                    <div>
+                      <h2 className="text-sm font-black text-white">
+                        {isAutoFill ? "Your Subjects" : "Add Subjects"}
+                      </h2>
+                      <p className="text-[#6b7e94] text-[10px]">
+                        {isAutoFill
+                          ? `CSE Sem ${semester} — pre-loaded`
+                          : isCSEManual
+                          ? `CSE Sem ${semester} — type manually`
+                          : "Other branch — type manually"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-1 rounded-lg border border-[#1AE7A6]/20 flex items-center gap-1.5" style={{ background: "#0d1525" }}>
+                    <span className="text-[#1AE7A6] font-black font-mono text-sm">{subjects.length}</span>
+                    <span className="text-[#6b7e94] text-[9px] font-bold uppercase">subs</span>
+                  </div>
+                </div>
+
+                <div className="h-px bg-[#1a2535]" />
+
+                {/* Other branch name */}
+                {isOtherBranch && (
+                  <div>
+                    <p className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest mb-2">
+                      Branch Name <span className="text-red-400">*</span>
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="e.g. Electronics & Communication"
+                      value={customBranch}
+                      onChange={e => setCustomBranch(e.target.value)}
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                  </div>
+                )}
+
+                {/* Auto-filled chips */}
+                {isAutoFill && subjects.length > 0 && (
+                  <div>
+                    <p className="text-[9px] text-[#1AE7A6] font-bold uppercase tracking-widest mb-2">
+                      ✨ Pre-filled — tap × to remove
+                    </p>
+                    <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+                      {subjects.map((sub, i) => (
+                        <div key={i} className="flex items-center gap-1.5 border border-[#1AE7A6]/20 text-[#c8f5e8] text-xs font-medium px-2.5 py-1.5 rounded-xl" style={{ background: "#0d1e17" }}>
+                          <span className="material-symbols-outlined text-[#1AE7A6] text-xs">book</span>
+                          {sub}
+                          <button onClick={() => removeSubject(i)} className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[#6b7e94] hover:text-red-400 transition-colors cursor-pointer ml-0.5">
+                            <span className="material-symbols-outlined text-[10px]">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual list */}
+                {!isAutoFill && subjects.length > 0 && (
+                  <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+                    {subjects.map((sub, i) => (
+                      <div key={i} className="flex items-center gap-2 border border-[#2a3550] rounded-xl px-3 py-2" style={{ background: "#0d1525" }}>
+                        <span className="text-[#1AE7A6] font-black font-mono text-[10px] w-5 flex-shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                        <span className="text-white text-xs flex-1 truncate">{sub}</span>
+                        <button onClick={() => removeSubject(i)} className="text-[#6b7e94] hover:text-red-400 transition-colors cursor-pointer">
+                          <span className="material-symbols-outlined text-xs">delete</span>
                         </button>
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* Empty state */}
+                {!isAutoFill && subjects.length === 0 && (
+                  <div className="py-5 text-center">
+                    <span className="material-symbols-outlined text-[#2a3550] text-3xl block mb-1">library_books</span>
+                    <p className="text-[#4a5a70] text-xs">No subjects yet — add below</p>
+                  </div>
+                )}
+
+                {/* Add input */}
+                <div className="flex gap-2">
+                  <input
+                    ref={newSubjectRef}
+                    type="text"
+                    placeholder={isAutoFill ? "Add another subject…" : "Subject name, press Enter…"}
+                    value={newSubject}
+                    onChange={e => setNewSubject(e.target.value)}
+                    onKeyDown={onSubjectKey}
+                    className={`${inputCls} flex-1`}
+                    style={inputStyle}
+                  />
+                  <button
+                    onClick={addSubject}
+                    disabled={!newSubject.trim()}
+                    className="px-3 rounded-xl border border-[#1AE7A6]/30 text-[#1AE7A6] hover:bg-[#1AE7A6]/10 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex items-center"
+                    style={{ background: "#0d1525" }}
+                  >
+                    <span className="material-symbols-outlined text-base">add</span>
+                  </button>
                 </div>
-              )}
 
-              {/* ── Manual list (CSE Sem 6-8 or Other) ────────────────── */}
-              {!isAutoFill && subjects.length > 0 && (
-                <div className="mb-4 space-y-1.5 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
-                  {subjects.map((sub, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-[#0b1326]/60 border border-[#3b4a42]/30 rounded-xl px-3 py-2"
-                    >
-                      <span className="text-[#1AE7A6] font-black font-mono text-xs w-5 flex-shrink-0">
-                        {String(idx + 1).padStart(2, "0")}
-                      </span>
-                      <span className="text-white text-xs font-medium flex-1 truncate">{sub}</span>
-                      <button
-                        onClick={() => removeSubject(idx)}
-                        className="w-5 h-5 rounded-lg flex items-center justify-center text-[#bacbbf] hover:bg-red-500/20 hover:text-red-400 transition-all cursor-pointer flex-shrink-0"
-                      >
-                        <span className="material-symbols-outlined text-xs">delete</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {/* Validation */}
+                {!canSave && (
+                  <p className="text-[10px] text-red-400/60 font-mono text-center">
+                    {subjects.length === 0 ? "⚠ Add at least one subject" : "⚠ Enter your branch name above"}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
 
-              {/* ── Empty state for manual modes ──────────────────────── */}
-              {!isAutoFill && subjects.length === 0 && (
-                <div className="mb-4 py-5 text-center">
-                  <span className="material-symbols-outlined text-[#3b4a42] text-3xl mb-1 block">library_books</span>
-                  <p className="text-[#bacbbf]/40 text-xs">No subjects yet — add them below</p>
-                </div>
-              )}
-
-              {/* ── Add subject input ──────────────────────────────────── */}
-              <div className="flex gap-2 mb-5">
-                <input
-                  ref={newSubjectRef}
-                  type="text"
-                  placeholder={isAutoFill ? "Add another subject…" : "Type subject name, press Enter…"}
-                  value={newSubject}
-                  onChange={e => setNewSubject(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 bg-[#0b1326] border border-[#3b4a42]/40 rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#bacbbf]/40 focus:border-[#1AE7A6]/60 focus:outline-none transition-all"
-                />
-                <button
-                  onClick={addSubject}
-                  disabled={!newSubject.trim()}
-                  className="px-3 py-2.5 bg-[#1AE7A6]/15 border border-[#1AE7A6]/30 text-[#1AE7A6] rounded-xl hover:bg-[#1AE7A6]/25 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center"
-                >
-                  <span className="material-symbols-outlined text-base">add</span>
-                </button>
-              </div>
-
-              {/* Validation hint */}
-              {!canSave && (
-                <p className="text-[10px] text-red-400/60 mb-3 font-mono text-center">
-                  {subjects.length === 0
-                    ? "⚠ Add at least one subject"
-                    : rollNo.trim().length === 0
-                    ? "⚠ Go back and enter your Roll Number"
-                    : "⚠ Enter your branch name above"}
-                </p>
-              )}
-
-              {/* Save button */}
+          {/* ── Sticky footer ── */}
+          <div className="p-4 border-t border-[#1a2535]" style={{ background: "#0b1220" }}>
+            {step === 1 ? (
+              <button
+                onClick={handleNext}
+                disabled={!canGoNext}
+                className="w-full py-3 rounded-2xl font-black text-sm text-[#002114] bg-gradient-to-r from-[#1AE7A6] to-[#00C896] hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#1AE7A6]/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <span>Next</span>
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </button>
+            ) : (
               <button
                 onClick={handleSave}
                 disabled={!canSave || saving}
-                className="w-full py-3.5 bg-gradient-to-r from-[#1AE7A6] to-[#00C896] text-[#002114] rounded-2xl font-black text-sm hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#1AE7A6]/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 rounded-2xl font-black text-sm text-[#002114] bg-gradient-to-r from-[#1AE7A6] to-[#00C896] hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-[#1AE7A6]/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <>
@@ -425,19 +391,12 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
                   </>
                 )}
               </button>
-
-              <p className="text-center text-[10px] text-[#bacbbf]/30 mt-3 font-mono">
-                You can edit subjects anytime from your profile
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function semSuffix(n: number): string {
-  return n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
-}
+function sfx(n: number) { return n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"; }

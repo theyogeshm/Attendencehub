@@ -31,11 +31,15 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
     { week: "W8", pct: 88 },
   ];
 
-  // Real danger subjects (< 75%) computed from props
+  // Real danger subjects (< 75%) computed from props — exclude subjects with no data
   const dangerSubjects = subjects.filter((s) => {
-    const rate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
+    if (s.totalClasses === 0) return false; // no data yet, not in danger
+    const rate = (s.attendanceCount / s.totalClasses) * 100;
     return rate < 75;
   });
+
+  // Whether any real attendance data exists at all
+  const hasAttendanceData = subjects.some(s => s.totalClasses > 0);
 
   // Classes needed to get back to 75%
   const classesNeeded = (sub: Subject) => {
@@ -90,44 +94,59 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
             <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-3 py-1 rounded-xl">Last 8 Weeks</span>
           </div>
 
-          {/* Y-axis labels + bars */}
-          <div className="relative flex items-end h-56 gap-2 pt-4">
-            {/* 75% line */}
-            <div className="absolute left-0 right-0 border-t border-dashed border-error/40" style={{ bottom: `${(75 / 100) * 100}%` }}>
-              <span className="absolute -top-4 left-0 text-[9px] text-error font-mono font-bold">75% threshold</span>
-            </div>
-
-            {weeklyTrends.map((bar, i) => {
-              const isBelowThreshold = bar.pct < 75;
-              return (
-                <div key={i} className="flex-1 group relative flex flex-col items-center justify-end h-full">
-                  {/* Tooltip */}
-                  <div className="absolute -top-8 bg-surface-container-high border border-outline px-2 py-1 rounded-xl text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
-                    {bar.pct}% attendance
-                  </div>
-
-                  {/* Bar */}
-                  <div
-                    className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? (isDarkMode ? "bg-error" : "bg-[#FF6B6B]") : (isDarkMode ? "bg-primary" : "bg-[#00C896]")}`}
-                    style={{ height: `${bar.pct}%` }}
-                  />
-                  <span className="mt-2 text-[10px] text-on-surface-variant font-bold font-mono">{bar.week}</span>
+          {hasAttendanceData ? (
+            <>
+              {/* Y-axis labels + bars */}
+              <div className="relative flex items-end h-56 gap-2 pt-4">
+                {/* 75% line */}
+                <div className="absolute left-0 right-0 border-t border-dashed border-error/40" style={{ bottom: `${(75 / 100) * 100}%` }}>
+                  <span className="absolute -top-4 left-0 text-[9px] text-error font-mono font-bold">75% threshold</span>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Legend */}
-          <div className="flex items-center gap-6 pt-2 border-t border-outline-variant/30">
-            <div className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-sm ${isDarkMode ? "bg-primary" : "bg-[#00C896]"}`} />
-              <span className="text-[10px] text-on-surface-variant">Above 75% (Safe)</span>
+                {weeklyTrends.map((bar, i) => {
+                  const isBelowThreshold = bar.pct < 75;
+                  return (
+                    <div key={i} className="flex-1 group relative flex flex-col items-center justify-end h-full">
+                      {/* Tooltip */}
+                      <div className="absolute -top-8 bg-surface-container-high border border-outline px-2 py-1 rounded-xl text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
+                        {bar.pct}% attendance
+                      </div>
+
+                      {/* Bar */}
+                      <div
+                        className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? (isDarkMode ? "bg-error" : "bg-[#FF6B6B]") : (isDarkMode ? "bg-primary" : "bg-[#00C896]")}`}
+                        style={{ height: `${bar.pct}%` }}
+                      />
+                      <span className="mt-2 text-[10px] text-on-surface-variant font-bold font-mono">{bar.week}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-6 pt-2 border-t border-outline-variant/30">
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-3 h-3 rounded-sm ${isDarkMode ? "bg-primary" : "bg-[#00C896]"}`} />
+                  <span className="text-[10px] text-on-surface-variant">Above 75% (Safe)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-3 h-3 rounded-sm ${isDarkMode ? "bg-error" : "bg-[#FF6B6B]"}`} />
+                  <span className="text-[10px] text-on-surface-variant">Below 75% (Danger)</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Empty state */
+            <div className="flex flex-col items-center justify-center h-56 gap-3">
+              <span className="material-symbols-outlined text-on-surface-variant/30 text-5xl">monitoring</span>
+              <p className="text-sm font-semibold text-on-surface-variant text-center max-w-xs">
+                No attendance data yet.
+              </p>
+              <p className="text-xs text-on-surface-variant/60 text-center max-w-xs">
+                Start marking attendance to see your weekly trends!
+              </p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-sm ${isDarkMode ? "bg-error" : "bg-[#FF6B6B]"}`} />
-              <span className="text-[10px] text-on-surface-variant">Below 75% (Danger)</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Danger Zone Alerts */}
@@ -142,7 +161,13 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
             </p>
 
             <div className="space-y-3 flex-1">
-              {dangerSubjects.length === 0 ? (
+              {!hasAttendanceData ? (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-center">
+                  <span className="material-symbols-outlined text-primary text-2xl block mb-1">verified</span>
+                  <p className="text-xs font-bold text-primary">All subjects safe for now!</p>
+                  <p className="text-[10px] text-on-surface-variant mt-1">Mark attendance to track danger zone</p>
+                </div>
+              ) : dangerSubjects.length === 0 ? (
                 <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl text-center">
                   <span className="material-symbols-outlined text-primary text-2xl block mb-1">verified</span>
                   <p className="text-xs font-bold text-primary">All subjects are safe!</p>
@@ -267,7 +292,7 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
             { label: "DTU Website",    href: "http://www.dtu.ac.in",        icon: "school",            color: "text-primary" },
-            { label: "Result Hub",     href: "https://exam.dtu.ac.in",      icon: "workspace_premium", color: "text-secondary" },
+            { label: "Result Hub",     href: "https://www.resulthubdtu.com",  icon: "workspace_premium", color: "text-secondary" },
             { label: "Unstop",         href: "https://unstop.com",          icon: "military_tech",     color: "text-error" },
             { label: "LeetCode",       href: "https://leetcode.com",        icon: "terminal",          color: "text-secondary-fixed-dim" },
             { label: "Codeforces",     href: "https://codeforces.com",      icon: "code",              color: "text-primary-fixed-dim" },

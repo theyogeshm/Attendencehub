@@ -327,7 +327,7 @@ export default function DashboardPage({
                 <span className="text-xs font-medium text-on-surface">DTU Notices</span>
               </a>
               <a
-                href="https://exam.dtu.ac.in"
+                href="https://www.resulthubdtu.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="glass-card px-3 py-3 rounded-xl flex items-center gap-2 hover:border-secondary transition-all group"

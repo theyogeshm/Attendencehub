@@ -141,12 +141,14 @@ export default function App() {
   const loadUserData = async (u: User) => {
     setAuthLoading(true);
     try {
-      // 1. Profile
-      const { data: pData } = await supabase
+      // 1. Fetch profile FIRST — gate everything on onboarding_done
+      const { data: pData, error: pErr } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", u.id)
         .single();
+
+      console.log("[DTU Hub] Profile loaded:", pData, pErr);
 
       if (pData) {
         setProfile({
@@ -154,7 +156,7 @@ export default function App() {
           rollNo:   pData.roll_no    || "2K24/---/---",
           branch:   pData.branch     || "Computer Science & Engineering",
           semester: pData.semester   || "2nd Semester",
-          section:  pData.section    || "A",
+          section:  pData.section    || "1",
         });
 
         // Load subjects saved from onboarding (if any)
@@ -162,13 +164,17 @@ export default function App() {
           setSubjects(subjectNamestoSubjects(pData.subjects));
         }
 
-        // Show onboarding ONLY if not explicitly completed (true)
-        // Note: null or false both trigger onboarding; only true === done
+        // If onboarding not completed, show it and STOP — don't load other data yet
         if (pData.onboarding_done !== true) {
+          console.log("[DTU Hub] Onboarding not done — showing modal");
           setShowOnboarding(true);
+          setAuthLoading(false);
+          return;
         }
+
+        console.log("[DTU Hub] Onboarding done — going to dashboard");
       } else {
-        // First login — create profile row, trigger onboarding
+        // Brand new user — create profile row, trigger onboarding
         const displayName = u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
         await supabase.from("profiles").insert({
           id:              u.id,
@@ -177,11 +183,14 @@ export default function App() {
           avatar_url:      u.user_metadata?.avatar_url ?? null,
           onboarding_done: false,
         });
+        console.log("[DTU Hub] New user — profile created, showing onboarding");
         setProfile(prev => ({ ...prev, name: displayName }));
         setShowOnboarding(true);
+        setAuthLoading(false);
+        return; // don't load attendance/assignments for new users
       }
 
-      // 2. Attendance
+      // 2. Attendance (only reached if onboarding_done = true)
       const { data: attData } = await supabase
         .from("attendance")
         .select("*")
@@ -219,7 +228,7 @@ export default function App() {
         );
       }
     } catch (err) {
-      console.error("loadUserData error:", err);
+      console.error("[DTU Hub] loadUserData error:", err);
     } finally {
       setAuthLoading(false);
     }
@@ -233,6 +242,26 @@ export default function App() {
     rollNo: string;
     subjects: string[];
   }) => {
+    // 1. Save to Supabase FIRST — onboarding_done=true written before hiding modal
+    if (user) {
+      const { error } = await supabase.from("profiles").upsert({
+        id:              user.id,
+        branch:          result.branch,
+        semester:        result.semester,
+        section:         result.section,
+        roll_no:         result.rollNo,
+        subjects:        result.subjects,
+        onboarding_done: true,
+        updated_at:      new Date().toISOString(),
+      });
+      if (error) {
+        console.error("[DTU Hub] Failed to save onboarding data:", error);
+        return; // don't hide modal if save failed
+      }
+      console.log("[DTU Hub] Onboarding saved successfully — onboarding_done=true");
+    }
+
+    // 2. Update local state only after successful DB save
     const newSubjects = subjectNamestoSubjects(result.subjects);
     setSubjects(newSubjects);
     setProfile(prev => ({
@@ -243,20 +272,6 @@ export default function App() {
       rollNo:   result.rollNo,
     }));
     setShowOnboarding(false);
-
-    // Persist to Supabase — onboarding_done = true prevents future shows
-    if (user) {
-      await supabase.from("profiles").upsert({
-        id:              user.id,
-        branch:          result.branch,
-        semester:        result.semester,
-        section:         result.section,
-        roll_no:         result.rollNo,
-        subjects:        result.subjects,
-        onboarding_done: true,
-        updated_at:      new Date().toISOString(),
-      });
-    }
   };
 
   // ── Sign out ──────────────────────────────────────────────────────────────
