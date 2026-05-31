@@ -5,6 +5,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Assignment, Subject } from "../types";
+import ConfirmDialog from "./ConfirmDialog";
 import { 
   Rocket, 
   CheckCircle, 
@@ -46,6 +47,7 @@ export default function AssignmentsPage({
   const [formDesc, setFormDesc] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   // Utility to determine dynamic status
   const getTaskStatus = (task: Assignment): "COMPLETED" | "URGENT" | "UPCOMING" => {
@@ -301,7 +303,7 @@ export default function AssignmentsPage({
 
                       {/* Delete action wrapper button */}
                       <button 
-                        onClick={() => onDeleteAssignment(task.id)}
+                        onClick={() => setPendingDeleteId(task.id)}
                         className="p-1 px-1.5 sm:opacity-0 group-hover:opacity-100 transition-opacity hover:text-error text-on-surface-variant cursor-pointer rounded-lg hover:bg-[#222a3d]"
                         title="Dismiss Task"
                       >
@@ -336,6 +338,18 @@ export default function AssignmentsPage({
 
       </div>
 
+      <ConfirmDialog
+        open={!!pendingDeleteId}
+        title="Delete Assignment"
+        message="This assignment will be permanently deleted."
+        confirmLabel="Delete"
+        confirmDanger
+        onConfirm={() => {
+          if (pendingDeleteId) onDeleteAssignment(pendingDeleteId);
+          setPendingDeleteId(null);
+        }}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }

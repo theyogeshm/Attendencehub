@@ -19,6 +19,7 @@ import AssignmentsPage from "./components/AssignmentsPage";
 import TimetablePage from "./components/TimetablePage";
 import AnalyticsPage from "./components/AnalyticsPage";
 import LoginPage from "./components/LoginPage";
+import ConfirmDialog from "./components/ConfirmDialog";
 
 import {
   Sun,
@@ -106,6 +107,11 @@ export default function App() {
 
   // ── Onboarding ────────────────────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // ── Confirm dialogs ───────────────────────────────────────────────────────
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [confirmResetAttendance, setConfirmResetAttendance] = useState(false);
+  const [confirmDeleteLog, setConfirmDeleteLog] = useState<{ subjectName: string } | null>(null);
 
   // ── Toast notification ────────────────────────────────────────────────────
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -371,14 +377,10 @@ export default function App() {
 
   const handleResetAllAttendance = async () => {
     if (!user) return;
-    if (!window.confirm("Are you sure you want to completely RESET all your attendance data? This action cannot be undone.")) return;
-    
     const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
     if (error) {
-
       showToast("Failed to reset attendance", "error");
     } else {
-
       showToast("All attendance data cleared successfully.", "success");
       loadUserData(user);
     }
@@ -806,7 +808,7 @@ export default function App() {
               <p className="text-[9px] text-on-surface-variant truncate">{user.email}</p>
             </div>
             <button
-              onClick={handleSignOut}
+              onClick={() => setConfirmLogout(true)}
               className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
               title="Sign out"
             >
@@ -1094,7 +1096,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={handleResetAllAttendance}
+                    onClick={() => setConfirmResetAttendance(true)}
                     className="mt-4 w-full border border-error/50 bg-error/10 text-error py-2.5 rounded-xl font-bold text-xs hover:bg-error hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1183,24 +1185,7 @@ export default function App() {
                               </>
                             ) : (
                               <button
-                                onClick={async () => {
-                                  if (!attendanceLogDateStr || !user) return;
-
-                                  const { error: delErr } = await supabase.from("attendance")
-                                    .delete()
-                                    .eq("user_id", user.id)
-                                    .eq("subject", sub.subjectName)
-                                    .eq("date", attendanceLogDateStr);
-                                  if (delErr) {
-
-                                    showToast("Delete failed", "error");
-                                  } else {
-
-                                    showToast(`Cleared ${sub.subjectName} for this date.`, "success");
-                                    await fetchLogForDate(attendanceLogDateStr);
-                                    loadUserData(user);
-                                  }
-                                }}
+                                onClick={() => setConfirmDeleteLog({ subjectName: sub.subjectName })}
                                 className="text-[10px] font-bold border border-error/50 text-error px-2 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
                                 title="Delete this record for this date"
                               >
@@ -1280,6 +1265,54 @@ export default function App() {
         )}
 
       </main>
+      {/* Confirm: Logout */}
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign Out"
+        confirmDanger
+        onConfirm={() => { setConfirmLogout(false); handleSignOut(); }}
+        onCancel={() => setConfirmLogout(false)}
+      />
+
+      {/* Confirm: Reset all attendance */}
+      <ConfirmDialog
+        open={confirmResetAttendance}
+        title="Reset All Attendance"
+        message="This will permanently delete ALL your attendance data. This cannot be undone."
+        confirmLabel="Delete All"
+        confirmDanger
+        onConfirm={() => { setConfirmResetAttendance(false); handleResetAllAttendance(); }}
+        onCancel={() => setConfirmResetAttendance(false)}
+      />
+
+      {/* Confirm: Delete single attendance log entry */}
+      <ConfirmDialog
+        open={!!confirmDeleteLog}
+        title="Remove Attendance Entry"
+        message={`Remove attendance record for "${confirmDeleteLog?.subjectName}" on this date?`}
+        confirmLabel="Remove"
+        confirmDanger
+        onConfirm={async () => {
+          if (!confirmDeleteLog || !attendanceLogDateStr || !user) { setConfirmDeleteLog(null); return; }
+          const { error: delErr } = await supabase.from("attendance")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("subject", confirmDeleteLog.subjectName)
+            .eq("date", attendanceLogDateStr);
+          if (delErr) {
+            showToast("Delete failed", "error");
+          } else {
+            showToast(`Cleared ${confirmDeleteLog.subjectName} for this date.`, "success");
+            await fetchLogForDate(attendanceLogDateStr);
+            loadUserData(user);
+          }
+          setConfirmDeleteLog(null);
+        }}
+        onCancel={() => setConfirmDeleteLog(null)}
+      />
+
     </div>
   );
 }
