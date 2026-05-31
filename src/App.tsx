@@ -89,7 +89,13 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceLogModal, setShowAttendanceLogModal] = useState(false);
   const [attendanceLogDate, setAttendanceLogDate] = useState<number | null>(null);
+  const [attendanceLogDateStr, setAttendanceLogDateStr] = useState<string | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  // ── Per-date attendance log state (never uses global subjects) ────────────
+  interface LogEntry { subjectId: string; subjectName: string; attendanceCount: number; totalClasses: number; subjectType?: string; }
+  const [logSubjects, setLogSubjects] = useState<LogEntry[]>([]);
+  const [logLoading, setLogLoading] = useState(false);
 
   // ── Onboarding ────────────────────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -364,9 +370,10 @@ export default function App() {
     
     const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
     if (error) {
-      console.error("[Attendance Hub] Failed to reset attendance", error);
+      console.error("[Attendance Hub] ❌ Failed to reset attendance:", error);
       showToast("Failed to reset attendance", "error");
     } else {
+      console.log(`[Attendance Hub] ✅ All attendance deleted for user_id: ${user.id}`);
       showToast("All attendance data cleared successfully.", "success");
       loadUserData(user);
     }
@@ -590,10 +597,48 @@ export default function App() {
     alert("Thank you for your feedback! 🙏");
   };
 
+  // ── Fetch attendance for a specific date from Supabase ───────────────────
+  const fetchLogForDate = async (dateStr: string) => {
+    if (!user) return;
+    setLogLoading(true);
+    console.log(`[Attendance Hub] 📅 Fetching attendance for date: ${dateStr}`);
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("date", dateStr);
+    if (error) {
+      console.error(`[Attendance Hub] ❌ Failed to fetch log for ${dateStr}:`, error);
+    } else {
+      console.log(`[Attendance Hub] ✅ Fetched ${data?.length ?? 0} rows for ${dateStr}:`, data);
+      // Build a complete list: all subjects, merged with fetched data
+      const fetched = data ?? [];
+      const entries: LogEntry[] = subjects.map(sub => {
+        const row = fetched.find(r => r.subject_id === sub.id || r.subject_name?.toLowerCase().trim() === sub.name?.toLowerCase().trim());
+        return {
+          subjectId:       sub.id,
+          subjectName:     sub.name,
+          attendanceCount: row?.attendance_count ?? 0,
+          totalClasses:    row?.total_classes    ?? 0,
+          subjectType:     sub.type,
+        };
+      });
+      setLogSubjects(entries);
+    }
+    setLogLoading(false);
+  };
+
   // ── Open attendance log modal ─────────────────────────────────────────────
   const handleOpenAttendanceLog = (date?: number) => {
-    setAttendanceLogDate(date ?? null);
+    const d = date ?? null;
+    const today = new Date();
+    const dateStr = d
+      ? `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      : new Date().toISOString().split('T')[0];
+    setAttendanceLogDate(d);
+    setAttendanceLogDateStr(dateStr);
     setShowAttendanceLogModal(true);
+    fetchLogForDate(dateStr);
   };
 
   // ── Nav items ─────────────────────────────────────────────────────────────
@@ -1087,38 +1132,78 @@ export default function App() {
                   : "Recent entries"}
               </p>
 
+              {logLoading ? (
+                <div className="text-center py-8 text-on-surface-variant text-xs">Loading attendance for this date...</div>
+              ) : (
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                {subjects.map((sub) => {
+                {logSubjects.map((sub) => {
                   const pct = sub.totalClasses > 0 ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0) : "0";
+                  const hasData = sub.totalClasses > 0;
                   return (
-                    <div key={sub.id} className="bg-surface-container-high p-4 rounded-xl flex justify-between items-center border border-outline-variant/50">
+                    <div key={sub.subjectId} className={`p-4 rounded-xl flex justify-between items-center border ${
+                      hasData ? "bg-surface-container-high border-outline-variant/50" : "bg-surface-container/40 border-outline-variant/20 opacity-60"
+                    }`}>
                       <div>
-                        <p className="font-bold text-xs text-on-surface">{sub.name} <span className="font-mono text-[10px] text-on-surface-variant">({sub.type ?? "LEC"})</span></p>
-                        <p className={`text-[10px] font-mono font-bold mt-0.5 ${Number(pct) >= 75 ? "text-primary" : "text-error"}`}>
-                          {pct}% — {Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}
+                        <p className="font-bold text-xs text-on-surface">{sub.subjectName} <span className="font-mono text-[10px] text-on-surface-variant">({sub.subjectType ?? "LEC"})</span></p>
+                        <p className={`text-[10px] font-mono font-bold mt-0.5 ${
+                          !hasData ? "text-on-surface-variant" : Number(pct) >= 75 ? "text-primary" : "text-error"
+                        }`}>
+                          {hasData ? `${pct}% — ${Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}` : "No record this date"}
                         </p>
                       </div>
                       <div className="flex gap-1.5">
                         <button
-                          onClick={() => handleMarkAttendance(sub.id, "present", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
+                          onClick={async () => {
+                            if (!attendanceLogDateStr) return;
+                            await handleMarkAttendance(sub.subjectId, "present", attendanceLogDateStr);
+                            fetchLogForDate(attendanceLogDateStr);
+                            loadUserData(user!);
+                          }}
                           className="text-[10px] font-bold border border-primary/30 text-primary px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-primary hover:text-[#002114] transition-all"
+                          title="Mark present for this date"
                         >+P</button>
                         <button
-                          onClick={() => handleMarkAttendance(sub.id, "absent", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
+                          onClick={async () => {
+                            if (!attendanceLogDateStr) return;
+                            await handleMarkAttendance(sub.subjectId, "absent", attendanceLogDateStr);
+                            fetchLogForDate(attendanceLogDateStr);
+                            loadUserData(user!);
+                          }}
                           className="text-[10px] font-bold border border-error/30 text-error px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all"
+                          title="Mark absent for this date"
                         >-A</button>
-                        <button
-                          onClick={() => handleMarkAttendance(sub.id, "clear", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
-                          className="text-[10px] font-bold border border-error/50 text-error px-2.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
-                          title="Delete this date's entry"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {hasData && (
+                          <button
+                            onClick={async () => {
+                              if (!attendanceLogDateStr || !user) return;
+                              console.log(`[Attendance Hub] 🗑️ Deleting ${sub.subjectName} on ${attendanceLogDateStr}`);
+                              const { error: delErr } = await supabase.from("attendance")
+                                .delete()
+                                .eq("user_id", user.id)
+                                .eq("subject_id", sub.subjectId)
+                                .eq("date", attendanceLogDateStr);
+                              if (delErr) {
+                                console.error("[Attendance Hub] ❌ Delete failed:", delErr);
+                                showToast("Delete failed", "error");
+                              } else {
+                                console.log(`[Attendance Hub] ✅ Deleted ${sub.subjectName} on ${attendanceLogDateStr}`);
+                                showToast(`Cleared ${sub.subjectName} for this date.`, "success");
+                                fetchLogForDate(attendanceLogDateStr);
+                                loadUserData(user);
+                              }
+                            }}
+                            className="text-[10px] font-bold border border-error/50 text-error px-2.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
+                            title="Delete this date's entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+              )}
 
               <div className="mt-5 text-right">
                 <button
