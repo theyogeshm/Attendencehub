@@ -48,6 +48,7 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   const [customBranch, setCustomBranch] = useState("");
   const newSubjectRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving]         = useState(false);
+  const [saveError, setSaveError]   = useState<string | null>(null);
 
   // ── Slide animation ────────────────────────────────────────────────────
   const [animIn, setAnimIn] = useState(true);
@@ -91,6 +92,7 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await onComplete({
         branch:   isOtherBranch ? customBranch.trim() : branch,
@@ -99,8 +101,11 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
         rollNo:   rollNo.trim(),
         subjects,
       });
+      // if we reach here without error, modal will unmount (dashboard renders)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setSaveError(msg);
     } finally {
-      // we only reach here if modal didn't unmount (e.g. on error)
       setSaving(false);
     }
   };
@@ -365,6 +370,13 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
 
           {/* ── Sticky footer ── */}
           <div className="p-4 border-t border-[#1a2535]" style={{ background: "#0b1220" }}>
+            {/* Error banner */}
+            {saveError && (
+              <div className="mb-3 flex items-start gap-2.5 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2.5">
+                <span className="material-symbols-outlined text-red-400 text-base flex-shrink-0 mt-0.5">error</span>
+                <p className="text-xs text-red-300 leading-relaxed">{saveError}</p>
+              </div>
+            )}
             {step === 1 ? (
               <button
                 onClick={handleNext}
@@ -386,7 +398,7 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Saving…
+                    Saving to cloud…
                   </>
                 ) : (
                   <>

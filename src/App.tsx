@@ -90,6 +90,13 @@ export default function App() {
   // ── Onboarding ────────────────────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // ── Toast notification ────────────────────────────────────────────────────
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   // ── Profile editing state ─────────────────────────────────────────────────
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
@@ -245,13 +252,18 @@ export default function App() {
     rollNo: string;
     subjects: string[];
   }) => {
-    // 1. Save to Supabase FIRST — onboarding_done=true written before hiding modal
-    if (user) {
-      const saveStart = performance.now();
-      console.log("[DTU Hub] Saving onboarding data to Supabase...");
-      
-      const { error } = await supabase.from("profiles").upsert({
+    // Must be logged in
+    if (!user) throw new Error("Not authenticated");
+
+    const saveStart = performance.now();
+    console.log("[DTU Hub] Saving onboarding...", result);
+
+    // Upsert with .select() so we can VERIFY the saved row
+    const { data: saved, error } = await supabase
+      .from("profiles")
+      .upsert({
         id:              user.id,
+        email:           user.email,
         branch:          result.branch,
         semester:        result.semester,
         section:         result.section,
@@ -259,20 +271,29 @@ export default function App() {
         subjects:        result.subjects,
         onboarding_done: true,
         updated_at:      new Date().toISOString(),
-      });
-      
-      console.log(`[DTU Hub] Onboarding save took ${(performance.now() - saveStart).toFixed(2)}ms`);
-      
-      if (error) {
-        console.error("[DTU Hub] Failed to save onboarding data:", error);
-        return; // don't hide modal if save failed
-      }
-      console.log("[DTU Hub] Onboarding saved successfully — onboarding_done=true");
+      })
+      .select()
+      .single();
+
+    console.log(`[DTU Hub] Upsert took ${(performance.now() - saveStart).toFixed(0)}ms`);
+    console.log("[DTU Hub] Upsert response:", { saved, error });
+
+    if (error) {
+      console.error("[DTU Hub] Save FAILED:", error);
+      // Throw so OnboardingModal catch block shows it to the user
+      throw new Error(error.message || "Database save failed");
     }
 
-    // 2. Update local state only after successful DB save
-    const newSubjects = subjectNamestoSubjects(result.subjects);
-    setSubjects(newSubjects);
+    // Double-check the flag actually landed
+    if (saved?.onboarding_done !== true) {
+      console.error("[DTU Hub] onboarding_done NOT true in saved row!", saved);
+      throw new Error("Save appeared to succeed but onboarding_done flag is not set. Please try again.");
+    }
+
+    console.log("[DTU Hub] ✅ Verified onboarding_done = true in DB");
+
+    // All good — update local state
+    setSubjects(subjectNamestoSubjects(result.subjects));
     setProfile(prev => ({
       ...prev,
       branch:   result.branch,
@@ -280,7 +301,10 @@ export default function App() {
       section:  result.section,
       rollNo:   result.rollNo,
     }));
-    setShowOnboarding(false);
+
+    // Show success toast THEN redirect to dashboard
+    showToast("Profile saved! Welcome to DTU Hub 🎉");
+    setShowOnboarding(false); // ← this triggers re-render to dashboard
   };
 
   // ── Sign out ──────────────────────────────────────────────────────────────
@@ -502,6 +526,26 @@ export default function App() {
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* ── Toast notification ── */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-[200] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-sm font-semibold transition-all duration-300 ${
+            toast.type === "success"
+              ? "bg-[#0d1e17] border-[#1AE7A6]/40 text-[#1AE7A6]"
+              : "bg-[#1e0d0d] border-red-500/40 text-red-300"
+          }`}
+          style={{ minWidth: "260px" }}
+        >
+          <span className="material-symbols-outlined text-xl flex-shrink-0">
+            {toast.type === "success" ? "check_circle" : "error"}
+          </span>
+          <span className="flex-1">{toast.msg}</span>
+          <button onClick={() => setToast(null)} className="opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
       )}
 
       {/* ── SIDEBAR ── */}
