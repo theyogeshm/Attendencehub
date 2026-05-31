@@ -10,6 +10,8 @@ import { DTU_CSE_SUBJECTS } from "../data";
 interface OnboardingResult {
   branch: string;
   semester: string;
+  section: string;
+  rollNo: string;
   subjects: string[];
 }
 
@@ -26,6 +28,8 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [branch, setBranch] = useState<"CSE" | "Other">("CSE");
   const [semester, setSemester] = useState<number>(1);
+  const [section, setSection] = useState<number>(1);
+  const [rollNo, setRollNo] = useState("");
 
   // ── Step 2 state ───────────────────────────────────────────────────────
   const [subjects, setSubjects] = useState<string[]>([]);
@@ -85,18 +89,23 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   const handleSave = async () => {
     if (subjects.length === 0) return;
     if (isOtherBranch && !customBranch.trim()) return;
+    if (!rollNo.trim()) return;
     setSaving(true);
     await new Promise(r => setTimeout(r, 280));
     onComplete({
-      branch: isOtherBranch ? customBranch.trim() : branch,
+      branch:   isOtherBranch ? customBranch.trim() : branch,
       semester: `${semester}${semSuffix(semester)} Semester`,
+      section:  String(section),
+      rollNo:   rollNo.trim(),
       subjects,
     });
   };
 
   const firstName = userName.split(" ")[0];
   const canSave =
-    subjects.length > 0 && (!isOtherBranch || customBranch.trim().length > 0);
+    subjects.length > 0 &&
+    rollNo.trim().length > 0 &&
+    (!isOtherBranch || customBranch.trim().length > 0);
 
   // ══════════════════════════════════════════════════════════════════════
   return (
@@ -180,7 +189,7 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
               </div>
 
               {/* Semester */}
-              <div className="mb-7">
+              <div className="mb-4">
                 <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2.5">
                   Current Semester
                 </label>
@@ -204,6 +213,42 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
                 <p className={`text-[10px] mt-2.5 font-mono ${isAutoFill ? "text-[#1AE7A6]/80" : "text-[#bacbbf]/50"}`}>
                   {modeLabel}
                 </p>
+              </div>
+
+              {/* Section (1–9) */}
+              <div className="mb-4">
+                <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2.5">
+                  Section
+                </label>
+                <div className="grid grid-cols-9 gap-1.5">
+                  {[1,2,3,4,5,6,7,8,9].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setSection(s)}
+                      className={`py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer border ${
+                        section === s
+                          ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/30"
+                          : "bg-[#0b1326]/60 border-[#3b4a42]/30 text-[#bacbbf] hover:border-[#1AE7A6]/40 hover:text-white"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Roll Number */}
+              <div className="mb-6">
+                <label className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest block mb-2">
+                  Roll Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 2K24/CO/101"
+                  value={rollNo}
+                  onChange={e => setRollNo(e.target.value)}
+                  className="w-full bg-[#0b1326] border border-[#3b4a42]/40 rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#bacbbf]/40 focus:border-[#1AE7A6]/60 focus:outline-none transition-all font-mono"
+                />
               </div>
 
               {/* Next */}
@@ -353,6 +398,8 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
                 <p className="text-[10px] text-red-400/60 mb-3 font-mono text-center">
                   {subjects.length === 0
                     ? "⚠ Add at least one subject"
+                    : rollNo.trim().length === 0
+                    ? "⚠ Go back and enter your Roll Number"
                     : "⚠ Enter your branch name above"}
                 </p>
               )}

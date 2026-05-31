@@ -162,8 +162,9 @@ export default function App() {
           setSubjects(subjectNamestoSubjects(pData.subjects));
         }
 
-        // Show onboarding if not yet completed
-        if (!pData.onboarding_done) {
+        // Show onboarding ONLY if not explicitly completed (true)
+        // Note: null or false both trigger onboarding; only true === done
+        if (pData.onboarding_done !== true) {
           setShowOnboarding(true);
         }
       } else {
@@ -225,18 +226,32 @@ export default function App() {
   };
 
   // ── Onboarding complete callback ──────────────────────────────────────────
-  const handleOnboardingComplete = async (result: { branch: string; semester: string; subjects: string[] }) => {
+  const handleOnboardingComplete = async (result: {
+    branch: string;
+    semester: string;
+    section: string;
+    rollNo: string;
+    subjects: string[];
+  }) => {
     const newSubjects = subjectNamestoSubjects(result.subjects);
     setSubjects(newSubjects);
-    setProfile(prev => ({ ...prev, branch: result.branch, semester: result.semester }));
+    setProfile(prev => ({
+      ...prev,
+      branch:   result.branch,
+      semester: result.semester,
+      section:  result.section,
+      rollNo:   result.rollNo,
+    }));
     setShowOnboarding(false);
 
-    // Persist to Supabase
+    // Persist to Supabase — onboarding_done = true prevents future shows
     if (user) {
       await supabase.from("profiles").upsert({
         id:              user.id,
         branch:          result.branch,
         semester:        result.semester,
+        section:         result.section,
+        roll_no:         result.rollNo,
         subjects:        result.subjects,
         onboarding_done: true,
         updated_at:      new Date().toISOString(),
