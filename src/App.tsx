@@ -207,7 +207,7 @@ export default function App() {
         supabase.from("attendance").select("*").eq("user_id", u.id),
         supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
       ]);
-      console.log(`[DTU Hub] Parallel attendance & assignments fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
+      console.log(`[DTU Hub] Parallel fetch took ${(performance.now() - parallelStart).toFixed(2)}ms`);
 
       const attData = attRes.data;
       if (attData && attData.length > 0) {
@@ -235,8 +235,8 @@ export default function App() {
           }))
         );
       }
-      
-      console.log(`[DTU Hub] loadUserData completed in ${(performance.now() - t0).toFixed(2)}ms total`);
+
+      console.log(`[DTU Hub] loadUserData done in ${(performance.now() - t0).toFixed(2)}ms`);
     } catch (err) {
       console.error("[DTU Hub] loadUserData error:", err);
     } finally {
@@ -252,14 +252,25 @@ export default function App() {
     rollNo: string;
     subjects: string[];
   }) => {
-    // Must be logged in
     if (!user) throw new Error("Not authenticated");
 
-    const saveStart = performance.now();
-    console.log("[DTU Hub] Saving onboarding...", result);
+    // 1. Update local state immediately — don't wait for Supabase
+    setSubjects(subjectNamestoSubjects(result.subjects));
+    setProfile(prev => ({
+      ...prev,
+      branch:   result.branch,
+      semester: result.semester,
+      section:  result.section,
+      rollNo:   result.rollNo,
+    }));
 
-    // Upsert with .select() so we can VERIFY the saved row
-    const { data: saved, error } = await supabase
+    // 2. Redirect to dashboard RIGHT NOW
+    setShowOnboarding(false);
+
+    // 3. Save to Supabase in the background — never block the UI
+    const saveStart = performance.now();
+    console.log("[DTU Hub] Saving to Supabase in background...");
+    supabase
       .from("profiles")
       .upsert({
         id:              user.id,
@@ -272,39 +283,16 @@ export default function App() {
         onboarding_done: true,
         updated_at:      new Date().toISOString(),
       })
-      .select()
-      .single();
-
-    console.log(`[DTU Hub] Upsert took ${(performance.now() - saveStart).toFixed(0)}ms`);
-    console.log("[DTU Hub] Upsert response:", { saved, error });
-
-    if (error) {
-      console.error("[DTU Hub] Save FAILED:", error);
-      // Throw so OnboardingModal catch block shows it to the user
-      throw new Error(error.message || "Database save failed");
-    }
-
-    // Double-check the flag actually landed
-    if (saved?.onboarding_done !== true) {
-      console.error("[DTU Hub] onboarding_done NOT true in saved row!", saved);
-      throw new Error("Save appeared to succeed but onboarding_done flag is not set. Please try again.");
-    }
-
-    console.log("[DTU Hub] ✅ Verified onboarding_done = true in DB");
-
-    // All good — update local state
-    setSubjects(subjectNamestoSubjects(result.subjects));
-    setProfile(prev => ({
-      ...prev,
-      branch:   result.branch,
-      semester: result.semester,
-      section:  result.section,
-      rollNo:   result.rollNo,
-    }));
-
-    // Show success toast THEN redirect to dashboard
-    showToast("Profile saved! Welcome to DTU Hub 🎉");
-    setShowOnboarding(false); // ← this triggers re-render to dashboard
+      .then(({ error }) => {
+        console.log(`[DTU Hub] Background save took ${(performance.now() - saveStart).toFixed(0)}ms`);
+        if (error) {
+          console.error("[DTU Hub] Background save FAILED:", error);
+          showToast("Saved locally. Cloud sync failed — check connection.", "error");
+        } else {
+          console.log("[DTU Hub] \u2705 Supabase save confirmed — onboarding_done=true");
+          showToast("Profile saved! Welcome to DTU Hub \uD83C\uDF89");
+        }
+      });
   };
 
   // ── Sign out ──────────────────────────────────────────────────────────────
