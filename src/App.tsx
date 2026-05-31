@@ -678,7 +678,7 @@ export default function App() {
                 onChange={(e) => setGlobalSearch(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && globalSearch.trim()) {
-                    navigate("/resources");
+                    navigate(`/resources?q=${encodeURIComponent(globalSearch.trim())}`);
                     setGlobalSearch("");
                   }
                 }}

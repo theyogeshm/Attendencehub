@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Subject } from "../types";
 import { 
   Search, 
@@ -32,9 +33,18 @@ interface ResourcePackage {
 }
 
 export default function ResourcesPage({ subjects }: ResourcesPageProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") ?? "");
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Once we've consumed the ?q param, remove it from the URL so reloads don't re-apply it
+  useEffect(() => {
+    if (searchParams.has("q")) {
+      setSearchParams({}, { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter subjects based on search phrase
   const filteredSubjects = subjects.filter((s) =>
