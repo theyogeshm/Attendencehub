@@ -1136,22 +1136,22 @@ export default function App() {
                 <div className="text-center py-8 text-on-surface-variant text-xs">Loading attendance for this date...</div>
               ) : (
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                {logSubjects.map((sub) => {
-                  const pct = sub.totalClasses > 0 ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0) : "0";
-                  const hasData = sub.totalClasses > 0;
+                {logSubjects.filter(sub => sub.totalClasses > 0).length === 0 ? (
+                  <div className="text-center py-8 text-on-surface-variant text-xs opacity-60">
+                    No attendance was recorded on this date.
+                  </div>
+                ) : (
+                  logSubjects.filter(sub => sub.totalClasses > 0).map((sub) => {
+                  const pct = ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0);
                   return (
-                    <div key={sub.subjectId} className={`p-4 rounded-xl flex justify-between items-center border ${
-                      hasData ? "bg-surface-container-high border-outline-variant/50" : "bg-surface-container/40 border-outline-variant/20 opacity-60"
-                    }`}>
+                    <div key={sub.subjectId} className="bg-surface-container-high p-4 rounded-xl flex justify-between items-center border border-outline-variant/50">
                       <div>
                         <p className="font-bold text-xs text-on-surface">{sub.subjectName} <span className="font-mono text-[10px] text-on-surface-variant">({sub.subjectType ?? "LEC"})</span></p>
-                        <p className={`text-[10px] font-mono font-bold mt-0.5 ${
-                          !hasData ? "text-on-surface-variant" : Number(pct) >= 75 ? "text-primary" : "text-error"
-                        }`}>
-                          {hasData ? `${pct}% — ${Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}` : "No record this date"}
+                        <p className={`text-[10px] font-mono font-bold mt-0.5 ${Number(pct) >= 75 ? "text-primary" : "text-error"}`}>
+                          {sub.attendanceCount}/{sub.totalClasses} — {pct}% {Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}
                         </p>
                       </div>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 items-center">
                         <button
                           onClick={async () => {
                             if (!attendanceLogDateStr) return;
@@ -1172,36 +1172,35 @@ export default function App() {
                           className="text-[10px] font-bold border border-error/30 text-error px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all"
                           title="Mark absent for this date"
                         >-A</button>
-                        {hasData && (
-                          <button
-                            onClick={async () => {
-                              if (!attendanceLogDateStr || !user) return;
-                              console.log(`[Attendance Hub] 🗑️ Deleting ${sub.subjectName} on ${attendanceLogDateStr}`);
-                              const { error: delErr } = await supabase.from("attendance")
-                                .delete()
-                                .eq("user_id", user.id)
-                                .eq("subject_id", sub.subjectId)
-                                .eq("date", attendanceLogDateStr);
-                              if (delErr) {
-                                console.error("[Attendance Hub] ❌ Delete failed:", delErr);
-                                showToast("Delete failed", "error");
-                              } else {
-                                console.log(`[Attendance Hub] ✅ Deleted ${sub.subjectName} on ${attendanceLogDateStr}`);
-                                showToast(`Cleared ${sub.subjectName} for this date.`, "success");
-                                fetchLogForDate(attendanceLogDateStr);
-                                loadUserData(user);
-                              }
-                            }}
-                            className="text-[10px] font-bold border border-error/50 text-error px-2.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
-                            title="Delete this date's entry"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={async () => {
+                            if (!attendanceLogDateStr || !user) return;
+                            console.log(`[Attendance Hub] 🗑️ Deleting ${sub.subjectName} on ${attendanceLogDateStr}`);
+                            const { error: delErr } = await supabase.from("attendance")
+                              .delete()
+                              .eq("user_id", user.id)
+                              .eq("subject_id", sub.subjectId)
+                              .eq("date", attendanceLogDateStr);
+                            if (delErr) {
+                              console.error("[Attendance Hub] ❌ Delete failed:", delErr);
+                              showToast("Delete failed", "error");
+                            } else {
+                              console.log(`[Attendance Hub] ✅ Deleted ${sub.subjectName} on ${attendanceLogDateStr}`);
+                              showToast(`Cleared ${sub.subjectName} for this date.`, "success");
+                              fetchLogForDate(attendanceLogDateStr);
+                              loadUserData(user);
+                            }
+                          }}
+                          className="text-[10px] font-bold border border-error/50 text-error px-2.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
+                          title="Delete this subject's record for this date"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   );
-                })}
+                })
+                )}
               </div>
               )}
 
