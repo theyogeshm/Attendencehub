@@ -357,23 +357,44 @@ export default function App() {
     setShowOnboarding(false);
   };
 
-  // ── Attendance handler (4 statuses) ──────────────────────────────────────
-  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus) => {
+  // ── Attendance handler (5 statuses) ──────────────────────────────────────
+  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
     const currentSub = subjects.find(s => s.id === subjectId);
     if (!currentSub) return;
+    const dateStr = targetDate || new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
     let updated = { ...currentSub };
-    switch (status) {
-      case "present": updated = { ...currentSub, attendanceCount: currentSub.attendanceCount + 1, totalClasses: currentSub.totalClasses + 1 }; break;
-      case "absent":
-      case "miss":    updated = { ...currentSub, totalClasses: currentSub.totalClasses + 1 }; break;
-      case "leave":   break; // no change
+    if (status !== "clear") {
+      switch (status) {
+        case "present": updated = { ...currentSub, attendanceCount: currentSub.attendanceCount + 1, totalClasses: currentSub.totalClasses + 1 }; break;
+        case "absent":
+        case "miss":    updated = { ...currentSub, totalClasses: currentSub.totalClasses + 1 }; break;
+        case "leave":   break; // no change
+      }
+      setSubjects(prev => prev.map(sub => sub.id === subjectId ? updated : sub));
     }
 
-    setSubjects(prev => prev.map(sub => sub.id === subjectId ? updated : sub));
+    if (user && status === "clear") {
+      const delStart = performance.now();
+      const { error: delErr } = await supabase.from("attendance")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("subject_id", subjectId)
+        .eq("date", dateStr);
+      
+      const ms = (performance.now() - delStart).toFixed(2);
+      if (delErr) {
+        console.error(`[Attendance Hub] ❌ Failed to clear attendance:`, delErr);
+        showToast("Failed to clear attendance.", "error");
+      } else {
+        console.log(`[Attendance Hub] 🗑️ Attendance cleared in ${ms}ms for ${updated.name} on ${dateStr}`);
+        showToast("Attendance cleared for that date.", "success");
+        loadUserData(user); // refresh to fix counts
+      }
+      return;
+    }
 
     if (user && status !== "leave") {
-      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
       // Per-day values: each class is 0 or 1 for that date
       const dayAttended = status === "present" ? 1 : 0;
       const dayTotal    = 1; // one class held today
@@ -382,7 +403,7 @@ export default function App() {
         user_id:          user.id,
         subject_id:       updated.id,
         subject_name:     updated.name,
-        date:             today,
+        date:             dateStr,
         attendance_count: dayAttended,
         total_classes:    dayTotal,
         updated_at:       new Date().toISOString(),
@@ -392,7 +413,7 @@ export default function App() {
         console.error(`[Attendance Hub] ❌ Attendance save FAILED in ${ms}ms:`, attErr);
         showToast("Failed to save attendance. Check connection.", "error");
       } else {
-        console.log(`[Attendance Hub] ✅ Attendance saved in ${ms}ms — ${updated.name} on ${today}: ${dayAttended}/${dayTotal} (user_id: ${user.id})`);
+        console.log(`[Attendance Hub] ✅ Attendance saved in ${ms}ms — ${updated.name} on ${dateStr}: ${dayAttended}/${dayTotal} (user_id: ${user.id})`);
       }
     }
 
@@ -401,6 +422,7 @@ export default function App() {
       absent:  "❌ Absent marked",
       miss:    "☕ Missed (counted as absent)",
       leave:   "✈️ Leave — not counted",
+      clear:   "🗑️ Cleared",
     };
     console.log(`${labels[status]} for ${currentSub.name}`);
   };
@@ -1042,8 +1064,8 @@ export default function App() {
                   : "Recent entries"}
               </p>
 
-              <div className="space-y-3">
-                {subjects.slice(0, 4).map((sub) => {
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                {subjects.map((sub) => {
                   const pct = sub.totalClasses > 0 ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0) : "0";
                   return (
                     <div key={sub.id} className="bg-surface-container-high p-4 rounded-xl flex justify-between items-center border border-outline-variant/50">
@@ -1053,15 +1075,18 @@ export default function App() {
                           {pct}% — {Number(pct) >= 75 ? "Safe ✔" : "Danger ⚠"}
                         </p>
                       </div>
-                      <div className="flex gap-1.5">
                         <button
-                          onClick={() => handleMarkAttendance(sub.id, "present")}
+                          onClick={() => handleMarkAttendance(sub.id, "present", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
                           className="text-[10px] font-bold border border-primary/30 text-primary px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-primary hover:text-[#002114] transition-all"
                         >+P</button>
                         <button
-                          onClick={() => handleMarkAttendance(sub.id, "absent")}
+                          onClick={() => handleMarkAttendance(sub.id, "absent", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
                           className="text-[10px] font-bold border border-error/30 text-error px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all"
                         >-A</button>
+                        <button
+                          onClick={() => handleMarkAttendance(sub.id, "clear", attendanceLogDate ? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(attendanceLogDate).padStart(2, '0')}` : undefined)}
+                          className="text-[10px] font-bold border border-outline-variant/30 text-on-surface-variant px-2.5 py-1 bg-[#131b2e] rounded-lg cursor-pointer hover:bg-surface-variant hover:text-white transition-all"
+                        >Clear</button>
                       </div>
                     </div>
                   );

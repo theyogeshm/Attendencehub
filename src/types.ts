@@ -38,4 +38,4 @@ export interface TimetableSlot {
   type?: "LEC" | "LAB";
 }
 
-export type AttendanceStatus = "present" | "absent" | "miss" | "leave";
+export type AttendanceStatus = "present" | "absent" | "miss" | "leave" | "clear";
