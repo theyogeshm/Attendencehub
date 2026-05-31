@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Subject, Assignment, AttendanceStatus } from "./types";
 import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects } from "./data";
 import OnboardingModal from "./components/OnboardingModal";
@@ -46,7 +47,9 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   // ── Navigation ────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = location.pathname.split("/")[1] || "dashboard";
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Live persistent states ────────────────────────────────────────────────
@@ -491,13 +494,30 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Auth gate — show login if not signed in
+  // Route Guards — Enforce auth and onboarding status
   // ═══════════════════════════════════════════════════════════════════════════
+  if (!user && location.pathname !== "/login") {
+    return <Navigate to="/login" replace />;
+  }
+  if (user && location.pathname === "/login") {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (user && showOnboarding && location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
+  if (user && !showOnboarding && location.pathname === "/onboarding") {
+    return <Navigate to="/dashboard" replace />;
+  }
+  if (location.pathname === "/") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // ── Public layout (Login) ─────────────────────────────────────────────────
   if (!user) {
     return <LoginPage />;
   }
 
-  // ── Show onboarding above the full app ────────────────────────────────────
+  // ── Onboarding Modal overlay ──────────────────────────────────────────────
   if (showOnboarding) {
     return <OnboardingModal userName={profile.name} onComplete={handleOnboardingComplete} />;
   }
@@ -563,7 +583,7 @@ export default function App() {
             return (
               <button
                 key={nav.id}
-                onClick={() => { setActiveTab(nav.id); setSidebarOpen(false); }}
+                onClick={() => { navigate(`/${nav.id}`); setSidebarOpen(false); }}
                 className={`w-full flex items-center gap-4 px-6 py-3 text-left transition-all relative cursor-pointer group active:scale-[0.98] ${
                   isActive
                     ? isDarkMode
@@ -658,7 +678,7 @@ export default function App() {
                 onChange={(e) => setGlobalSearch(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && globalSearch.trim()) {
-                    setActiveTab("resources");
+                    navigate("/resources");
                     setGlobalSearch("");
                   }
                 }}
@@ -711,36 +731,39 @@ export default function App() {
         {/* ── PAGE CONTENT ── */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar pb-24">
           <div className="max-w-7xl mx-auto">
-            {activeTab === "dashboard" && (
-              <DashboardPage
-                subjects={subjects}
-                assignments={assignments}
-                onMarkAttendance={handleMarkAttendance}
-                onOpenAttendanceLog={handleOpenAttendanceLog}
-                setActiveTab={setActiveTab}
-                isDarkMode={isDarkMode}
-              />
-            )}
-            {activeTab === "attendance" && (
-              <AttendancePage subjects={subjects} onUpdateSubjectHours={handleUpdateSubjectHours} isDarkMode={isDarkMode} />
-            )}
-            {activeTab === "resources" && (
-              <ResourcesPage subjects={subjects} />
-            )}
-            {activeTab === "assignments" && (
-              <AssignmentsPage
-                assignments={assignments}
-                onAddAssignment={handleAddAssignment}
-                onToggleAssignment={handleToggleAssignment}
-                onDeleteAssignment={handleDeleteAssignment}
-              />
-            )}
-            {activeTab === "timetable" && (
-              <TimetablePage onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")} />
-            )}
-            {activeTab === "analytics" && (
-              <AnalyticsPage subjects={subjects} isDarkMode={isDarkMode} />
-            )}
+            <Routes>
+              <Route path="/dashboard" element={
+                <DashboardPage
+                  subjects={subjects}
+                  assignments={assignments}
+                  onMarkAttendance={handleMarkAttendance}
+                  onOpenAttendanceLog={handleOpenAttendanceLog}
+                  setActiveTab={(tab) => navigate(`/${tab}`)}
+                  isDarkMode={isDarkMode}
+                />
+              } />
+              <Route path="/attendance" element={
+                <AttendancePage subjects={subjects} onUpdateSubjectHours={handleUpdateSubjectHours} isDarkMode={isDarkMode} />
+              } />
+              <Route path="/resources" element={
+                <ResourcesPage subjects={subjects} />
+              } />
+              <Route path="/assignments" element={
+                <AssignmentsPage
+                  assignments={assignments}
+                  onAddAssignment={handleAddAssignment}
+                  onToggleAssignment={handleToggleAssignment}
+                  onDeleteAssignment={handleDeleteAssignment}
+                />
+              } />
+              <Route path="/timetable" element={
+                <TimetablePage onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")} />
+              } />
+              <Route path="/analytics" element={
+                <AnalyticsPage subjects={subjects} isDarkMode={isDarkMode} />
+              } />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </div>
         </div>
 
@@ -751,8 +774,8 @@ export default function App() {
             return (
               <button
                 key={nav.id}
-                onClick={() => setActiveTab(nav.id)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+                onClick={() => { navigate(`/${nav.id}`); }}
+                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all cursor-pointer ${
                   isActive ? "text-primary" : "text-on-surface-variant"
                 }`}
               >
@@ -764,7 +787,7 @@ export default function App() {
             );
           })}
           <button
-            onClick={() => setActiveTab("analytics")}
+            onClick={() => { navigate('/analytics'); }}
             className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
               activeTab === "analytics" ? "text-primary" : "text-on-surface-variant"
             }`}
