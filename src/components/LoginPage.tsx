@@ -26,12 +26,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1326] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative overflow-hidden">
 
       {/* Background glow orbs */}
-      <div className="absolute top-[-120px] left-[-100px] w-[500px] h-[500px] rounded-full bg-[#1AE7A6]/5 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-120px] right-[-100px] w-[500px] h-[500px] rounded-full bg-[#7bd0ff]/5 blur-[100px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-[#1AE7A6]/3 blur-[150px] pointer-events-none" />
+      <div className="absolute top-[-120px] left-[-100px] w-[500px] h-[500px] rounded-full bg-primary-container/5 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-120px] right-[-100px] w-[500px] h-[500px] rounded-full bg-secondary/5 blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary-container/3 blur-[150px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
 
@@ -41,16 +41,16 @@ export default function LoginPage() {
             <span className="material-symbols-outlined text-[#002114] text-4xl font-black">school</span>
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#7bd0ff] border-2 border-[#0b1326] animate-pulse" />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">Attendance <span className="text-[#1AE7A6]">Hub</span></h1>
-          <p className="text-[#bacbbf] text-sm mt-2 font-medium">Your smart academic companion</p>
+          <h1 className="text-4xl font-black text-on-surface tracking-tight">Attendance <span className="text-primary-container">Hub</span></h1>
+          <p className="text-on-surface-variant text-sm mt-2 font-medium">Your smart academic companion</p>
         </div>
 
         {/* Glass card */}
-        <div className="bg-[#131b2e]/80 backdrop-blur-xl border border-[#1AE7A6]/15 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-surface-container-low/80 backdrop-blur-xl border border-primary-container/15 rounded-3xl p-8 shadow-2xl">
 
           <div className="mb-6 text-center">
-            <h2 className="text-xl font-bold text-white mb-1">Sign in to continue</h2>
-            <p className="text-[#bacbbf] text-xs">Use your DTU Google account for secure access</p>
+            <h2 className="text-xl font-bold text-on-surface mb-1">Sign in to continue</h2>
+            <p className="text-on-surface-variant text-xs">Use your DTU Google account for secure access</p>
           </div>
 
           {/* Google Sign In Button */}
@@ -83,29 +83,29 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-[#3b4a42]/30" />
-            <span className="text-[#bacbbf] text-[10px] font-mono uppercase tracking-wider">Features</span>
-            <div className="flex-1 h-px bg-[#3b4a42]/30" />
+            <div className="flex-1 h-px bg-outline-variant/30" />
+            <span className="text-on-surface-variant text-[10px] font-mono uppercase tracking-wider">Features</span>
+            <div className="flex-1 h-px bg-outline-variant/30" />
           </div>
 
           {/* Feature highlights */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: "event_available", label: "Attendance Tracker", color: "text-[#1AE7A6]" },
-              { icon: "assignment",     label: "Assignments",        color: "text-[#7bd0ff]" },
+              { icon: "event_available", label: "Attendance Tracker", color: "text-primary-container" },
+              { icon: "assignment",     label: "Assignments",        color: "text-secondary" },
               { icon: "leaderboard",    label: "Analytics",          color: "text-[#f5a623]" },
-              { icon: "calendar_today", label: "Timetable",          color: "text-[#1AE7A6]" },
+              { icon: "calendar_today", label: "Timetable",          color: "text-primary-container" },
             ].map(f => (
-              <div key={f.label} className="flex items-center gap-2 bg-[#0b1326]/60 rounded-xl p-3 border border-[#3b4a42]/20">
+              <div key={f.label} className="flex items-center gap-2 bg-surface/60 rounded-xl p-3 border border-outline-variant/20">
                 <span className={`material-symbols-outlined text-lg ${f.color}`}>{f.icon}</span>
-                <span className="text-[11px] font-semibold text-[#bacbbf]">{f.label}</span>
+                <span className="text-[11px] font-semibold text-on-surface-variant">{f.label}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-[#bacbbf]/50 text-[10px] mt-6 font-mono">
+        <p className="text-center text-on-surface-variant opacity-50 text-[10px] mt-6 font-mono">
           Data stored securely · RLS enabled · Your data, only yours
         </p>
       </div>

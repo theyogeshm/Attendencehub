@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Subject, Assignment, AttendanceStatus } from "./types";
 import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS } from "./data";
+import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
@@ -540,17 +541,24 @@ export default function App() {
       const semNum = semMatch ? parseInt(semMatch[0], 10) : 1;
       
       if (editProfile.branch.toLowerCase().includes("computer science") || editProfile.branch.toUpperCase() === "CSE") {
-        const subNames = DTU_CSE_SUBJECTS[semNum] || [];
+        const cseBranch = dtuData.branches.find((b: any) => b.branch === "CSE");
+        const semData = cseBranch?.semesters.find((s: any) => s.sem === semNum);
+        const subNames = semData ? [...semData.subjects] : [];
+
         if (subNames.length > 0) {
           newSubjectsList = subNames;
           setSubjects(subjectNamestoSubjects(subNames));
-          showToast(`Subjects updated for ${editProfile.semester}`);
+          showToast(`Profile updated, subjects updated for Sem ${semNum}`);
+        } else {
+          showToast("Profile updated");
         }
       } else {
         newSubjectsList = [];
         setSubjects([]);
-        showToast(`Subjects cleared for ${editProfile.branch}. Please add manually.`);
+        showToast(`Profile updated. Subjects cleared for ${editProfile.branch}. Please add manually.`);
       }
+    } else {
+      showToast("Profile updated");
     }
 
     if (user) {
@@ -1052,7 +1060,6 @@ export default function App() {
                     { label: "Full Name",    key: "name",     type: "text" },
                     { label: "Roll Number",  key: "rollNo",   type: "text" },
                     { label: "Branch",       key: "branch",   type: "text" },
-                    { label: "Semester",     key: "semester", type: "text" },
                   ].map(({ label, key, type }) => (
                     <div key={key}>
                       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">{label}</label>
@@ -1065,14 +1072,47 @@ export default function App() {
                     </div>
                   ))}
                   <div>
+                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Semester</label>
+                    <div className="grid grid-cols-8 gap-1.5">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(s => {
+                        const semStr = `${s}${s === 1 ? "st" : s === 2 ? "nd" : s === 3 ? "rd" : "th"} Semester`;
+                        const isActive = editProfile.semester === semStr;
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => setEditProfile(prev => ({ ...prev, semester: semStr }))}
+                            className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer select-none ${
+                              isActive
+                                ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/25"
+                                : "bg-[#0b1326] border-outline-variant text-on-surface-variant hover:border-primary/50 hover:text-white"
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Section</label>
-                    <select
-                      value={editProfile.section}
-                      onChange={(e) => setEditProfile(prev => ({ ...prev, section: e.target.value }))}
-                      className="w-full bg-[#0b1326] border border-outline-variant rounded-xl px-3 py-2 text-xs text-on-surface focus:border-primary outline-none"
-                    >
-                      {["A", "B", "C", "D"].map(s => <option key={s}>{s}</option>)}
-                    </select>
+                    <div className="grid grid-cols-9 gap-1.5">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(s => {
+                        const isActive = editProfile.section === String(s);
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => setEditProfile(prev => ({ ...prev, section: String(s) }))}
+                            className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer select-none ${
+                              isActive
+                                ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/25"
+                                : "bg-[#0b1326] border-outline-variant text-on-surface-variant hover:border-primary/50 hover:text-white"
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button
