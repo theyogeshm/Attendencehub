@@ -120,6 +120,9 @@ export default function App() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // ── Today's attendance status per subject (dashboard button highlights) ────
+  const [todayAttendance, setTodayAttendance] = useState<Record<string, AttendanceStatus>>({});
+
   // ── Profile editing state ─────────────────────────────────────────────────
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
@@ -232,6 +235,7 @@ export default function App() {
 
       // Merge subjects with saved attendance in ONE operation (avoid React batching issue)
       // attData may have multiple rows per subject (one per date) — aggregate them
+      let resolvedSubjects: Subject[] = [];
       if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
         const baseSubjects = subjectNamestoSubjects(pData.subjects);
 
@@ -253,21 +257,22 @@ export default function App() {
             const key = sub.name.toLowerCase().trim();
             const saved = agg[key];
             if (saved) {
-
               return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
             }
-
             return { ...sub, attendanceCount: 0, totalClasses: 0 };
           });
 
           setSubjects(merged);
+          resolvedSubjects = merged;
         } else {
-
-          setSubjects(baseSubjects.map(s => ({ ...s, attendanceCount: 0, totalClasses: 0 })));
+          const withZeros = baseSubjects.map(s => ({ ...s, attendanceCount: 0, totalClasses: 0 }));
+          setSubjects(withZeros);
+          resolvedSubjects = withZeros;
         }
-      } else {
-
       }
+
+      // Populate today's attendance status for dashboard button highlights
+      fetchTodayAttendance(u, resolvedSubjects);
 
       const asgData = asgRes.data;
       if (asgData && asgData.length > 0) {
@@ -370,6 +375,7 @@ export default function App() {
     await supabase.auth.signOut();
     setSubjects(INITIAL_SUBJECTS);
     setAssignments(INITIAL_ASSIGNMENTS);
+    setTodayAttendance({});
     setProfile({ name: "Student", rollNo: "2K24/---/---", branch: "Computer Science & Engineering", semester: "2nd Semester", section: "A" });
     setShowProfileModal(false);
     setShowOnboarding(false);
@@ -391,66 +397,71 @@ export default function App() {
     const currentSub = subjects.find(s => s.id === subjectId);
     if (!currentSub) return;
     const dateStr = targetDate || new Date().toISOString().split("T")[0];
+    const isMarkingToday = dateStr === new Date().toISOString().split("T")[0];
 
-    if (user && status === "clear") {
+    const labels: Record<AttendanceStatus, string> = {
+      present: "✅ Present marked",
+      absent:  "❌ Absent marked",
+      miss:    "☕ Missed",
+      leave:   "✈️ Leave marked",
+      clear:   "🗑️ Cleared",
+    };
+
+    // ── Clear (delete entry) ──────────────────────────────────────────────────
+    if (status === "clear") {
+      if (!user) return;
       const { error: delErr } = await supabase.from("attendance")
         .delete()
         .eq("user_id", user.id)
         .eq("subject", currentSub.name)
         .eq("date", dateStr);
       if (delErr) {
-
         showToast("Failed to clear attendance.", "error");
       } else {
-
-        showToast("Attendance cleared for that date.", "success");
+        showToast(labels.clear, "success");
+        if (isMarkingToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
         loadUserData(user);
       }
       return;
     }
 
-    // Optimistic local update (for instant UI feedback on Dashboard)
-    if (status !== "leave") {
+    // ── Optimistic today-status update (instant button highlight) ─────────────
+    if (isMarkingToday) {
+      setTodayAttendance(prev => ({ ...prev, [subjectId]: status }));
+    }
+
+    // ── Optimistic count update (only for first-time marking of today) ────────
+    const alreadyMarkedToday = isMarkingToday && !!todayAttendance[subjectId];
+    if (!alreadyMarkedToday && status !== "leave") {
       setSubjects(prev => prev.map(sub => {
         if (sub.id !== subjectId) return sub;
-        const isPresent = status === "present";
-        return { ...sub,
-          attendanceCount: sub.attendanceCount + (isPresent ? 1 : 0),
+        return {
+          ...sub,
+          attendanceCount: sub.attendanceCount + (status === "present" ? 1 : 0),
           totalClasses:    sub.totalClasses + 1,
         };
       }));
     }
 
-    if (user && status !== "leave") {
-      const saveStart = performance.now();
-      // Schema: (id, user_id, subject, date, status, created_at)
+    // ── Save to Supabase — all statuses (leave included), upsert prevents dups ─
+    if (user) {
       const { error: attErr } = await supabase.from("attendance").upsert({
         user_id: user.id,
         subject: currentSub.name,
         date:    dateStr,
         status:  status,
       }, { onConflict: "user_id,subject,date" });
-      const ms = (performance.now() - saveStart).toFixed(2);
-      if (attErr) {
 
+      if (attErr) {
         showToast("Failed to save attendance. Please try again.", "error");
-        // Roll back optimistic update
+        // Roll back optimistic updates
+        if (isMarkingToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
         loadUserData(user);
       } else {
-
+        showToast(labels[status]);
+        loadUserData(user); // refresh accurate aggregate counts
       }
-    } else if (status === "leave") {
-
     }
-
-    const labels: Record<AttendanceStatus, string> = {
-      present: "✅ Present marked",
-      absent:  "❌ Absent marked",
-      miss:    "☕ Missed",
-      leave:   "✈️ Leave",
-      clear:   "🗑️ Cleared",
-    };
-
   };
 
   // ── Attendance adjustment (from attendance page) ──────────────────────────
@@ -582,6 +593,29 @@ export default function App() {
     setFeedbackText(""); setFeedbackEmail("");
     setShowFeedbackModal(false);
     showToast("Thank you for your feedback! 🙏");
+  };
+
+  // ── Fetch today's attendance for dashboard status highlights ─────────────
+  const fetchTodayAttendance = async (u: User, subjectsList: Subject[]) => {
+    if (!u || subjectsList.length === 0) return;
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("attendance")
+      .select("subject, status")
+      .eq("user_id", u.id)
+      .eq("date", today);
+    if (data) {
+      const map: Record<string, AttendanceStatus> = {};
+      data.forEach(row => {
+        const sub = subjectsList.find(s =>
+          s.name.toLowerCase().trim() === (row.subject ?? "").toLowerCase().trim()
+        );
+        if (sub && row.status) {
+          map[sub.id] = row.status as AttendanceStatus;
+        }
+      });
+      setTodayAttendance(map);
+    }
   };
 
   // ── Fetch attendance for a specific date from Supabase ───────────────────
@@ -908,6 +942,7 @@ export default function App() {
                   onOpenAttendanceLog={handleOpenAttendanceLog}
                   setActiveTab={(tab) => navigate(`/${tab}`)}
                   isDarkMode={isDarkMode}
+                  todayAttendance={todayAttendance}
                 />
               } />
               <Route path="/attendance" element={

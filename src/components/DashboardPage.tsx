@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Subject, Assignment, AttendanceStatus } from "../types";
 import {
   CheckCircle,
@@ -18,7 +18,7 @@ import {
   BookOpen,
   GraduationCap,
 } from "lucide-react";
-import { TIMETABLE_SLOTS } from "../data";
+
 
 interface DashboardPageProps {
   subjects: Subject[];
@@ -27,6 +27,7 @@ interface DashboardPageProps {
   onOpenAttendanceLog: (date?: number) => void;
   setActiveTab: (tab: string) => void;
   isDarkMode: boolean;
+  todayAttendance: Record<string, AttendanceStatus>;
 }
 
 // Day index → timetable day key
@@ -34,13 +35,21 @@ const DAY_MAP: Record<number, "MON" | "TUE" | "WED" | "THU" | "FRI"> = {
   1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI",
 };
 
-const SUBJECT_ICON: Record<string, string> = {
-  maths: "calculate",
-  physics: "biotech",
-  discrete: "scatter_plot",
-  ds: "account_tree",
-  evs: "eco",
-  ml: "neurology",
+const getSubjectIcon = (name: string): string => {
+  const n = name.toLowerCase();
+  if (n.includes("math"))                               return "calculate";
+  if (n.includes("physics"))                            return "biotech";
+  if (n.includes("data struct") || n.includes("dsa"))   return "account_tree";
+  if (n.includes("machine learn") || n.includes("ai"))  return "neurology";
+  if (n.includes("environment") || n.includes("evs"))   return "eco";
+  if (n.includes("discrete"))                           return "scatter_plot";
+  if (n.includes("software") || n.includes("engineer")) return "engineering";
+  if (n.includes("object") || n.includes("oop") || n.includes("java") || n.includes("python")) return "code";
+  if (n.includes("database") || n.includes("dbms"))     return "storage";
+  if (n.includes("network") || n.includes("operating")) return "dns";
+  if (n.includes("web"))                                return "web";
+  if (n.includes("lab"))                                return "science";
+  return "school";
 };
 
 export default function DashboardPage({
@@ -50,6 +59,7 @@ export default function DashboardPage({
   onOpenAttendanceLog,
   setActiveTab,
   isDarkMode,
+  todayAttendance,
 }: DashboardPageProps) {
   const today = new Date();
   const todayDayIndex = today.getDay(); // 0=Sun,1=Mon,...,6=Sat
@@ -70,16 +80,7 @@ export default function DashboardPage({
   const startOfYear = new Date(today.getFullYear(), 0, 1);
   const academicWeek = Math.ceil(((today.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
 
-  // Today's schedule from timetable
-  const todaySlots = useMemo(() => {
-    if (!todayKey) return [];
-    return TIMETABLE_SLOTS.filter(
-      (s) => s.day === todayKey && !s.isLunch && s.subjectName !== "Free Slot"
-    );
-  }, [todayKey]);
-
-  // Next class (first non-free slot today that hasn't passed time-wise)
-  const nextClass = todaySlots[0] ?? null;
+  // (subjects array is used directly for today's schedule)
 
   // Calendar helpers
   const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -105,12 +106,7 @@ export default function DashboardPage({
   const isToday = (day: number) =>
     day === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
 
-  // Find subject from subjects array by slot name
-  const getSubjectBySlotName = (slotName: string) =>
-    subjects.find((s) =>
-      slotName.toLowerCase().includes(s.id) ||
-      slotName.toLowerCase().replace(/\s/g, "").includes(s.name.toLowerCase().replace(/\s/g, "").slice(0, 5))
-    );
+
 
   return (
     <div className="space-y-6">
@@ -163,20 +159,20 @@ export default function DashboardPage({
             <span className="material-symbols-outlined text-tertiary text-xl">schedule</span>
           </div>
           <div className="mt-3">
-            {nextClass ? (
-              <>
-                <h4 className="text-base font-bold text-on-surface line-clamp-1">{nextClass.subjectName}</h4>
-                <p className="text-[11px] text-primary font-medium mt-1">{nextClass.room} • {nextClass.timeSlot.split(" - ")[0]}</p>
-                <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded font-mono ${nextClass.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
-                  {nextClass.type ?? "LEC"}
-                </span>
-              </>
-            ) : (
-              <>
-                <h4 className="text-base font-bold text-on-surface">No class today</h4>
-                <p className="text-[11px] text-on-surface-variant mt-1">Enjoy your free day! 🎉</p>
-              </>
-            )}
+          {subjects.length > 0 ? (
+            <>
+              <h4 className="text-base font-bold text-on-surface line-clamp-1">{subjects[0].name}</h4>
+              <p className="text-[11px] text-primary font-medium mt-1">{subjects[0].time || "Today's class"}</p>
+              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded font-mono ${subjects[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
+                {subjects[0].type ?? "LEC"}
+              </span>
+            </>
+          ) : (
+            <>
+              <h4 className="text-base font-bold text-on-surface">No subjects yet</h4>
+              <p className="text-[11px] text-on-surface-variant mt-1">Add subjects in your profile</p>
+            </>
+          )}
           </div>
         </div>
 
@@ -216,31 +212,42 @@ export default function DashboardPage({
             </button>
           </div>
 
-          {todaySlots.length === 0 ? (
+          {subjects.length === 0 ? (
             <div className="glass-card rounded-2xl p-10 text-center">
               <GraduationCap className="w-12 h-12 mx-auto text-on-surface-variant mb-3" />
-              <p className="text-sm font-semibold text-on-surface">No classes scheduled today!</p>
-              <p className="text-xs text-on-surface-variant mt-1">Catch up on assignments or revision.</p>
+              <p className="text-sm font-semibold text-on-surface">No subjects added yet!</p>
+              <p className="text-xs text-on-surface-variant mt-1">Edit your profile to add your subjects.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {todaySlots.map((slot, idx) => {
-                const isLab = slot.type === "LAB";
-                // Try to find matching subject for attendance %
-                const matchedSub = subjects.find((s) => {
-                  const nm = slot.subjectName.toLowerCase();
-                  return nm.includes(s.id) || nm.replace(/\s/g,"").includes(s.name.toLowerCase().replace(/\s/g,"").slice(0,4));
-                });
-                const attPct = matchedSub && matchedSub.totalClasses > 0
-                  ? ((matchedSub.attendanceCount / matchedSub.totalClasses) * 100).toFixed(0)
+              {subjects.map((sub) => {
+                const isLab = sub.type === "LAB";
+                const attPct = sub.totalClasses > 0
+                  ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0)
                   : null;
-                const subId = matchedSub?.id ?? slot.subjectName.toLowerCase().replace(/\s+/g, "-");
-                const icon = matchedSub ? (SUBJECT_ICON[matchedSub.id] ?? "school") : "school";
+                const currentStatus = todayAttendance[sub.id] as AttendanceStatus | undefined;
+                const icon = getSubjectIcon(sub.name);
+
+                const statusBadge: Record<string, { label: string; cls: string }> = {
+                  present: { label: "✅ Present",  cls: "bg-primary/10 text-primary" },
+                  absent:  { label: "❌ Absent",   cls: "bg-error/10 text-error" },
+                  miss:    { label: "☕ Missed",   cls: isDarkMode ? "bg-[#2d3449] text-[#bacbbf]" : "bg-gray-100 text-gray-600" },
+                  leave:   { label: "✈️ Leave",    cls: "bg-secondary/10 text-secondary" },
+                };
 
                 return (
                   <div
-                    key={idx}
-                    className="glass-card rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-primary/50 transition-all duration-300"
+                    key={sub.id}
+                    className={`glass-card rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all duration-300 ${
+                      currentStatus
+                        ? "border-l-4 " + (
+                            currentStatus === "present" ? "border-primary" :
+                            currentStatus === "absent"  ? "border-error"   :
+                            currentStatus === "leave"   ? "border-secondary" :
+                            "border-outline-variant"
+                          )
+                        : "hover:border-primary/50"
+                    }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center border border-outline-variant transition-colors ${
@@ -252,7 +259,7 @@ export default function DashboardPage({
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-semibold text-sm text-on-surface">{slot.subjectName}</h4>
+                          <h4 className="font-semibold text-sm text-on-surface">{sub.name}</h4>
                           <span className={`text-[9px] px-2 py-0.5 rounded uppercase font-bold font-mono ${
                             isLab
                               ? "bg-secondary/10 text-secondary"
@@ -260,7 +267,7 @@ export default function DashboardPage({
                                 ? "bg-[rgba(26,231,166,0.1)] text-[#1AE7A6]"
                                 : "bg-[#D1FAE5] text-[#065F46]"
                           }`}>
-                            {slot.type ?? "LEC"}
+                            {sub.type ?? "LEC"}
                           </span>
                           {attPct && (
                             <span className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold ${
@@ -271,49 +278,72 @@ export default function DashboardPage({
                               {attPct}%
                             </span>
                           )}
+                          {currentStatus && statusBadge[currentStatus] && (
+                            <span className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold ${statusBadge[currentStatus].cls}`}>
+                              {statusBadge[currentStatus].label}
+                            </span>
+                          )}
                         </div>
                         <p className="text-on-surface-variant text-[11px] mt-0.5">
-                          {matchedSub?.prof ?? "—"} • {slot.timeSlot} • {slot.room}
+                          {sub.prof || "—"}{sub.time ? ` • ${sub.time}` : ""}
                         </p>
                       </div>
                     </div>
 
-                    {/* 4 attendance buttons */}
+                    {/* Attendance buttons — uses sub.id directly, no fuzzy matching */}
                     <div className="flex flex-wrap gap-1.5 shrink-0">
                       <button
-                        onClick={() => onMarkAttendance(subId, "present")}
-                        className="px-3 py-1.5 rounded-lg bg-primary-container text-[#002114] font-bold text-[10px] hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                        onClick={() => onMarkAttendance(sub.id, "present")}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-[10px] active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                          currentStatus === "present"
+                            ? "bg-primary text-[#002114] ring-2 ring-primary/40 scale-105"
+                            : "bg-primary-container text-[#002114] hover:brightness-110"
+                        }`}
                       >
                         <CheckCircle className="w-3 h-3" />
                         Present
                       </button>
                       <button
-                        onClick={() => onMarkAttendance(subId, "absent")}
-                        className="px-3 py-1.5 rounded-lg border border-outline-variant text-[#bacbbf] hover:bg-error-container hover:text-on-error-container hover:border-transparent transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
+                        onClick={() => onMarkAttendance(sub.id, "absent")}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                          currentStatus === "absent"
+                            ? "bg-error-container text-on-error-container ring-2 ring-error/40 scale-105"
+                            : "border border-outline-variant text-[#bacbbf] hover:bg-error-container hover:text-on-error-container hover:border-transparent"
+                        }`}
                       >
                         <XCircle className="w-3 h-3" />
                         Absent
                       </button>
                       <button
-                        onClick={() => onMarkAttendance(subId, "miss")}
-                        className="px-3 py-1.5 rounded-lg border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449] transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
+                        onClick={() => onMarkAttendance(sub.id, "miss")}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                          currentStatus === "miss"
+                            ? "bg-[#2d3449] text-white ring-2 ring-outline/40 scale-105"
+                            : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]"
+                        }`}
                       >
                         <Coffee className="w-3 h-3" />
                         Miss
                       </button>
                       <button
-                        onClick={() => onMarkAttendance(subId, "leave")}
-                        className="px-3 py-1.5 rounded-lg border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449] transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
+                        onClick={() => onMarkAttendance(sub.id, "leave")}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                          currentStatus === "leave"
+                            ? "bg-secondary/20 text-secondary ring-2 ring-secondary/40 scale-105"
+                            : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]"
+                        }`}
                       >
                         <Plane className="w-3 h-3" />
                         Leave
                       </button>
-                      <button
-                        onClick={() => onMarkAttendance(subId, "clear")}
-                        className="px-3 py-1.5 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:bg-surface-variant hover:text-white transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
-                      >
-                        Clear
-                      </button>
+                      {currentStatus && (
+                        <button
+                          onClick={() => onMarkAttendance(sub.id, "clear")}
+                          className="px-3 py-1.5 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:bg-surface-variant hover:text-white transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -438,24 +468,30 @@ export default function DashboardPage({
               </span>
             </div>
 
-            {todaySlots.length === 0 ? (
-              <p className="text-xs text-on-surface-variant text-center py-4">No classes today</p>
+            {subjects.length === 0 ? (
+              <p className="text-xs text-on-surface-variant text-center py-4">No subjects added yet</p>
             ) : (
               <div className="space-y-2">
-                {todaySlots.map((slot, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-1.5 border-b border-outline-variant/20 last:border-0">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${slot.type === "LAB" ? "bg-secondary" : "bg-primary"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-on-surface truncate">{slot.subjectName}</p>
-                      <p className="text-[10px] text-on-surface-variant">{slot.timeSlot}</p>
+                {subjects.map((sub) => {
+                  const cs = todayAttendance[sub.id] as AttendanceStatus | undefined;
+                  const dotColor = cs === "present" ? "bg-primary" : cs === "absent" ? "bg-error" :
+                    cs === "leave" ? "bg-secondary" : cs === "miss" ? "bg-outline" :
+                    sub.type === "LAB" ? "bg-secondary" : "bg-primary";
+                  return (
+                    <div key={sub.id} className="flex items-center gap-3 py-1.5 border-b border-outline-variant/20 last:border-0">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-on-surface truncate">{sub.name}</p>
+                        <p className="text-[10px] text-on-surface-variant">{sub.time || "Today"}</p>
+                      </div>
+                      <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
+                        sub.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"
+                      }`}>
+                        {sub.type ?? "LEC"}
+                      </span>
                     </div>
-                    <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                      slot.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"
-                    }`}>
-                      {slot.type ?? "LEC"}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
