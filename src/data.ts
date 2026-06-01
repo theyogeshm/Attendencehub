@@ -38,10 +38,3 @@ export const subjectNamestoSubjects = (names: string[]): Subject[] =>
 export const INITIAL_SUBJECTS: Subject[] = [];
 
 export const INITIAL_ASSIGNMENTS: Assignment[] = [];
-
-// ── Timetable slots — to be filled in by admin ───────────────────────────────
-export const TIMETABLE_SLOTS: TimetableSlot[] = [];
-
-// ── Subject name → ID map (used for attendance marking from timetable) ────────
-export const SUBJECT_NAME_TO_ID: Record<string, string> = {};
-

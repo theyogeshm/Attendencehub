@@ -951,6 +951,8 @@ export default function App() {
                   setActiveTab={(tab) => navigate(`/${tab}`)}
                   isDarkMode={isDarkMode}
                   todayAttendance={todayAttendance}
+                  isLoadingTimetable={false}
+                  todayTimetable={[]}
                 />
               } />
               <Route path="/attendance" element={

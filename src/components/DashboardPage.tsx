@@ -28,6 +28,8 @@ interface DashboardPageProps {
   setActiveTab: (tab: string) => void;
   isDarkMode: boolean;
   todayAttendance: Record<string, AttendanceStatus>;
+  todayTimetable?: Subject[];
+  isLoadingTimetable?: boolean;
 }
 
 // Day index → timetable day key
@@ -60,6 +62,8 @@ export default function DashboardPage({
   setActiveTab,
   isDarkMode,
   todayAttendance,
+  todayTimetable = [],
+  isLoadingTimetable = false,
 }: DashboardPageProps) {
   const today = new Date();
   const todayDayIndex = today.getDay(); // 0=Sun,1=Mon,...,6=Sat
@@ -159,15 +163,23 @@ export default function DashboardPage({
             <span className="material-symbols-outlined text-tertiary text-xl">schedule</span>
           </div>
           <div className="mt-3">
-          {subjects.length > 0 ? (
+          {isLoadingTimetable ? (
+            <div className="animate-pulse space-y-2">
+              <div className="h-4 bg-outline-variant/30 rounded w-3/4"></div>
+              <div className="h-3 bg-outline-variant/20 rounded w-1/2"></div>
+            </div>
+          ) : todayTimetable.length > 0 ? (
             <>
-              <h4 className="text-base font-bold text-on-surface line-clamp-1">Not Scheduled</h4>
-              <p className="text-[11px] text-on-surface-variant mt-1">Timetable coming soon</p>
+              <h4 className="text-base font-bold text-on-surface line-clamp-1">{todayTimetable[0].name}</h4>
+              <p className="text-[11px] text-primary font-medium mt-1">{todayTimetable[0].time || "Next up"}</p>
+              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded font-mono ${todayTimetable[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
+                {todayTimetable[0].type ?? "LEC"}
+              </span>
             </>
           ) : (
             <>
-              <h4 className="text-base font-bold text-on-surface">No subjects yet</h4>
-              <p className="text-[11px] text-on-surface-variant mt-1">Add subjects in your profile</p>
+              <h4 className="text-base font-bold text-on-surface">Not Scheduled</h4>
+              <p className="text-[11px] text-on-surface-variant mt-1">Timetable coming soon</p>
             </>
           )}
           </div>
@@ -206,15 +218,28 @@ export default function DashboardPage({
             </button>
           </div>
 
-          {subjects.length === 0 ? (
+          {isLoadingTimetable ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="glass-card rounded-2xl p-4 flex gap-4 items-center animate-pulse">
+                  <div className="w-11 h-11 rounded-xl bg-outline-variant/30"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-outline-variant/30 rounded w-1/3"></div>
+                    <div className="h-3 bg-outline-variant/20 rounded w-1/4"></div>
+                  </div>
+                  <div className="w-48 h-8 rounded-lg bg-outline-variant/30 hidden md:block"></div>
+                </div>
+              ))}
+            </div>
+          ) : todayTimetable.length === 0 ? (
             <div className="glass-card rounded-2xl p-10 text-center">
-              <GraduationCap className="w-12 h-12 mx-auto text-on-surface-variant mb-3" />
-              <p className="text-sm font-semibold text-on-surface">No subjects added yet!</p>
-              <p className="text-xs text-on-surface-variant mt-1">Edit your profile to add your subjects.</p>
+              <Calendar className="w-12 h-12 mx-auto text-on-surface-variant mb-3 opacity-50" />
+              <p className="text-sm font-semibold text-on-surface">Timetable not released yet</p>
+              <p className="text-xs text-on-surface-variant mt-1">No scheduled classes available for today.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {subjects.map((sub) => {
+              {todayTimetable.map((sub) => {
                 const isLab = sub.type === "LAB";
                 const attPct = sub.totalClasses > 0
                   ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0)
@@ -459,11 +484,26 @@ export default function DashboardPage({
               </h4>
             </div>
 
-            {subjects.length === 0 ? (
-              <p className="text-xs text-on-surface-variant text-center py-4">No subjects added yet</p>
+            {isLoadingTimetable ? (
+              <div className="space-y-4 py-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex gap-3 items-center animate-pulse">
+                    <div className="w-2 h-2 rounded-full bg-outline-variant/40"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-outline-variant/30 rounded w-2/3"></div>
+                      <div className="h-2 bg-outline-variant/20 rounded w-1/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : todayTimetable.length === 0 ? (
+              <div className="py-6 text-center">
+                <p className="text-xs font-semibold text-on-surface">No classes today</p>
+                <p className="text-[10px] text-on-surface-variant mt-1">Enjoy your free time!</p>
+              </div>
             ) : (
               <div className="space-y-2">
-                {subjects.map((sub) => {
+                {todayTimetable.map((sub) => {
                   const cs = todayAttendance[sub.id] as AttendanceStatus | undefined;
                   const dotColor = cs === "present" ? "bg-primary" : cs === "absent" ? "bg-error" :
                     cs === "leave" ? "bg-secondary" : cs === "miss" ? "bg-outline" :
