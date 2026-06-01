@@ -453,49 +453,7 @@ export default function DashboardPage({
             </div>
           </div>
 
-          {/* Subjects Preview */}
-          <div className="glass-card rounded-2xl p-5 border-t-4 border-secondary">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-semibold text-sm text-on-surface flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-secondary" />
-                <span>Your Timeline</span>
-              </h4>
-            </div>
 
-            {subjects.length === 0 ? (
-              <p className="text-xs text-on-surface-variant text-center py-4">No subjects added yet</p>
-            ) : (
-              <div className="space-y-2">
-                {subjects.map((sub) => {
-                  const cs = todayAttendance[sub.id] as AttendanceStatus | undefined;
-                  const dotColor = cs === "present" ? "bg-primary" : cs === "absent" ? "bg-error" :
-                    cs === "leave" ? "bg-secondary" : cs === "miss" ? "bg-outline" :
-                    sub.type === "LAB" ? "bg-secondary" : "bg-primary";
-                  return (
-                    <div key={sub.id} className="flex items-center gap-3 py-1.5 border-b border-outline-variant/20 last:border-0">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-on-surface truncate">{sub.name}</p>
-                        <p className="text-[10px] text-on-surface-variant">{sub.time || "Today"}</p>
-                      </div>
-                      <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                        sub.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"
-                      }`}>
-                        {sub.type ?? "LEC"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <button
-              onClick={() => setActiveTab("timetable")}
-              className="mt-4 w-full py-2 rounded-xl border border-outline-variant text-xs font-bold text-on-surface-variant hover:text-primary hover:border-primary transition-all cursor-pointer"
-            >
-              View Full Week →
-            </button>
-          </div>
 
 
         </div>
