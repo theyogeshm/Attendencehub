@@ -161,11 +161,8 @@ export default function DashboardPage({
           <div className="mt-3">
           {subjects.length > 0 ? (
             <>
-              <h4 className="text-base font-bold text-on-surface line-clamp-1">{subjects[0].name}</h4>
-              <p className="text-[11px] text-primary font-medium mt-1">{subjects[0].time || "Today's class"}</p>
-              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded font-mono ${subjects[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
-                {subjects[0].type ?? "LEC"}
-              </span>
+              <h4 className="text-base font-bold text-on-surface line-clamp-1">Not Scheduled</h4>
+              <p className="text-[11px] text-on-surface-variant mt-1">Timetable coming soon</p>
             </>
           ) : (
             <>
@@ -476,7 +473,7 @@ export default function DashboardPage({
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-on-surface truncate">{sub.name}</p>
-                        <p className="text-[10px] text-on-surface-variant">{sub.time || "Today"}</p>
+                        <p className="text-[10px] text-on-surface-variant">{sub.time || "Time TBD"}</p>
                       </div>
                       <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
                         sub.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"
