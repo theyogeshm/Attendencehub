@@ -194,14 +194,11 @@ export default function DashboardPage({
       {/* ── MAIN GRID ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* LEFT: Today's Schedule */}
+        {/* LEFT: Your Subjects */}
         <div className="lg:col-span-8 space-y-5">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-bold text-on-surface tracking-tight">
-              Today's Schedule
-              <span className="ml-2 text-xs font-normal text-on-surface-variant">
-                {todayKey ? `(${todayKey})` : "(Weekend)"}
-              </span>
+              Your Subjects
             </h3>
             <button
               onClick={() => setActiveTab("timetable")}
@@ -456,16 +453,13 @@ export default function DashboardPage({
             </div>
           </div>
 
-          {/* Timetable Preview (today's subjects) */}
+          {/* Subjects Preview */}
           <div className="glass-card rounded-2xl p-5 border-t-4 border-secondary">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-semibold text-sm text-on-surface flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-secondary" />
-                <span>Today's Timeline</span>
+                <span>Your Timeline</span>
               </h4>
-              <span className="text-[10px] text-on-surface-variant font-mono font-bold">
-                {todayKey ?? "Weekend"}
-              </span>
             </div>
 
             {subjects.length === 0 ? (
@@ -503,26 +497,7 @@ export default function DashboardPage({
             </button>
           </div>
 
-          {/* Hackathon strip */}
-          <div className="relative rounded-2xl overflow-hidden h-36 group shadow-md border border-outline-variant">
-            <div className={`absolute inset-0 bg-gradient-to-br ${isDarkMode ? "from-[#0b1326] via-[#1a2a3e] to-[#0b1326]" : "from-[#F0FDF9] via-[#ECFDF5] to-[#F0FDF9]"}`} />
-            <div className="absolute inset-0 flex flex-col justify-end p-4">
-              <span className="text-[10px] font-mono text-primary font-bold uppercase tracking-widest block mb-1">Upcoming Hackathon</span>
-              <h5 className="text-on-surface font-bold text-sm mb-1.5 leading-tight">Code-A-Thon 2026</h5>
-              <a
-                href="https://unstop.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary font-bold text-xs hover:underline inline-flex items-center gap-1"
-              >
-                <span>Register Now</span>
-                <Rocket className="w-3 h-3" />
-              </a>
-            </div>
-            <div className="absolute top-3 right-3">
-              <BookOpen className="w-16 h-16 text-primary/5" />
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
