@@ -21,6 +21,7 @@ import TimetablePage from "./components/TimetablePage";
 import AnalyticsPage from "./components/AnalyticsPage";
 import LoginPage from "./components/LoginPage";
 import ConfirmDialog from "./components/ConfirmDialog";
+import AdminPanel from "./components/AdminPanel";
 
 import {
   Sun,
@@ -701,6 +702,13 @@ export default function App() {
         <p className="text-[#bacbbf] text-sm font-mono">Loading your workspace...</p>
       </div>
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Admin route — rendered standalone (outside main shell), handles own auth
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (location.pathname === "/admin") {
+    return <AdminPanel />;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

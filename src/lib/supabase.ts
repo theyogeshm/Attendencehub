@@ -37,3 +37,15 @@ export type DbAssignment = {
   done: boolean;
   created_at: string;
 };
+
+export type DbResource = {
+  id: string;
+  subject: string;
+  semester: string | null;
+  tab_type: 'pyq' | 'notes' | 'tutorial' | 'assignment' | 'lab' | 'video';
+  file_name: string;
+  file_url: string;
+  year: string | null;
+  file_size: string | null;
+  created_at: string;
+};
