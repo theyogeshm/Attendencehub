@@ -87,7 +87,8 @@ function ResourcesManager() {
   // Form state
   const [semester,  setSemester]  = useState<string>("");
   const [subject,   setSubject]   = useState("");
-  const [tabType,   setTabType]   = useState<typeof TAB_TYPES[number]>("pyq");
+  const [tabType,   setTabType]   = useState<string>("pyq");
+  const [customTab, setCustomTab] = useState("");
   const [fileName,  setFileName]  = useState("");
   const [fileUrl,   setFileUrl]   = useState("");
   const [year,      setYear]      = useState("");
@@ -122,11 +123,13 @@ function ResourcesManager() {
       show("Subject, File Name and URL are required", false);
       return;
     }
+    const finalTabType = tabType === "custom" ? customTab.trim() : tabType;
+    if (!finalTabType) { show("Please enter a custom tab type name", false); return; }
     setAdding(true);
     const { error } = await supabase.from("resources").insert({
       subject:   subject.trim(),
       semester:  semester || null,
-      tab_type:  tabType,
+      tab_type:  finalTabType,
       file_name: fileName.trim(),
       file_url:  fileUrl.trim(),
       year:      year.trim() || null,
@@ -135,7 +138,7 @@ function ResourcesManager() {
     setAdding(false);
     if (error) { show("Insert failed: " + error.message, false); return; }
     show("Resource added ✓");
-    setFileName(""); setFileUrl(""); setYear(""); setFileSize(""); setSubject("");
+    setFileName(""); setFileUrl(""); setYear(""); setFileSize(""); setSubject(""); setCustomTab("");
     fetchAll();
   };
 
@@ -183,9 +186,19 @@ function ResourcesManager() {
           </div>
           <div>
             <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Tab Type *</label>
-            <select value={tabType} onChange={e => setTabType(e.target.value as typeof TAB_TYPES[number])} className={SEL}>
+            <select value={tabType} onChange={e => { setTabType(e.target.value); setCustomTab(""); }} className={SEL}>
               {TAB_TYPES.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+              <option value="custom">✏️ Custom...</option>
             </select>
+            {tabType === "custom" && (
+              <input
+                value={customTab}
+                onChange={e => setCustomTab(e.target.value)}
+                placeholder="e.g. Syllabus, Marks, Formula Sheet"
+                className={`${INP} mt-2`}
+                autoFocus
+              />
+            )}
           </div>
           <div>
             <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">File Name *</label>

@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 // ── Tab config ────────────────────────────────────────────────────────────────
-type TabType = "pyq" | "notes" | "tutorial" | "assignment" | "lab" | "video";
+type TabType = string;
 
 interface TabConfig {
   id: TabType;
@@ -39,6 +39,19 @@ const TAB_CONFIG: TabConfig[] = [
   { id: "lab",        label: "Lab",            icon: "science",      accent: "text-[#c4aaff]",  bg: "bg-[#c4aaff]/10" },
   { id: "video",      label: "Video Lectures", icon: "play_circle",  accent: "text-[#ff80ab]",  bg: "bg-[#ff80ab]/10" },
 ];
+
+// Fallback config for any custom/unknown tab types
+function getTabConfig(tabId: string): TabConfig {
+  return (
+    TAB_CONFIG.find(t => t.id === tabId) ?? {
+      id: tabId,
+      label: tabId.charAt(0).toUpperCase() + tabId.slice(1),
+      icon: "folder_open",
+      accent: "text-[#bacbbf]",
+      bg: "bg-[#bacbbf]/10",
+    }
+  );
+}
 
 // ── Subject icon map ──────────────────────────────────────────────────────────
 const SUBJECT_ICONS: Record<string, string> = {
@@ -219,10 +232,16 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
     s.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Tabs that actually have data for this subject
-  const availableTabs = TAB_CONFIG.filter(tc =>
-    resources.some(r => r.tab_type === tc.id)
-  );
+  // Tabs that actually have data — includes any custom tab types not in TAB_CONFIG
+  const availableTabs: TabConfig[] = [
+    ...TAB_CONFIG.filter(tc => resources.some(r => r.tab_type === tc.id)),
+    // append custom types not already covered
+    ...Array.from(new Set(
+      resources
+        .map(r => r.tab_type)
+        .filter(t => !TAB_CONFIG.some(tc => tc.id === t))
+    )).map(t => getTabConfig(t)),
+  ];
 
   // Resources for the currently active tab
   const tabResources = resources.filter(r => r.tab_type === activeTab);
@@ -455,7 +474,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                 <div className="p-6">
                   {/* Tab heading */}
                   {(() => {
-                    const tabCfg = TAB_CONFIG.find(t => t.id === activeTab);
+                    const tabCfg = getTabConfig(activeTab);
                     return tabCfg ? (
                       <div className={`flex items-center gap-2 mb-5`}>
                         <span className={`material-symbols-outlined text-[18px] ${tabCfg.accent}`}>
@@ -527,8 +546,8 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                   ) : (
                     /* PDF / file cards */
                     <div className="space-y-3">
-                      {tabResources.map((res) => {
-                        const tabCfg = TAB_CONFIG.find(t => t.id === res.tab_type)!;
+                        {tabResources.map((res) => {
+                        const tabCfg = getTabConfig(res.tab_type);
                         return (
                           <div
                             key={res.id}

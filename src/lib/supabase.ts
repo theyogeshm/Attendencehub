@@ -42,7 +42,7 @@ export type DbResource = {
   id: string;
   subject: string;
   semester: string | null;
-  tab_type: 'pyq' | 'notes' | 'tutorial' | 'assignment' | 'lab' | 'video';
+  tab_type: string; // 'pyq' | 'notes' | 'tutorial' | 'assignment' | 'lab' | 'video' | any custom
   file_name: string;
   file_url: string;
   year: string | null;
