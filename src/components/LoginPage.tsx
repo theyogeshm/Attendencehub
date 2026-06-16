@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import logoUrl from "../../assets/logo.png";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -39,7 +40,7 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <div className="flex justify-center mb-5">
             <img
-              src="/assets/logo.png"
+              src={logoUrl}
               alt="Attendance Hub"
               className="h-20 w-auto object-contain drop-shadow-2xl"
             />

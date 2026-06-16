@@ -8,6 +8,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import { Subject, Assignment, AttendanceStatus } from "./types";
 import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS } from "./data";
 import dtuData from "../dtu_subjects.json";
+import logoUrl from "../assets/logo.png";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
@@ -782,7 +783,7 @@ export default function App() {
         <div className="px-6 mb-8 flex items-center justify-between">
           <div>
             <img
-              src="/assets/logo.png"
+              src={logoUrl}
               alt="Attendance Hub"
               className="h-8 w-auto object-contain"
             />
