@@ -5,18 +5,31 @@
 
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { checkRateLimit } from "../lib/security";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGoogleLogin = async () => {
+    // Rate-limit OAuth initiations: 5 attempts per 10 minutes per browser session
+    if (!checkRateLimit("google-login", 5, 10 * 60_000)) {
+      setError("Too many login attempts. Please wait a few minutes before trying again.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
+    // Use explicit origin from env to prevent open-redirect via DOM clobbering
+    const safeRedirectOrigin =
+      import.meta.env.VITE_APP_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: safeRedirectOrigin,
       },
     });
     if (error) {

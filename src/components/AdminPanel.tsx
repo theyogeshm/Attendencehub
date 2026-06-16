@@ -2,13 +2,14 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Admin Panel — restricted to yogeshkumarlearner@gmail.com
+ * Admin Panel — restricted to authorized admin accounts
  * Route: /admin (registered outside the main app shell)
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { isAdminEmail, sanitizeText, sanitizeUrl } from "../lib/security";
 import type { DbResource } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -29,8 +30,6 @@ import {
 } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const ADMIN_EMAIL = "yogeshkumarlearner@gmail.com";
-
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const SECTIONS  = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const TAB_TYPES = ["pyq", "notes", "tutorial", "assignment", "lab", "video"] as const;
@@ -123,17 +122,23 @@ function ResourcesManager() {
       show("Subject, File Name and URL are required", false);
       return;
     }
+    // Validate URL scheme — block javascript:, data:, etc.
+    const safeUrl = sanitizeUrl(fileUrl.trim());
+    if (!safeUrl) {
+      show("File URL must start with https:// or http://", false);
+      return;
+    }
     const finalTabType = tabType === "custom" ? customTab.trim() : tabType;
     if (!finalTabType) { show("Please enter a custom tab type name", false); return; }
     setAdding(true);
     const { error } = await supabase.from("resources").insert({
-      subject:   subject.trim(),
+      subject:   sanitizeText(subject.trim(), 200),
       semester:  semester || null,
-      tab_type:  finalTabType,
-      file_name: fileName.trim(),
-      file_url:  fileUrl.trim(),
-      year:      year.trim() || null,
-      file_size: fileSize.trim() || null,
+      tab_type:  sanitizeText(finalTabType, 50),
+      file_name: sanitizeText(fileName.trim(), 300),
+      file_url:  safeUrl,
+      year:      sanitizeText(year.trim(), 10) || null,
+      file_size: sanitizeText(fileSize.trim(), 20) || null,
     });
     setAdding(false);
     if (error) { show("Insert failed: " + error.message, false); return; }
@@ -690,7 +695,7 @@ export default function AdminPanel() {
   }
 
   // ── Access denied ────────────────────────────────────────────────────────
-  if (!user || user.email !== ADMIN_EMAIL) {
+  if (!user || !isAdminEmail(user.email)) {
     return (
       <div className="min-h-screen bg-[#060e20] flex flex-col items-center justify-center gap-6 px-4">
         <div className="w-20 h-20 rounded-2xl bg-red-900/30 border border-red-500/30 flex items-center justify-center">

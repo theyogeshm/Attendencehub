@@ -11,6 +11,7 @@ import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import { safeLocalStorageGet, sanitizeText, checkRateLimit, FIELD_LIMITS } from "./lib/security";
 
 // Sub-page components
 import DashboardPage from "./components/DashboardPage";
@@ -57,15 +58,14 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Live persistent states ────────────────────────────────────────────────
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const saved = localStorage.getItem("ATTENDANCE_HUB_SUBJECTS");
-    return saved ? JSON.parse(saved) : INITIAL_SUBJECTS;
-  });
+  // safeLocalStorageGet guards against corrupted/tampered data in localStorage
+  const [subjects, setSubjects] = useState<Subject[]>(() =>
+    safeLocalStorageGet<Subject[]>("ATTENDANCE_HUB_SUBJECTS", INITIAL_SUBJECTS)
+  );
 
-  const [assignments, setAssignments] = useState<Assignment[]>(() => {
-    const saved = localStorage.getItem("ATTENDANCE_HUB_ASSIGNMENTS");
-    return saved ? JSON.parse(saved) : INITIAL_ASSIGNMENTS;
-  });
+  const [assignments, setAssignments] = useState<Assignment[]>(() =>
+    safeLocalStorageGet<Assignment[]>("ATTENDANCE_HUB_ASSIGNMENTS", INITIAL_ASSIGNMENTS)
+  );
 
   // ── Dark / Light Mode ─────────────────────────────────────────────────────
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -77,16 +77,15 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState<string>("");
 
   // ── Profile ───────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState<StudentProfile>(() => {
-    const saved = localStorage.getItem("ATTENDANCE_HUB_PROFILE");
-    return saved ? JSON.parse(saved) : {
+  const [profile, setProfile] = useState<StudentProfile>(() =>
+    safeLocalStorageGet<StudentProfile>("ATTENDANCE_HUB_PROFILE", {
       name: "Student",
       rollNo: "2K24/---/---",
       branch: "Computer Science & Engineering",
       semester: "2nd Semester",
       section: "A",
-    };
-  });
+    })
+  );
 
   // ── Modals ────────────────────────────────────────────────────────────────
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -482,16 +481,25 @@ export default function App() {
 
   // ── Assignments CRUD ──────────────────────────────────────────────────────
   const handleAddAssignment = async (newAsg: Omit<Assignment, "id">) => {
+    // Sanitize & enforce length caps before persisting
+    const safeAsg = {
+      ...newAsg,
+      title:       sanitizeText(newAsg.title,       FIELD_LIMITS.assignmentTitle),
+      description: sanitizeText(newAsg.description, FIELD_LIMITS.assignmentDescription),
+      subject:     sanitizeText(newAsg.subject,     FIELD_LIMITS.assignmentSubject),
+    };
+    if (!safeAsg.title) { showToast("Assignment title cannot be empty.", "error"); return; }
+
     if (user) {
       const { data, error } = await supabase
         .from("assignments")
         .insert({
           user_id:      user.id,
-          title:        newAsg.title,
-          description:  newAsg.description,
-          subject:      newAsg.subject,
-          due_date:     newAsg.dueDate,
-          done:         newAsg.done,
+          title:        safeAsg.title,
+          description:  safeAsg.description,
+          subject:      safeAsg.subject,
+          due_date:     safeAsg.dueDate,
+          done:         safeAsg.done,
         })
         .select()
         .single();
@@ -506,7 +514,7 @@ export default function App() {
         }, ...prev]);
       }
     } else {
-      setAssignments(prev => [{ ...newAsg, id: `asg-${Date.now()}` }, ...prev]);
+      setAssignments(prev => [{ ...safeAsg, id: `asg-${Date.now()}` }, ...prev]);
     }
   };
 
@@ -529,10 +537,20 @@ export default function App() {
 
   // ── Profile Save (+ Supabase upsert) ─────────────────────────────────────
   const handleSaveProfile = async () => {
-    const isSemesterChanged = profile.semester !== editProfile.semester;
-    const isBranchChanged = profile.branch !== editProfile.branch;
+    // Sanitize profile fields before saving
+    const sanitizedProfile: StudentProfile = {
+      name:     sanitizeText(editProfile.name,     FIELD_LIMITS.profileName),
+      rollNo:   sanitizeText(editProfile.rollNo,   FIELD_LIMITS.profileRollNo),
+      branch:   sanitizeText(editProfile.branch,   FIELD_LIMITS.profileBranch),
+      semester: editProfile.semester,
+      section:  editProfile.section,
+    };
+    const safeEditProfile = sanitizedProfile;
 
-    setProfile(editProfile);
+    const isSemesterChanged = profile.semester !== safeEditProfile.semester;
+    const isBranchChanged = profile.branch !== safeEditProfile.branch;
+
+    setProfile(safeEditProfile);
     setIsEditingProfile(false);
 
     let newSubjectsList: string[] | null = null;
@@ -598,6 +616,20 @@ export default function App() {
   // ── Feedback submit ───────────────────────────────────────────────────────
   const handleSubmitFeedback = () => {
     if (!feedbackText.trim()) { showToast("Please enter your feedback.", "error"); return; }
+
+    // Rate-limit feedback to 3 submissions per 5 minutes
+    if (!checkRateLimit("feedback-submit", 3, 5 * 60_000)) {
+      showToast("Too many submissions. Please wait a few minutes.", "error");
+      return;
+    }
+
+    // Enforce field length caps
+    const safeFeedback = sanitizeText(feedbackText, FIELD_LIMITS.feedbackText);
+    const safeEmail    = feedbackEmail.slice(0, FIELD_LIMITS.feedbackEmail);
+    if (!safeFeedback) { showToast("Please enter your feedback.", "error"); return; }
+
+    // TODO: persist safeFeedback + safeEmail to your feedback table via Supabase
+    void safeFeedback; void safeEmail;
 
     setFeedbackText(""); setFeedbackEmail("");
     setShowFeedbackModal(false);
