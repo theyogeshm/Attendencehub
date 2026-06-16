@@ -781,11 +781,12 @@ export default function App() {
 
         <div className="px-6 mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-primary-container font-sans flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[24px]">terminal</span>
-              <span>Attendance Hub</span>
-            </h1>
-            <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • Section {profile.section}</p>
+            <img
+              src="/assets/logo.png"
+              alt="Attendance Hub"
+              className="h-8 w-auto object-contain"
+            />
+            <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-1.5">CSE • Section {profile.section}</p>
           </div>
           <button
             className="lg:hidden p-1 text-on-surface-variant hover:text-primary cursor-pointer"

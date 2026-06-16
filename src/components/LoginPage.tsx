@@ -37,11 +37,13 @@ export default function LoginPage() {
 
         {/* Logo + Branding */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-[#1AE7A6] to-[#00C896] shadow-2xl shadow-[#1AE7A6]/30 mb-5 relative">
-            <span className="material-symbols-outlined text-[#002114] text-4xl font-black">school</span>
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#7bd0ff] border-2 border-[#0b1326] animate-pulse" />
+          <div className="flex justify-center mb-5">
+            <img
+              src="/assets/logo.png"
+              alt="Attendance Hub"
+              className="h-20 w-auto object-contain drop-shadow-2xl"
+            />
           </div>
-          <h1 className="text-4xl font-black text-on-surface tracking-tight">Attendance <span className="text-primary-container">Hub</span></h1>
           <p className="text-on-surface-variant text-sm mt-2 font-medium">Your smart academic companion</p>
         </div>
 
