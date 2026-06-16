@@ -8,7 +8,6 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import { Subject, Assignment, AttendanceStatus } from "./types";
 import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS } from "./data";
 import dtuData from "../dtu_subjects.json";
-import logoUrl from "../assets/logo.png";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
@@ -782,12 +781,11 @@ export default function App() {
 
         <div className="px-6 mb-8 flex items-center justify-between">
           <div>
-            <img
-              src={logoUrl}
-              alt="Attendance Hub"
-              className="h-8 w-auto object-contain"
-            />
-            <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-1.5">CSE • Section {profile.section}</p>
+            <h1 className="text-xl font-extrabold tracking-tight text-primary-container font-sans flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[24px]">terminal</span>
+              <span>Attendance Hub</span>
+            </h1>
+            <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • Section {profile.section}</p>
           </div>
           <button
             className="lg:hidden p-1 text-on-surface-variant hover:text-primary cursor-pointer"
