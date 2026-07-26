@@ -276,11 +276,17 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         <button
           id="back-to-resources-btn"
           onClick={() => navigate("/resources")}
-          className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors mb-5 group cursor-pointer"
+          className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors mb-4 group cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
           Back to Resources
         </button>
+
+        {/* ── Gradient divider ───────────────────────────────────────────── */}
+        <div className="relative mb-5 h-px">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/60 via-primary/20 to-transparent rounded-full" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-transparent to-transparent blur-sm rounded-full" />
+        </div>
 
         {/* Subject hero */}
         <div className="flex items-start gap-4 mb-5">
