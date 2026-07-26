@@ -160,11 +160,11 @@ body {
   background-color: #F8F9FA;
 }
 
-/* 3. Glass card — clean white with shadow in light mode */
+/* 3. Glass card — clean white with soft grey shadow in light mode */
 .light .glass-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

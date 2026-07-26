@@ -77,7 +77,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         <>
       {/* Overall Stats Summary Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
+        <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
           <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">AGGREGATE ATTENDANCE</p>
           <div className="flex items-end gap-2">
             <span className={`text-3xl font-extrabold tracking-tight ${isDarkMode ? "text-[#1ae7a6]" : "text-[#00C896]"}`}>{aggregateAttendance.toFixed(1)}%</span>
@@ -87,19 +87,19 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           </div>
         </div>
         
-        <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
+        <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
           <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">TOTAL CLASSES</p>
           <p className="text-3xl font-extrabold text-on-surface tracking-tight">{totalClassesAttended} / {totalClassesHeld}</p>
         </div>
 
-        <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
+        <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
           <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono font-mono">CLASSES AT RISK</p>
           <p className={`text-3xl font-extrabold tracking-tight ${subjectsAtRiskCount > 0 ? 'text-error' : 'text-primary'}`}>
             {subjectsAtRiskCount} {subjectsAtRiskCount === 1 ? 'Subject' : 'Subjects'}
           </p>
         </div>
 
-        <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant transition-all hover:border-primary/40">
+        <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
           <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">STATUS</p>
           <p className="text-3xl font-extrabold text-[#7bd0ff] tracking-tight">Active</p>
         </div>
@@ -124,7 +124,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
               return (
                 <div 
                   key={sub.id} 
-                  className="bg-surface-container-high p-5 rounded-2xl border border-outline-variant hover:border-primary transition-all group relative flex flex-col justify-between"
+                  className="glass-card p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
@@ -205,7 +205,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         <div className="xl:col-span-4 space-y-6">
           
           {/* Can I Miss This Class Widget */}
-          <div className="bg-surface-container p-6 rounded-2xl border border-primary/20 relative overflow-hidden">
+          <div className="glass-card p-6 rounded-2xl border border-primary/20 relative overflow-hidden">
             <div className="absolute -top-16 -right-16 w-32 h-32 bg-[#00e1a1]/10 blur-[50px] pointer-events-none"></div>
             
             <div className="relative z-10">
@@ -281,7 +281,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           </div>
 
           {/* Upcoming targets Goals list */}
-          <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant">
+          <div className="glass-card p-6 rounded-2xl">
             <h4 className="text-[10px] font-bold text-on-surface-variant mb-4 uppercase tracking-widest font-mono">Upcoming Attendance Goals</h4>
             <div className="space-y-5">
               

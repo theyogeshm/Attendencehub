@@ -176,7 +176,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     // YouTube embed
     if (resIsVideo && embedUrl) {
       return (
-        <div className="rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-high">
+        <div className="glass-card rounded-2xl overflow-hidden">
           <iframe
             src={embedUrl}
             title={res.file_name}
@@ -205,7 +205,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
     // Standard file card
     return (
-      <div className="group flex items-center gap-4 p-4 rounded-2xl border border-outline-variant bg-surface-container-high hover:border-primary/40 hover:bg-surface-container transition-all duration-200">
+      <div className="group flex items-center gap-4 p-4 rounded-2xl glass-card hover:border-primary/40 transition-all duration-200">
         {/* Icon */}
         <div className={`flex-shrink-0 w-11 h-11 rounded-xl ${color.bg} flex items-center justify-center`}>
           <span className={`material-symbols-outlined ${color.accent} text-[20px]`}>
@@ -270,7 +270,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     <div className="space-y-5">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-4 sm:p-5">
+      <div className="glass-card rounded-2xl p-4 sm:p-5">
 
         {/* Top row: Back button */}
         <div className="flex items-center justify-between gap-3 mb-2.5">
@@ -364,7 +364,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
         {/* Empty */}
         {!loading && resources.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 px-4 gap-4 text-center text-on-surface-variant bg-surface-container-low border border-outline-variant/60 rounded-2xl">
+          <div className="flex flex-col items-center justify-center py-16 px-4 gap-4 text-center text-on-surface-variant glass-card rounded-2xl">
             <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center border border-outline-variant/60">
               <FolderOpen className="w-7 h-7 text-outline" />
             </div>
