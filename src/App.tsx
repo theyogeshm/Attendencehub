@@ -17,6 +17,7 @@ import { safeLocalStorageGet, sanitizeText, checkRateLimit, FIELD_LIMITS, startI
 import DashboardPage from "./components/DashboardPage";
 import AttendancePage from "./components/AttendancePage";
 import ResourcesPage from "./components/ResourcesPage";
+import SubjectResourcesPage from "./components/SubjectResourcesPage";
 import AssignmentsPage from "./components/AssignmentsPage";
 import TimetablePage from "./components/TimetablePage";
 import AnalyticsPage from "./components/AnalyticsPage";
@@ -1100,6 +1101,9 @@ export default function App() {
               } />
               <Route path="/resources" element={
                 <ResourcesPage subjects={subjects} />
+              } />
+              <Route path="/resources/:subjectName" element={
+                <SubjectResourcesPage subjects={subjects} />
               } />
               <Route path="/assignments" element={
               <AssignmentsPage

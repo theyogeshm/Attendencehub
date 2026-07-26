@@ -32,7 +32,6 @@ import {
 // ── Constants ──────────────────────────────────────────────────────────────────
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const SECTIONS  = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-const TAB_TYPES = ["pyq", "notes", "tutorial", "assignment", "lab", "video"] as const;
 const DAYS      = ["MON", "TUE", "WED", "THU", "FRI"] as const;
 const TIME_SLOTS = [
   "08:00 - 09:00",
@@ -86,8 +85,7 @@ function ResourcesManager() {
   // Form state
   const [semester,  setSemester]  = useState<string>("");
   const [subject,   setSubject]   = useState("");
-  const [tabType,   setTabType]   = useState<string>("pyq");
-  const [customTab, setCustomTab] = useState("");
+  const [tabType,   setTabType]   = useState<string>("");
   const [fileName,  setFileName]  = useState("");
   const [fileUrl,   setFileUrl]   = useState("");
   const [year,      setYear]      = useState("");
@@ -99,10 +97,8 @@ function ResourcesManager() {
   const [loading,   setLoading]   = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Filter
-  const [filterSem, setFilterSem] = useState<string>("");
-  const [filterTab, setFilterTab] = useState<string>("");
-  const [filterQ,   setFilterQ]   = useState("");
+  // Filter — free-text search across subject + file name + tab_type
+  const [filterQ, setFilterQ] = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -118,8 +114,8 @@ function ResourcesManager() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleAdd = async () => {
-    if (!subject.trim() || !fileName.trim() || !fileUrl.trim()) {
-      show("Subject, File Name and URL are required", false);
+    if (!subject.trim() || !fileName.trim() || !fileUrl.trim() || !tabType.trim()) {
+      show("Subject, Tab Type, File Name and URL are required", false);
       return;
     }
     // Validate URL scheme — block javascript:, data:, etc.
@@ -128,8 +124,7 @@ function ResourcesManager() {
       show("File URL must start with https:// or http://", false);
       return;
     }
-    const finalTabType = tabType === "custom" ? customTab.trim() : tabType;
-    if (!finalTabType) { show("Please enter a custom tab type name", false); return; }
+    const finalTabType = tabType.trim();
     setAdding(true);
     const { error } = await supabase.from("resources").insert({
       subject:   sanitizeText(subject.trim(), 200),
@@ -143,7 +138,7 @@ function ResourcesManager() {
     setAdding(false);
     if (error) { show("Insert failed: " + error.message, false); return; }
     show("Resource added ✓");
-    setFileName(""); setFileUrl(""); setYear(""); setFileSize(""); setSubject(""); setCustomTab("");
+    setFileName(""); setFileUrl(""); setYear(""); setFileSize(""); setSubject(""); setTabType("");
     fetchAll();
   };
 
@@ -157,10 +152,13 @@ function ResourcesManager() {
   };
 
   const filtered = resources.filter(r => {
-    const matchSem = !filterSem || r.semester === filterSem;
-    const matchTab = !filterTab || r.tab_type === filterTab;
-    const matchQ   = !filterQ   || r.subject.toLowerCase().includes(filterQ.toLowerCase()) || r.file_name.toLowerCase().includes(filterQ.toLowerCase());
-    return matchSem && matchTab && matchQ;
+    if (!filterQ) return true;
+    const q = filterQ.toLowerCase();
+    return (
+      r.subject.toLowerCase().includes(q) ||
+      r.file_name.toLowerCase().includes(q) ||
+      r.tab_type.toLowerCase().includes(q)
+    );
   });
 
   return (
@@ -190,20 +188,13 @@ function ResourcesManager() {
             <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Data Structures" className={INP} />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Tab Type *</label>
-            <select value={tabType} onChange={e => { setTabType(e.target.value); setCustomTab(""); }} className={SEL}>
-              {TAB_TYPES.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
-              <option value="custom">✏️ Custom...</option>
-            </select>
-            {tabType === "custom" && (
-              <input
-                value={customTab}
-                onChange={e => setCustomTab(e.target.value)}
-                placeholder="e.g. Syllabus, Marks, Formula Sheet"
-                className={`${INP} mt-2`}
-                autoFocus
-              />
-            )}
+            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Tab / Section *</label>
+            <input
+              value={tabType}
+              onChange={e => setTabType(e.target.value)}
+              placeholder="e.g. PYQ, Notes, Lab, Handwritten Notes, Video Lectures"
+              className={INP}
+            />
           </div>
           <div>
             <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">File Name *</label>
@@ -235,11 +226,7 @@ function ResourcesManager() {
         <div className="flex items-center justify-between gap-3 p-4 border-b border-[#1f2d3d] flex-wrap">
           <h3 className="text-sm font-bold text-[#dae2fd]">All Resources ({filtered.length})</h3>
           <div className="flex gap-2 flex-wrap">
-            <input value={filterQ} onChange={e => setFilterQ(e.target.value)} placeholder="Search..." className={`${INP} w-40`} />
-            <select value={filterTab} onChange={e => setFilterTab(e.target.value)} className={`${SEL} w-32`}>
-              <option value="">All Types</option>
-              {TAB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <input value={filterQ} onChange={e => setFilterQ(e.target.value)} placeholder="Search subject / file..." className={`${INP} w-52`} />
             <button onClick={fetchAll} className={BTN_SECONDARY}>
               <RefreshCw className="w-3.5 h-3.5" /> Refresh
             </button>
