@@ -298,7 +298,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                 {decodedName}
               </h1>
               {subject?.code && (
-                <span className="text-[10px] font-mono font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">
+                <span className="text-[10px] font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">
                   {subject.code}
                 </span>
               )}
@@ -339,7 +339,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                 >
                   <span className="material-symbols-outlined text-[15px]">{getTabIcon(tab)}</span>
                   <span>{tab}</span>
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
                     isActive ? "bg-current/15" : "bg-surface-variant text-on-surface-variant"
                   }`}>
                     {count}
@@ -393,10 +393,10 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               <span className={`material-symbols-outlined text-[16px] ${activeColor.accent}`}>
                 {getTabIcon(activeTab)}
               </span>
-              <h2 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant font-mono">
+              <h2 className="text-xs font-bold text-on-surface-variant">
                 {activeTab}
               </h2>
-              <span className="text-[10px] font-mono text-on-surface-variant/50">
+              <span className="text-[10px] text-on-surface-variant/50">
                 ({tabResources.length} {tabResources.length === 1 ? "file" : "files"})
               </span>
             </div>
@@ -413,11 +413,11 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   .map(([year, files]) => (
                     <div key={year}>
                       <div className="flex items-center gap-3 mb-3">
-                        <span className={`text-xs font-bold font-mono ${activeColor.accent}`}>
+                        <span className={`text-xs font-bold ${activeColor.accent}`}>
                           {year}
                         </span>
                         <div className="flex-1 h-px bg-outline-variant/40" />
-                        <span className="text-[10px] font-mono text-on-surface-variant/50">
+                        <span className="text-[10px] text-on-surface-variant/50">
                           {files.length} file{files.length !== 1 ? "s" : ""}
                         </span>
                       </div>

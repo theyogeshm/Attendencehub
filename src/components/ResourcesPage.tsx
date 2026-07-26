@@ -123,7 +123,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                     <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
                       <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
                     </div>
-                    <span className="text-[10px] font-bold font-mono bg-surface-variant px-3 py-1 rounded-full text-on-surface-variant">
+                    <span className="text-[10px] font-bold bg-surface-variant px-3 py-1 rounded-full text-on-surface-variant">
                       {sub.category}
                     </span>
                   </div>
@@ -138,7 +138,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                       <div className="w-4 h-4 rounded-full border border-outline-variant/50 animate-pulse bg-surface-variant" />
                     ) : count > 0 ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-                        <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold font-mono">{count}</span>
+                        <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold">{count}</span>
                         <span>files available</span>
                       </span>
                     ) : (

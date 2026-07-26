@@ -172,7 +172,7 @@ export default function DashboardPage({
             <>
               <h4 className="text-base font-bold text-on-surface line-clamp-1">{todayTimetable[0].name}</h4>
               <p className="text-[11px] text-primary font-medium mt-1">{todayTimetable[0].time || "Next up"}</p>
-              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded font-mono ${todayTimetable[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
+              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded ${todayTimetable[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
                 {todayTimetable[0].type ?? "LEC"}
               </span>
             </>

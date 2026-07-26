@@ -2,7 +2,7 @@
 
 @theme {
   --font-sans: "Poppins", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono: "Poppins", system-ui, sans-serif;
   
   --color-primary-fixed: #47ffbc;
   --color-secondary-fixed-dim: #7bd0ff;

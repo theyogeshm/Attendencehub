@@ -78,7 +78,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
       {/* Overall Stats Summary Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
         <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
-          <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">AGGREGATE ATTENDANCE</p>
+          <p className="text-[11px] font-bold text-on-surface-variant mb-2 uppercase">AGGREGATE ATTENDANCE</p>
           <div className="flex items-end gap-2">
             <span className={`text-3xl font-extrabold tracking-tight ${isDarkMode ? "text-[#1ae7a6]" : "text-[#00C896]"}`}>{aggregateAttendance.toFixed(1)}%</span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${aggregateAttendance >= 75 ? (isDarkMode ? "bg-[#1ae7a6]/10 text-[#1ae7a6]" : "bg-[#D1FAE5] text-[#065F46]") : "bg-error/10 text-error"}`}>
@@ -88,19 +88,19 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
         
         <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
-          <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">TOTAL CLASSES</p>
+          <p className="text-[11px] font-bold text-on-surface-variant mb-2 uppercase">TOTAL CLASSES</p>
           <p className="text-3xl font-extrabold text-on-surface tracking-tight">{totalClassesAttended} / {totalClassesHeld}</p>
         </div>
 
         <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
-          <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono font-mono">CLASSES AT RISK</p>
+          <p className="text-[11px] font-bold text-on-surface-variant mb-2 uppercase">CLASSES AT RISK</p>
           <p className={`text-3xl font-extrabold tracking-tight ${subjectsAtRiskCount > 0 ? 'text-error' : 'text-primary'}`}>
             {subjectsAtRiskCount} {subjectsAtRiskCount === 1 ? 'Subject' : 'Subjects'}
           </p>
         </div>
 
         <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
-          <p className="text-[11px] font-bold text-on-surface-variant mb-2 tracking-wider uppercase font-mono">STATUS</p>
+          <p className="text-[11px] font-bold text-on-surface-variant mb-2 uppercase">STATUS</p>
           <p className="text-3xl font-extrabold text-[#7bd0ff] tracking-tight">Active</p>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                         <h4 className="font-bold text-base text-on-surface tracking-tight">{sub.name}</h4>
                         <p className="text-xs text-on-surface-variant mt-1">{sub.prof} • {sub.time}</p>
                       </div>
-                      <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono ${isSafe ? (isDarkMode ? "bg-primary/10 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
+                      <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${isSafe ? (isDarkMode ? "bg-primary/10 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
                         {isSafe ? "Safe" : "Danger"}
                       </span>
                     </div>
@@ -145,7 +145,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                       
                       {/* Interactive adjustment controls directly in card */}
                       <div className="flex py-1.5 items-center justify-between gap-1 border-t border-b border-outline-variant/30 my-2">
-                        <span className="text-[10px] uppercase font-mono text-on-surface-variant">Adjust Hours</span>
+                        <span className="text-[10px] uppercase text-on-surface-variant">Adjust Hours</span>
                         <div className="flex items-center gap-2">
                           <button 
                             disabled={sub.attendanceCount <= 0}
@@ -220,7 +220,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
               <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
                 <div>
-                  <label className="text-[10px] font-bold text-on-surface-variant block mb-2 tracking-widest font-mono">SELECT SUBJECT</label>
+                  <label className="text-[10px] font-bold text-on-surface-variant block mb-2 tracking-widest">SELECT SUBJECT</label>
                   <select 
                     value={selectedSubjectId}
                     onChange={(e) => setSelectedSubjectId(e.target.value)}
@@ -238,7 +238,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-on-surface-variant block mb-2 tracking-widest font-mono uppercase">Classes to miss</label>
+                  <label className="text-[10px] font-bold text-on-surface-variant block mb-2 tracking-widest uppercase">Classes to miss</label>
                   <div className="flex items-center gap-4 bg-[#060e20] p-3 rounded-xl border border-outline-variant">
                     <input 
                       className="flex-1 accent-primary cursor-pointer" 
@@ -248,13 +248,13 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                       value={classesToMiss}
                       onChange={(e) => setClassesToMiss(parseInt(e.target.value))}
                     />
-                    <span className="font-extrabold text-lg text-primary w-6 text-center font-mono">{classesToMiss}</span>
+                    <span className="font-extrabold text-lg text-primary w-6 text-center">{classesToMiss}</span>
                   </div>
                 </div>
 
                 {/* Status Result Badge component */}
                 <div className="bg-[#060e20] p-4 rounded-xl border border-outline-variant">
-                  <p className="text-[9px] font-bold text-on-surface-variant mb-2 tracking-wider font-mono">PROJECTED STATUS</p>
+                  <p className="text-[9px] font-bold text-on-surface-variant mb-2 tracking-wider">PROJECTED STATUS</p>
                   <div className="flex justify-between items-center">
                     <span className={`text-3xl font-extrabold tracking-tight ${projectedStatusBadge === 'Safe' ? 'text-primary' : 'text-error'}`}>
                       {projectedPercentage}%
@@ -282,7 +282,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
           {/* Upcoming targets Goals list */}
           <div className="glass-card p-6 rounded-2xl">
-            <h4 className="text-[10px] font-bold text-on-surface-variant mb-4 uppercase tracking-widest font-mono">Upcoming Attendance Goals</h4>
+            <h4 className="text-[10px] font-bold text-on-surface-variant mb-4 uppercase tracking-widest">Upcoming Attendance Goals</h4>
             <div className="space-y-5">
               
               {/* Goal 1: Scholarship Tier */}
