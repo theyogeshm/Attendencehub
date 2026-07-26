@@ -111,16 +111,21 @@ export const FIELD_LIMITS = {
 
 // ── Admin email check ────────────────────────────────────────────────────────
 /**
- * The admin email is read from the VITE_ADMIN_EMAIL environment variable.
- * It is NOT hardcoded in source to keep it out of git history.
- * Real enforcement is done server-side via Supabase RLS policies.
+ * Admin email is read from VITE_ADMIN_EMAIL env var (set in GitHub Secrets
+ * for production builds). Falls back to the hardcoded value so the admin
+ * panel always works even if the Secret wasn't configured.
+ *
+ * NOTE: The real data security is enforced server-side by Supabase RLS
+ * policies — the client-side check here is just a UX gate (redirect to 404).
+ * Knowing the email doesn't bypass anything; the DB rejects unauthorized writes.
  */
 const ADMIN_EMAIL_ENV: string =
-  (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
+  (import.meta.env.VITE_ADMIN_EMAIL as string | undefined)?.toLowerCase().trim()
+  || 'yogeshkumarlearner@gmail.com';
 
 export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email || !ADMIN_EMAIL_ENV) return false;
-  return email.toLowerCase().trim() === ADMIN_EMAIL_ENV.toLowerCase().trim();
+  if (!email) return false;
+  return email.toLowerCase().trim() === ADMIN_EMAIL_ENV;
 }
 
 // ── Idle Session Timeout ─────────────────────────────────────────────────────
