@@ -240,7 +240,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
       resources
         .map(r => r.tab_type)
         .filter(t => !TAB_CONFIG.some(tc => tc.id === t))
-    )).map(t => getTabConfig(t)),
+    )).map(t => getTabConfig(t as string)),
   ];
 
   // Resources for the currently active tab

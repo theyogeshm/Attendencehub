@@ -1,9 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://kstylmkguvphdopremrx.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_9SAE2cSCgRNZ6MkQfczf8w_JGhUXcto';
+// ── Read credentials from environment variables (never hardcode) ───────────
+// Set these in .env (local) or Vercel Environment Variables (production).
+// See .env.example for the full list of required variables.
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // In development this surfaces immediately; in production the app gracefully
+  // degrades (auth calls will simply fail with network errors).
+  console.error(
+    '[DTU Hub] Missing Supabase env vars. ' +
+    'Copy .env.example → .env and fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+  );
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    // Persist session across page reloads via localStorage
+    persistSession: true,
+    // Auto-refresh JWT before it expires
+    autoRefreshToken: true,
+    // Detect OAuth redirect on page load
+    detectSessionInUrl: true,
+  },
+});
 
 export type DbProfile = {
   id: string;

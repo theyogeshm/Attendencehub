@@ -1,6 +1,7 @@
 /**
  * security.ts — Application-level security utilities
- * Covers: rate limiting, input sanitisation, URL validation, safe JSON parse
+ * Covers: rate limiting, input sanitisation, URL validation,
+ *         safe JSON parse, idle session timeout, admin check
  */
 
 // ── Rate Limiter (client-side, per action key) ──────────────────────────────
@@ -13,9 +14,9 @@ const rateLimitStore: Record<string, RateLimitEntry> = {};
 
 /**
  * Returns true if the action is allowed, false if rate-limited.
- * @param key      Unique key for the action (e.g. "feedback-submit")
+ * @param key          Unique key for the action (e.g. "feedback-submit")
  * @param maxAttempts  Maximum allowed attempts in the window
- * @param windowMs  Window duration in milliseconds
+ * @param windowMs     Window duration in milliseconds
  */
 export function checkRateLimit(
   key: string,
@@ -108,12 +109,74 @@ export const FIELD_LIMITS = {
   profileBranch:         100,
 } as const;
 
-// ── Admin email whitelist ────────────────────────────────────────────────────
-export const ADMIN_EMAILS: ReadonlySet<string> = new Set([
-  'yogeshkumarlearner@gmail.com',
-]);
+// ── Admin email check ────────────────────────────────────────────────────────
+/**
+ * The admin email is read from the VITE_ADMIN_EMAIL environment variable.
+ * It is NOT hardcoded in source to keep it out of git history.
+ * Real enforcement is done server-side via Supabase RLS policies.
+ */
+const ADMIN_EMAIL_ENV: string =
+  (import.meta.env.VITE_ADMIN_EMAIL as string | undefined) ?? '';
 
 export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.has(email.toLowerCase().trim());
+  if (!email || !ADMIN_EMAIL_ENV) return false;
+  return email.toLowerCase().trim() === ADMIN_EMAIL_ENV.toLowerCase().trim();
+}
+
+// ── Idle Session Timeout ─────────────────────────────────────────────────────
+const IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours
+const IDLE_STORAGE_KEY = 'DTU_HUB_LAST_ACTIVITY';
+
+let _idleTimer: ReturnType<typeof setTimeout> | null = null;
+let _onIdleCallback: (() => void) | null = null;
+
+/** Called on every user interaction to reset the inactivity clock. */
+function _resetIdleClock() {
+  localStorage.setItem(IDLE_STORAGE_KEY, Date.now().toString());
+  if (_idleTimer) clearTimeout(_idleTimer);
+  if (_onIdleCallback) {
+    _idleTimer = setTimeout(_onIdleCallback, IDLE_TIMEOUT_MS);
+  }
+}
+
+/**
+ * Starts monitoring user activity. When the user is inactive for 24 hours,
+ * `onIdle` is called (typically `supabase.auth.signOut()`).
+ *
+ * Also checks on startup whether the previous session already exceeded 24h —
+ * if so, calls `onIdle` immediately.
+ *
+ * Returns a cleanup function to remove event listeners.
+ */
+export function startIdleTimer(onIdle: () => void): () => void {
+  _onIdleCallback = onIdle;
+
+  // Check if last activity was more than 24h ago
+  const lastActivity = Number(localStorage.getItem(IDLE_STORAGE_KEY) ?? '0');
+  if (lastActivity > 0 && Date.now() - lastActivity > IDLE_TIMEOUT_MS) {
+    // Session expired while the tab was closed — sign out on next tick
+    setTimeout(onIdle, 0);
+    return () => {};
+  }
+
+  // Start the timer from now
+  _resetIdleClock();
+
+  const EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
+  EVENTS.forEach(ev => window.addEventListener(ev, _resetIdleClock, { passive: true }));
+
+  return () => {
+    EVENTS.forEach(ev => window.removeEventListener(ev, _resetIdleClock));
+    if (_idleTimer) clearTimeout(_idleTimer);
+    _onIdleCallback = null;
+  };
+}
+
+/**
+ * Call this on sign-out to clear the idle timestamp from localStorage.
+ */
+export function clearIdleTimer() {
+  if (_idleTimer) clearTimeout(_idleTimer);
+  _onIdleCallback = null;
+  try { localStorage.removeItem(IDLE_STORAGE_KEY); } catch { /* ignore */ }
 }

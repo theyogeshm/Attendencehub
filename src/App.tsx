@@ -11,7 +11,7 @@ import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
-import { safeLocalStorageGet, sanitizeText, checkRateLimit, FIELD_LIMITS } from "./lib/security";
+import { safeLocalStorageGet, sanitizeText, checkRateLimit, FIELD_LIMITS, startIdleTimer, clearIdleTimer, isAdminEmail } from "./lib/security";
 
 // Sub-page components
 import DashboardPage from "./components/DashboardPage";
@@ -23,6 +23,7 @@ import AnalyticsPage from "./components/AnalyticsPage";
 import LoginPage from "./components/LoginPage";
 import ConfirmDialog from "./components/ConfirmDialog";
 import AdminPanel from "./components/AdminPanel";
+import NotFoundPage from "./components/NotFoundPage";
 
 import {
   Sun,
@@ -149,25 +150,47 @@ export default function App() {
 
   // ── Auth: listen to session changes ───────────────────────────────────────
   useEffect(() => {
+    let stopIdleTimer: (() => void) | null = null;
+
+    const doSignOut = async () => {
+      clearIdleTimer();
+      if (stopIdleTimer) { stopIdleTimer(); stopIdleTimer = null; }
+      await supabase.auth.signOut();
+      localStorage.clear(); // wipe all app data on idle expiry
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) loadUserData(u);
-      else setAuthLoading(false);
+      if (u) {
+        loadUserData(u);
+        // Start 24-hour idle tracker; if expired already, signs out immediately
+        stopIdleTimer = startIdleTimer(doSignOut);
+      } else {
+        setAuthLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) loadUserData(u);
-      else {
+      if (u) {
+        loadUserData(u);
+        // Re-arm idle timer when a new session is established (e.g. after OAuth redirect)
+        if (stopIdleTimer) stopIdleTimer();
+        stopIdleTimer = startIdleTimer(doSignOut);
+      } else {
+        if (stopIdleTimer) { stopIdleTimer(); stopIdleTimer = null; }
         setAuthLoading(false);
         setSubjects(INITIAL_SUBJECTS);
         setAssignments(INITIAL_ASSIGNMENTS);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (stopIdleTimer) stopIdleTimer();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -373,7 +396,11 @@ export default function App() {
 
   // ── Sign out ──────────────────────────────────────────────────────────────
   const handleSignOut = async () => {
+    clearIdleTimer();
     await supabase.auth.signOut();
+    // Clear ALL localStorage — attendance, assignments, profile, theme, idle ts
+    localStorage.clear();
+    // Reset in-memory state so UI is clean before redirect
     setSubjects(INITIAL_SUBJECTS);
     setAssignments(INITIAL_ASSIGNMENTS);
     setTodayAttendance({});
@@ -617,9 +644,9 @@ export default function App() {
   const handleSubmitFeedback = () => {
     if (!feedbackText.trim()) { showToast("Please enter your feedback.", "error"); return; }
 
-    // Rate-limit feedback to 3 submissions per 5 minutes
-    if (!checkRateLimit("feedback-submit", 3, 5 * 60_000)) {
-      showToast("Too many submissions. Please wait a few minutes.", "error");
+    // Rate-limit feedback to 3 submissions per hour
+    if (!checkRateLimit("feedback-submit", 3, 60 * 60_000)) {
+      showToast("Too many submissions. Please wait before submitting again.", "error");
       return;
     }
 
@@ -737,9 +764,16 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Admin route — rendered standalone (outside main shell), handles own auth
+  // Admin route — only accessible by authenticated admin users
+  // Unauthenticated or non-admin users are silently redirected to /404
   // ═══════════════════════════════════════════════════════════════════════════
   if (location.pathname === "/admin") {
+    // Still loading auth — show spinner, don't flash 404 prematurely
+    if (authLoading) return null;
+    // Not logged in, or not admin → silent 404 (never confirm the route exists)
+    if (!user || !isAdminEmail(user.email)) {
+      return <Navigate to="/404" replace />;
+    }
     return <AdminPanel />;
   }
 
@@ -1018,7 +1052,8 @@ export default function App() {
               <Route path="/analytics" element={
                 <AnalyticsPage subjects={subjects} isDarkMode={isDarkMode} />
               } />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
         </div>

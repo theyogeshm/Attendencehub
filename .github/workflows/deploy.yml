@@ -1,0 +1,60 @@
+# ── DTU Hub — GitHub Pages Deploy ─────────────────────────────────────────────
+# Triggered on every push to main.
+# Builds the Vite app with production env vars from GitHub Secrets,
+# then deploys the dist/ folder to the gh-pages branch.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   VITE_SUPABASE_URL      — your Supabase project URL
+#   VITE_SUPABASE_ANON_KEY — your Supabase anon/public key
+#   VITE_ADMIN_EMAIL       — admin Google account email
+#   VITE_APP_URL           — https://www.attendancehub.me
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # allow manual trigger from GitHub UI
+
+permissions:
+  contents: write  # needed to push to gh-pages branch
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build — inject secrets as env vars (never stored in code)
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+        run: npm run build
+
+      # 5. Deploy dist/ to gh-pages branch
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          # CNAME is already in public/ so Vite copies it to dist/ automatically
+          force_orphan: true    # keep gh-pages branch clean (no history bloat)

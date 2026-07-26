@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { isAdminEmail, sanitizeText, sanitizeUrl } from "../lib/security";
 import type { DbResource } from "../lib/supabase";
@@ -694,30 +694,9 @@ export default function AdminPanel() {
     );
   }
 
-  // ── Access denied ────────────────────────────────────────────────────────
+  // ── Access denied — redirect silently to 404 (never reveal this route exists) ─
   if (!user || !isAdminEmail(user.email)) {
-    return (
-      <div className="min-h-screen bg-[#060e20] flex flex-col items-center justify-center gap-6 px-4">
-        <div className="w-20 h-20 rounded-2xl bg-red-900/30 border border-red-500/30 flex items-center justify-center">
-          <ShieldAlert className="w-10 h-10 text-red-400" />
-        </div>
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-white mb-2">Access Denied</h1>
-          <p className="text-[#bacbbf] text-sm max-w-sm">
-            {user
-              ? `Your account (${user.email}) doesn't have admin privileges.`
-              : "You must be signed in with an authorized account."}
-          </p>
-        </div>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 px-5 py-2.5 border border-[#2d3449] text-[#bacbbf] rounded-xl font-bold text-sm hover:border-[#82ffc8]/50 hover:text-white transition-all cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
-      </div>
-    );
+    return <Navigate to="/404" replace />;
   }
 
   // ── Nav tabs ─────────────────────────────────────────────────────────────
@@ -754,7 +733,7 @@ export default function AdminPanel() {
 
         <div className="flex items-center gap-2 text-[10px] text-[#4a5568] font-mono">
           <span className="w-2 h-2 rounded-full bg-[#82ffc8] animate-pulse" />
-          {user.email}
+          Admin
         </div>
       </header>
 
