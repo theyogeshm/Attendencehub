@@ -127,10 +127,10 @@ export default function AssignmentsPage({
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Left Column: Form (4 of 12) */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* Left Column: Form (1:1 equal 50% split) */}
+        <div className="space-y-6">
           
           <section className="glass-card rounded-2xl p-6 sticky top-2">
             <div className="flex items-center gap-2 mb-6">
@@ -200,8 +200,8 @@ export default function AssignmentsPage({
 
         </div>
 
-        {/* Right Column: Timelines list component (8 of 12) */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* Right Column: Timeline & Stats (1:1 equal 50% split) */}
+        <div className="space-y-6">
           
           <section className="glass-card rounded-2xl overflow-hidden border border-outline-variant">
             {/* Headers with filters bar */}
