@@ -267,43 +267,43 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="-m-4 sm:-m-6 min-h-screen flex flex-col">
+    <div className="space-y-5">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-8 pt-5 pb-0 flex-shrink-0">
+      <div className="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-4 sm:p-5">
 
-        {/* Back */}
-        <button
-          id="back-to-resources-btn"
-          onClick={() => navigate("/resources")}
-          className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors mb-4 group cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-          Back to Resources
-        </button>
-
-        {/* ── Gradient divider ───────────────────────────────────────────── */}
-        <div className="relative mb-5 h-px">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/60 via-primary/20 to-transparent rounded-full" />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-transparent to-transparent blur-sm rounded-full" />
+        {/* Top row: Back button */}
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <button
+            id="back-to-resources-btn"
+            onClick={() => navigate("/resources")}
+            className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors group cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Resources</span>
+          </button>
         </div>
 
+        {/* ── Thin divider ───────────────────────────────────────────── */}
+        <div className="h-px bg-outline-variant/35 mb-3.5" />
+
         {/* Subject hero */}
-        <div className="flex items-start gap-4 mb-5">
-          <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/5">
-            <span className="material-symbols-outlined text-primary text-[28px]">{icon}</span>
+        <div className="flex items-center gap-3.5">
+          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-black text-on-surface leading-tight">
-              {decodedName}
-            </h1>
-            {subject?.code && (
-              <p className="text-[11px] text-on-surface-variant font-mono mt-0.5">{subject.code}</p>
-            )}
-            {subject?.description && (
-              <p className="text-xs text-on-surface-variant mt-1 line-clamp-1">{subject.description}</p>
-            )}
-            <p className="text-xs text-on-surface-variant/70 mt-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold text-on-surface leading-tight truncate">
+                {decodedName}
+              </h1>
+              {subject?.code && (
+                <span className="text-[10px] font-mono font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">
+                  {subject.code}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-on-surface-variant/70 mt-0.5 leading-snug">
               {loading
                 ? "Fetching resources..."
                 : resources.length === 0
@@ -313,10 +313,10 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           </div>
         </div>
 
-        {/* Tab bar — scrolls horizontally on mobile */}
+        {/* Tab bar — compact horizontal scrolling on mobile */}
         {!loading && tabList.length > 0 && (
           <div
-            className="flex overflow-x-auto scrollbar-none -mx-4 sm:-mx-8 px-4 sm:px-8"
+            className="flex overflow-x-auto scrollbar-none gap-1.5 mt-3.5 pt-3 border-t border-outline-variant/30"
             role="tablist"
             aria-label="Resource sections"
           >
@@ -331,16 +331,16 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-200 cursor-pointer border-b-2 whitespace-nowrap ${
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? `${color.accent} border-current`
-                      : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
+                      ? `${color.bg} ${color.accent} ring-1 ring-current/30`
+                      : "text-on-surface-variant hover:bg-surface-variant/60 hover:text-on-surface"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[15px]">{getTabIcon(tab)}</span>
                   <span>{tab}</span>
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive ? `${color.bg} ${color.accent}` : "bg-surface-variant text-on-surface-variant"
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+                    isActive ? "bg-current/15" : "bg-surface-variant text-on-surface-variant"
                   }`}>
                     {count}
                   </span>
@@ -352,25 +352,25 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 p-4 sm:p-8">
+      <div>
 
         {/* Loading */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 text-on-surface-variant">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Loading resources...</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
+            <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            <p className="text-xs font-medium">Loading resources...</p>
           </div>
         )}
 
         {/* Empty */}
         {!loading && resources.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 gap-5 text-center text-on-surface-variant">
-            <div className="w-20 h-20 rounded-3xl bg-surface-container flex items-center justify-center border border-outline-variant">
-              <FolderOpen className="w-9 h-9 text-outline" />
+          <div className="flex flex-col items-center justify-center py-16 px-4 gap-4 text-center text-on-surface-variant bg-surface-container-low border border-outline-variant/60 rounded-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center border border-outline-variant/60">
+              <FolderOpen className="w-7 h-7 text-outline" />
             </div>
             <div>
-              <p className="text-base font-bold text-on-surface mb-1">No resources yet</p>
-              <p className="text-sm max-w-xs mx-auto leading-relaxed">
+              <p className="text-sm font-bold text-on-surface mb-1">No resources yet</p>
+              <p className="text-xs max-w-xs mx-auto leading-relaxed text-on-surface-variant/70">
                 Resources for{" "}
                 <span className="text-primary font-semibold">{decodedName}</span>{" "}
                 haven't been uploaded yet. Check back soon!
@@ -378,7 +378,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             </div>
             <button
               onClick={() => navigate("/resources")}
-              className="mt-1 px-5 py-2.5 bg-surface-container border border-outline-variant rounded-xl font-bold text-sm hover:border-primary/50 hover:text-primary transition-all cursor-pointer"
+              className="px-4 py-2 bg-surface-container border border-outline-variant/60 rounded-xl font-bold text-xs hover:border-primary/50 hover:text-primary transition-all cursor-pointer"
             >
               Browse other subjects
             </button>
@@ -389,8 +389,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         {!loading && resources.length > 0 && (
           <div>
             {/* Section heading */}
-            <div className="flex items-center gap-2 mb-5">
-              <span className={`material-symbols-outlined text-[18px] ${activeColor.accent}`}>
+            <div className="flex items-center gap-2 mb-3.5">
+              <span className={`material-symbols-outlined text-[16px] ${activeColor.accent}`}>
                 {getTabIcon(activeTab)}
               </span>
               <h2 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant font-mono">
@@ -403,7 +403,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
             {/* PYQ — year grouped */}
             {isPyqTab ? (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {Object.entries(pyqGroups)
                   .sort(([a], [b]) => {
                     if (a === "Other") return 1;
@@ -412,16 +412,16 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   })
                   .map(([year, files]) => (
                     <div key={year}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className={`text-sm font-black font-mono ${activeColor.accent}`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className={`text-xs font-bold font-mono ${activeColor.accent}`}>
                           {year}
                         </span>
-                        <div className="flex-1 h-px bg-outline-variant/50" />
+                        <div className="flex-1 h-px bg-outline-variant/40" />
                         <span className="text-[10px] font-mono text-on-surface-variant/50">
                           {files.length} file{files.length !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {files.map((res) => (
                           <div key={res.id}><FileCard res={res} /></div>
                         ))}
@@ -431,7 +431,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               </div>
             ) : (
               /* Flat list for all other tabs */
-              <div className={isVideoTab ? "space-y-5" : "space-y-3"}>
+              <div className={isVideoTab ? "space-y-4" : "space-y-2.5"}>
                 {tabResources.map((res) => (
                   <div key={res.id}><FileCard res={res} /></div>
                 ))}
