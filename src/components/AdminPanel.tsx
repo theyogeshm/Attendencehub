@@ -20,14 +20,14 @@ import {
   Plus,
   Save,
   RefreshCw,
-  ChevronDown,
   BookOpen,
   Clock,
   Users,
   ArrowLeft,
   Check,
   X,
-  AlertTriangle,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -60,6 +60,8 @@ interface SubjectEntry {
   subjects: string[];
 }
 
+type AdminSection = "resources" | "timetable" | "subjects";
+
 // ── Toast helper ──────────────────────────────────────────────────────────────
 function useToast() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -70,17 +72,38 @@ function useToast() {
   return { toast, show };
 }
 
-// ── Shared input style ─────────────────────────────────────────────────────────
-const INP = "w-full bg-[#0d1525] border border-[#2d3449] rounded-lg px-3 py-2 text-sm text-[#dae2fd] placeholder-[#4a5568] focus:border-[#82ffc8] focus:outline-none transition-colors";
-const SEL = `${INP} cursor-pointer`;
-const BTN_PRIMARY   = "flex items-center gap-2 px-4 py-2 bg-[#82ffc8] text-[#002114] rounded-lg font-bold text-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer";
-const BTN_DANGER    = "flex items-center gap-2 px-3 py-1.5 border border-red-500/40 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/10 transition-all cursor-pointer";
-const BTN_SECONDARY = "flex items-center gap-2 px-4 py-2 border border-[#2d3449] text-[#bacbbf] rounded-lg font-bold text-sm hover:border-[#82ffc8]/50 hover:text-[#dae2fd] transition-all cursor-pointer";
+// ── Shared input & button style helpers ─────────────────────────────────────────
+function getInpStyle(isDark: boolean) {
+  return isDark
+    ? "w-full bg-[#0d1525] border border-[#2d3449] rounded-lg px-3 py-2 text-sm text-[#dae2fd] placeholder-[#4a5568] focus:border-[#82ffc8] focus:outline-none transition-colors"
+    : "w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-600 focus:bg-white focus:outline-none transition-colors";
+}
+function getSelStyle(isDark: boolean) {
+  return `${getInpStyle(isDark)} cursor-pointer`;
+}
+function getBtnPrimary(isDark: boolean) {
+  return isDark
+    ? "flex items-center gap-2 px-4 py-2 bg-[#82ffc8] text-[#002114] rounded-lg font-bold text-sm hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-sm"
+    : "flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shadow-sm";
+}
+function getBtnDanger() {
+  return "flex items-center gap-2 px-3 py-1.5 border border-red-500/40 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/10 transition-all cursor-pointer";
+}
+function getBtnSecondary(isDark: boolean) {
+  return isDark
+    ? "flex items-center gap-2 px-4 py-2 border border-[#2d3449] text-[#bacbbf] rounded-lg font-bold text-sm hover:border-[#82ffc8]/50 hover:text-[#dae2fd] transition-all cursor-pointer"
+    : "flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 bg-white rounded-lg font-bold text-sm hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer shadow-sm";
+}
+function getCardStyle(isDark: boolean) {
+  return isDark
+    ? "bg-[#111827] border border-[#1f2d3d] rounded-xl overflow-hidden p-5"
+    : "bg-white border border-slate-200 shadow-md shadow-slate-200/50 rounded-xl overflow-hidden p-5";
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 1: Resources Manager
 // ══════════════════════════════════════════════════════════════════════════════
-function ResourcesManager() {
+function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const { toast, show } = useToast();
 
   // Form state
@@ -168,8 +191,8 @@ function ResourcesManager() {
     const { error } = await supabase.from("resources").delete().eq("id", id);
     setDeletingId(null);
     if (error) { show("Delete failed: " + error.message, false); return; }
-    show("Deleted ✓");
     setResources(prev => prev.filter(r => r.id !== id));
+    show("Resource deleted ✓");
   };
 
   const filtered = resources.filter(r => {
@@ -182,6 +205,11 @@ function ResourcesManager() {
     );
   });
 
+  const INP = getInpStyle(isDarkMode);
+  const SEL = getSelStyle(isDarkMode);
+  const BTN_PRIMARY = getBtnPrimary(isDarkMode);
+  const BTN_SECONDARY = getBtnSecondary(isDarkMode);
+
   return (
     <div className="space-y-6">
       {toast && (
@@ -191,14 +219,14 @@ function ResourcesManager() {
         </div>
       )}
 
-      {/* ── Add Form ── */}
-      <div className="bg-[#111827] border border-[#1f2d3d] rounded-xl p-5">
-        <h3 className="text-sm font-bold text-[#82ffc8] mb-4 flex items-center gap-2">
+      {/* ── Add Form Card ── */}
+      <div className={getCardStyle(isDarkMode)}>
+        <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
           <Plus className="w-4 h-4" /> Add New Resource
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Semester</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
             <select
               value={semester}
               onChange={e => {
@@ -213,7 +241,7 @@ function ResourcesManager() {
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Subject *</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject *</label>
             <select
               value={subjectSelect}
               onChange={e => setSubjectSelect(e.target.value)}
@@ -236,7 +264,7 @@ function ResourcesManager() {
             )}
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Tab / Section *</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Tab / Section *</label>
             <input
               value={tabType}
               onChange={e => setTabType(e.target.value)}
@@ -245,19 +273,19 @@ function ResourcesManager() {
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">File Name *</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>File Name *</label>
             <input value={fileName} onChange={e => setFileName(e.target.value)} placeholder="2023 End-Term Paper.pdf" className={INP} />
           </div>
           <div className="lg:col-span-2">
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">File URL * (Drive / YouTube / Direct)</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>File URL * (Drive / YouTube / Direct)</label>
             <input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://drive.google.com/..." className={INP} />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Year (optional)</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Year (optional)</label>
             <input value={year} onChange={e => setYear(e.target.value)} placeholder="2023" className={INP} />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">File Size (optional)</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>File Size (optional)</label>
             <input value={fileSize} onChange={e => setFileSize(e.target.value)} placeholder="1.4 MB" className={INP} />
           </div>
         </div>
@@ -269,10 +297,12 @@ function ResourcesManager() {
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <div className="bg-[#111827] border border-[#1f2d3d] rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between gap-3 p-4 border-b border-[#1f2d3d] flex-wrap">
-          <h3 className="text-sm font-bold text-[#dae2fd]">All Resources ({filtered.length})</h3>
+      {/* ── Table Container ── */}
+      <div className={getCardStyle(isDarkMode)}>
+        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200/20 flex-wrap">
+          <h3 className={`text-sm font-bold ${isDarkMode ? "text-[#dae2fd]" : "text-slate-900"}`}>
+            All Resources ({filtered.length})
+          </h3>
           <div className="flex gap-2 flex-wrap">
             <input value={filterQ} onChange={e => setFilterQ(e.target.value)} placeholder="Search subject / file..." className={`${INP} w-52`} />
             <button onClick={fetchAll} className={BTN_SECONDARY}>
@@ -282,45 +312,46 @@ function ResourcesManager() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-[#bacbbf]">
+          <div className={`flex items-center justify-center py-12 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-500"}`}>
             <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading...
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-[#4a5568] text-sm">No resources found.</div>
+          <div className={`text-center py-12 text-sm ${isDarkMode ? "text-[#4a5568]" : "text-slate-400"}`}>No resources found.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="bg-[#0d1525]">
+              <thead className={isDarkMode ? "bg-[#0d1525]" : "bg-slate-100 border-b border-slate-200"}>
                 <tr>
                   {["Subject", "Semester", "Tab", "File Name", "Year", "Size", ""].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    <th key={h} className={`text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${isDarkMode ? "text-[#bacbbf]" : "text-slate-700"}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r, i) => (
-                  <tr key={r.id} className={`border-t border-[#1f2d3d] hover:bg-[#0d1525]/50 ${i % 2 === 0 ? "" : "bg-[#0d1525]/20"}`}>
-                    <td className="px-4 py-3 font-semibold text-[#dae2fd] max-w-[150px] truncate">{r.subject}</td>
-                    <td className="px-4 py-3 text-[#bacbbf]">{r.semester ?? "—"}</td>
+                  <tr key={r.id} className={`border-t ${isDarkMode ? "border-[#1f2d3d] hover:bg-[#0d1525]/50" : "border-slate-200 hover:bg-slate-50 text-slate-800"} ${i % 2 === 0 ? "" : (isDarkMode ? "bg-[#0d1525]/20" : "bg-slate-50/40")}`}>
+                    <td className={`px-4 py-3 font-semibold max-w-[150px] truncate ${isDarkMode ? "text-[#dae2fd]" : "text-slate-900"}`}>{r.subject}</td>
+                    <td className={`px-4 py-3 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.semester ?? "—"}</td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded bg-[#82ffc8]/10 text-[#82ffc8] font-mono font-bold uppercase text-[10px]">
+                      <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${isDarkMode ? "bg-[#82ffc8]/10 text-[#82ffc8]" : "bg-emerald-100 text-emerald-700"}`}>
                         {r.tab_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[#dae2fd] max-w-[180px] truncate">
-                      <a href={r.file_url} target="_blank" rel="noopener noreferrer" className="hover:text-[#82ffc8] hover:underline transition-colors">
+                    <td className={`px-4 py-3 max-w-[200px] truncate ${isDarkMode ? "text-[#dae2fd]" : "text-slate-800"}`}>
+                      <a href={r.file_url} target="_blank" rel="noopener noreferrer" className="hover:underline text-emerald-600 dark:text-[#82ffc8]">
                         {r.file_name}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-[#bacbbf]">{r.year ?? "—"}</td>
-                    <td className="px-4 py-3 text-[#bacbbf]">{r.file_size ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className={`px-4 py-3 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.year ?? "—"}</td>
+                    <td className={`px-4 py-3 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.file_size ?? "—"}</td>
+                    <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleDelete(r.id)}
                         disabled={deletingId === r.id}
-                        className={BTN_DANGER}
+                        className={getBtnDanger()}
+                        title="Delete resource"
                       >
-                        {deletingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        {deletingId === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                         Delete
                       </button>
                     </td>
@@ -338,16 +369,15 @@ function ResourcesManager() {
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 2: Timetable Manager
 // ══════════════════════════════════════════════════════════════════════════════
-function TimetableManager() {
+function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
   const { toast, show } = useToast();
 
-  const [semester, setSemester] = useState<number>(1);
+  const [semester, setSemester] = useState<number>(3);
   const [section,  setSection]  = useState<string>("1");
   const [grid,     setGrid]     = useState<TimetableGrid>({});
   const [saving,   setSaving]   = useState(false);
   const [loading,  setLoading]  = useState(false);
 
-  // Initialise empty grid
   const emptyGrid = useCallback((): TimetableGrid => {
     const g: TimetableGrid = {};
     DAYS.forEach(d => {
@@ -357,7 +387,6 @@ function TimetableManager() {
     return g;
   }, []);
 
-  // Load existing timetable from Supabase
   const loadTimetable = useCallback(async () => {
     setLoading(true);
     const g = emptyGrid();
@@ -396,14 +425,11 @@ function TimetableManager() {
 
   const handleSave = async () => {
     setSaving(true);
-
-    // Delete existing rows for this semester+section
     await supabase.from("timetable")
       .delete()
       .eq("semester", semester)
       .eq("section", section);
 
-    // Build rows to insert (only non-empty cells)
     const rows: any[] = [];
     DAYS.forEach(day => {
       TIME_SLOTS.forEach(slot => {
@@ -431,6 +457,11 @@ function TimetableManager() {
     setSaving(false);
   };
 
+  const INP = getInpStyle(isDarkMode);
+  const SEL = getSelStyle(isDarkMode);
+  const BTN_PRIMARY = getBtnPrimary(isDarkMode);
+  const BTN_SECONDARY = getBtnSecondary(isDarkMode);
+
   return (
     <div className="space-y-5">
       {toast && (
@@ -440,17 +471,16 @@ function TimetableManager() {
         </div>
       )}
 
-      {/* Selector row */}
-      <div className="bg-[#111827] border border-[#1f2d3d] rounded-xl p-4">
+      <div className={getCardStyle(isDarkMode)}>
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Semester</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
             <select value={semester} onChange={e => setSemester(Number(e.target.value))} className={`${SEL} w-36`}>
               {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Section</label>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Section</label>
             <select value={section} onChange={e => setSection(e.target.value)} className={`${SEL} w-28`}>
               {SECTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
             </select>
@@ -466,26 +496,21 @@ function TimetableManager() {
             </button>
           </div>
         </div>
-        <p className="text-[10px] text-[#4a5568] mt-3">
-          Fill in subject names for each time slot. Leave blank for free periods. 
-          Saving will replace all existing data for this Semester + Section.
-        </p>
       </div>
 
-      {/* Grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-[#bacbbf]">
+        <div className={`flex items-center justify-center py-16 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-500"}`}>
           <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading timetable...
         </div>
       ) : (
-        <div className="bg-[#111827] border border-[#1f2d3d] rounded-xl overflow-hidden">
+        <div className={getCardStyle(isDarkMode)}>
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-[#0d1525]">
-                  <th className="px-3 py-3 text-left text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider w-36 border-r border-[#1f2d3d]">Time Slot</th>
+                <tr className={isDarkMode ? "bg-[#0d1525]" : "bg-slate-100"}>
+                  <th className={`px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider w-36 border-r ${isDarkMode ? "text-[#bacbbf] border-[#1f2d3d]" : "text-slate-700 border-slate-200"}`}>Time Slot</th>
                   {DAYS.map(d => (
-                    <th key={d} className="px-3 py-3 text-center text-[10px] font-bold text-[#82ffc8] uppercase tracking-wider border-r border-[#1f2d3d] last:border-r-0">
+                    <th key={d} className={`px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider border-r last:border-r-0 ${isDarkMode ? "text-[#82ffc8] border-[#1f2d3d]" : "text-emerald-700 border-slate-200"}`}>
                       {d}
                     </th>
                   ))}
@@ -493,33 +518,32 @@ function TimetableManager() {
               </thead>
               <tbody>
                 {TIME_SLOTS.map((slot, si) => (
-                  <tr key={slot} className={`border-t border-[#1f2d3d] ${si % 2 === 0 ? "bg-[#0d1525]/30" : ""}`}>
-                    <td className="px-3 py-2 font-mono text-[11px] text-[#bacbbf] border-r border-[#1f2d3d] whitespace-nowrap">{slot}</td>
+                  <tr key={slot} className={`border-t ${isDarkMode ? "border-[#1f2d3d]" : "border-slate-200"} ${si % 2 === 0 ? (isDarkMode ? "bg-[#0d1525]/30" : "bg-slate-50/50") : ""}`}>
+                    <td className={`px-3 py-2 text-[11px] border-r whitespace-nowrap ${isDarkMode ? "text-[#bacbbf] border-[#1f2d3d]" : "text-slate-700 border-slate-200 font-semibold"}`}>{slot}</td>
                     {DAYS.map(day => {
                       const cell = grid[day]?.[slot] ?? { subject: "", room: "", type: "" };
                       return (
-                        <td key={day} className="px-2 py-1.5 border-r border-[#1f2d3d] last:border-r-0 min-w-[160px]">
+                        <td key={day} className={`p-1.5 border-r last:border-r-0 min-w-[130px] ${isDarkMode ? "border-[#1f2d3d]" : "border-slate-200"}`}>
                           <div className="space-y-1">
                             <input
                               value={cell.subject}
                               onChange={e => updateCell(day, slot, "subject", e.target.value)}
                               placeholder="Subject"
-                              className="w-full bg-[#0a1020] border border-[#2d3449]/50 rounded px-2 py-1 text-[11px] text-[#dae2fd] placeholder-[#3a4a5a] focus:border-[#82ffc8] focus:outline-none transition-colors"
+                              className={`${INP} py-1 text-xs`}
                             />
                             <div className="flex gap-1">
                               <input
                                 value={cell.room}
                                 onChange={e => updateCell(day, slot, "room", e.target.value)}
                                 placeholder="Room"
-                                className="flex-1 bg-[#0a1020] border border-[#2d3449]/50 rounded px-2 py-1 text-[10px] text-[#bacbbf] placeholder-[#3a4a5a] focus:border-[#82ffc8] focus:outline-none transition-colors"
+                                className={`${INP} py-0.5 text-[10px] w-1/2`}
                               />
                               <select
                                 value={cell.type}
-                                onChange={e => updateCell(day, slot, "type", e.target.value)}
-                                className="bg-[#0a1020] border border-[#2d3449]/50 rounded px-1 py-1 text-[10px] text-[#bacbbf] focus:border-[#82ffc8] focus:outline-none transition-colors cursor-pointer"
+                                onChange={e => updateCell(day, slot, "type", e.target.value as any)}
+                                className={`${SEL} py-0.5 text-[10px] w-1/2`}
                               >
-                                <option value="">—</option>
-                                <option value="LEC">LEC</option>
+                                <option value="">LEC</option>
                                 <option value="LAB">LAB</option>
                               </select>
                             </div>
@@ -541,71 +565,55 @@ function TimetableManager() {
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 3: Subjects Manager
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectsManager() {
+function SubjectsManager({ isDarkMode }: { isDarkMode: boolean }) {
   const { toast, show } = useToast();
 
-  const [semesterData, setSemesterData] = useState<SubjectEntry[]>(
-    SEMESTERS.map(s => ({ sem: s, subjects: [] }))
-  );
-  const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState<number | null>(null);
-  const [newSubject, setNewSubject] = useState<Record<number, string>>({});
-  const [expanded,   setExpanded]   = useState<number>(1);
+  const [subjects, setSubjects] = useState<SubjectEntry[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [newSem,   setNewSem]   = useState(1);
+  const [newSub,   setNewSub]   = useState("");
 
-  // Load from Supabase dtu_subjects table (one row per semester)
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("dtu_subjects")
-      .select("*")
-      .order("semester");
-
-    if (!error && data && data.length > 0) {
-      const merged = SEMESTERS.map(s => {
-        const found = data.find((d: any) => d.semester === s);
-        return { sem: s, subjects: found?.subjects ?? [] };
+    const { data } = await supabase.from("subject_list").select("*").order("sem", { ascending: true });
+    if (data && data.length > 0) {
+      const grouped: Record<number, string[]> = {};
+      data.forEach((r: any) => {
+        if (!grouped[r.sem]) grouped[r.sem] = [];
+        grouped[r.sem].push(r.name);
       });
-      setSemesterData(merged);
+      setSubjects(Object.entries(grouped).map(([s, list]) => ({ sem: Number(s), subjects: list })));
+    } else {
+      setSubjects(SEMESTERS.map(s => ({ sem: s, subjects: [] })));
     }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
 
-  const handleSaveSem = async (sem: number) => {
-    setSaving(sem);
-    const entry = semesterData.find(e => e.sem === sem);
-    if (!entry) { setSaving(null); return; }
-
-    const { error } = await supabase
-      .from("dtu_subjects")
-      .upsert({ semester: sem, branch: "CSE", subjects: entry.subjects }, { onConflict: "semester,branch" });
-
-    setSaving(null);
-    if (error) { show("Save failed: " + error.message, false); return; }
-    show(`Semester ${sem} subjects saved ✓`);
+  const handleAdd = async () => {
+    if (!newSub.trim()) return;
+    const name = sanitizeText(newSub.trim(), 100);
+    const { error } = await supabase.from("subject_list").insert({ sem: newSem, name });
+    if (error) { show("Add failed: " + error.message, false); return; }
+    show(`Added "${name}" to Sem ${newSem} ✓`);
+    setNewSub("");
+    fetchSubjects();
   };
 
-  const updateSubjects = (sem: number, subs: string[]) => {
-    setSemesterData(prev => prev.map(e => e.sem === sem ? { ...e, subjects: subs } : e));
+  const handleDelete = async (sem: number, name: string) => {
+    const { error } = await supabase.from("subject_list").delete().eq("sem", sem).eq("name", name);
+    if (error) { show("Delete failed: " + error.message, false); return; }
+    show(`Removed "${name}" from Sem ${sem} ✓`);
+    fetchSubjects();
   };
 
-  const addSubject = (sem: number) => {
-    const val = (newSubject[sem] ?? "").trim();
-    if (!val) return;
-    const entry = semesterData.find(e => e.sem === sem)!;
-    if (entry.subjects.includes(val)) { show("Subject already exists", false); return; }
-    updateSubjects(sem, [...entry.subjects, val]);
-    setNewSubject(prev => ({ ...prev, [sem]: "" }));
-  };
-
-  const removeSubject = (sem: number, idx: number) => {
-    const entry = semesterData.find(e => e.sem === sem)!;
-    updateSubjects(sem, entry.subjects.filter((_, i) => i !== idx));
-  };
+  const INP = getInpStyle(isDarkMode);
+  const SEL = getSelStyle(isDarkMode);
+  const BTN_PRIMARY = getBtnPrimary(isDarkMode);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {toast && (
         <div className={`flex items-center gap-2 p-3 rounded-lg text-sm font-semibold ${toast.ok ? "bg-green-900/40 border border-green-500/40 text-green-300" : "bg-red-900/40 border border-red-500/40 text-red-300"}`}>
           {toast.ok ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
@@ -613,84 +621,65 @@ function SubjectsManager() {
         </div>
       )}
 
-      <div className="bg-[#0d1525]/50 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-2">
-        <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-yellow-300/80">
-          This updates the <strong>dtu_subjects</strong> table in Supabase. Make sure the table exists with columns: <code className="bg-black/30 px-1 rounded">semester (int), branch (text), subjects (text[])</code>.
-          Use <code className="bg-black/30 px-1 rounded">semester,branch</code> as unique constraint for upsert.
-        </p>
+      <div className={getCardStyle(isDarkMode)}>
+        <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
+          <Plus className="w-4 h-4" /> Add Subject to Master List
+        </h3>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
+            <select value={newSem} onChange={e => setNewSem(Number(e.target.value))} className={`${SEL} w-36`}>
+              {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
+            </select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Name</label>
+            <input
+              value={newSub}
+              onChange={e => setNewSub(e.target.value)}
+              placeholder="e.g. Distributed Systems"
+              className={INP}
+              onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
+            />
+          </div>
+          <button onClick={handleAdd} className={BTN_PRIMARY}>
+            <Plus className="w-4 h-4" /> Add
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12 text-[#bacbbf]">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading subjects...
+        <div className={`flex items-center justify-center py-16 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-500"}`}>
+          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading subjects...
         </div>
       ) : (
-        <div className="space-y-2">
-          {semesterData.map(entry => (
-            <div key={entry.sem} className="bg-[#111827] border border-[#1f2d3d] rounded-xl overflow-hidden">
-              {/* Accordion header */}
-              <button
-                onClick={() => setExpanded(expanded === entry.sem ? -1 : entry.sem)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer hover:bg-[#0d1525]/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-lg bg-[#82ffc8]/10 text-[#82ffc8] font-black text-sm flex items-center justify-center">
-                    {entry.sem}
-                  </span>
-                  <div>
-                    <p className="font-bold text-sm text-[#dae2fd]">Semester {entry.sem}</p>
-                    <p className="text-[10px] text-[#bacbbf]">{entry.subjects.length} subjects</p>
-                  </div>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-[#bacbbf] transition-transform ${expanded === entry.sem ? "rotate-180" : ""}`} />
-              </button>
-
-              {expanded === entry.sem && (
-                <div className="px-5 pb-5 border-t border-[#1f2d3d]">
-                  {/* Subject chips */}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {entry.subjects.map((sub, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5 bg-[#0d1525] border border-[#2d3449] rounded-lg pl-3 pr-1 py-1">
-                        <span className="text-xs text-[#dae2fd]">{sub}</span>
-                        <button
-                          onClick={() => removeSubject(entry.sem, idx)}
-                          className="w-4 h-4 rounded flex items-center justify-center text-[#bacbbf] hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {entry.subjects.length === 0 && (
-                      <p className="text-xs text-[#4a5568] italic">No subjects yet.</p>
-                    )}
-                  </div>
-
-                  {/* Add subject */}
-                  <div className="mt-4 flex gap-2">
-                    <input
-                      value={newSubject[entry.sem] ?? ""}
-                      onChange={e => setNewSubject(prev => ({ ...prev, [entry.sem]: e.target.value }))}
-                      onKeyDown={e => { if (e.key === "Enter") addSubject(entry.sem); }}
-                      placeholder="Add subject name..."
-                      className={`${INP} flex-1`}
-                    />
-                    <button onClick={() => addSubject(entry.sem)} className={BTN_SECONDARY}>
-                      <Plus className="w-4 h-4" /> Add
-                    </button>
-                  </div>
-
-                  {/* Save */}
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      onClick={() => handleSaveSem(entry.sem)}
-                      disabled={saving === entry.sem}
-                      className={BTN_PRIMARY}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {subjects.map(entry => (
+            <div key={entry.sem} className={getCardStyle(isDarkMode)}>
+              <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 pb-2 border-b ${isDarkMode ? "text-[#82ffc8] border-[#1f2d3d]" : "text-emerald-700 border-slate-200"}`}>
+                Semester {entry.sem} ({entry.subjects.length})
+              </h4>
+              {entry.subjects.length === 0 ? (
+                <p className={`text-xs ${isDarkMode ? "text-[#4a5568]" : "text-slate-400"}`}>No subjects added yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {entry.subjects.map(s => (
+                    <span
+                      key={s}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                        isDarkMode ? "bg-[#0d1525] border-[#2d3449] text-[#dae2fd]" : "bg-slate-100 border-slate-300 text-slate-800"
+                      }`}
                     >
-                      {saving === entry.sem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      Save Semester {entry.sem}
-                    </button>
-                  </div>
+                      {s}
+                      <button
+                        onClick={() => handleDelete(entry.sem, s)}
+                        className="text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                        title="Remove"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
@@ -702,16 +691,33 @@ function SubjectsManager() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN Admin Panel Component
+// MAIN: AdminPanel Export
 // ══════════════════════════════════════════════════════════════════════════════
-type AdminSection = "resources" | "timetable" | "subjects";
-
 export default function AdminPanel() {
   const navigate = useNavigate();
 
   const [user,    setUser]    = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState<AdminSection>("resources");
+
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem("ATTENDANCE_HUB_THEME");
+    return saved !== "light";
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.add("light");
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    const next = !isDarkMode;
+    setIsDarkMode(next);
+    localStorage.setItem("ATTENDANCE_HUB_THEME", next ? "dark" : "light");
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -729,60 +735,81 @@ export default function AdminPanel() {
     };
   }, []);
 
-  // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#060e20] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#82ffc8]" />
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? "bg-[#060e20]" : "bg-slate-50"}`}>
+        <Loader2 className={`w-8 h-8 animate-spin ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`} />
       </div>
     );
   }
 
-  // ── Access denied — redirect silently to 404 (never reveal this route exists) ─
   if (!user || !isAdminEmail(user.email)) {
     return <Navigate to="/404" replace />;
   }
 
-  // ── Nav tabs ─────────────────────────────────────────────────────────────
   const navItems: { id: AdminSection; label: string; icon: typeof BookOpen }[] = [
     { id: "resources", label: "Resources",  icon: BookOpen },
     { id: "timetable", label: "Timetable",  icon: Clock },
     { id: "subjects",  label: "Subjects",   icon: Users },
   ];
 
-  // ── Admin layout ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#060e20] text-[#dae2fd]">
+    <div className={`min-h-screen transition-colors duration-200 ${
+      isDarkMode ? "bg-[#060e20] text-[#dae2fd]" : "bg-[#f8fafc] text-slate-900"
+    }`}>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-[#0b1326] border-b border-[#1f2d3d] px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+      <header className={`sticky top-0 z-20 px-4 sm:px-6 h-14 flex items-center justify-between gap-4 border-b transition-colors ${
+        isDarkMode ? "bg-[#0b1326] border-[#1f2d3d] text-white" : "bg-white border-slate-200 text-slate-900 shadow-sm"
+      }`}>
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/dashboard")}
-            className="p-1.5 rounded-lg text-[#bacbbf] hover:text-white hover:bg-[#1f2d3d] transition-all cursor-pointer"
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              isDarkMode ? "text-[#bacbbf] hover:text-white hover:bg-[#1f2d3d]" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
             title="Back to Dashboard"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#82ffc8]/10 flex items-center justify-center">
-              <ShieldAlert className="w-4 h-4 text-[#82ffc8]" />
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+              isDarkMode ? "bg-[#82ffc8]/10 text-[#82ffc8]" : "bg-emerald-100 text-emerald-600"
+            }`}>
+              <ShieldAlert className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-sm font-black text-white leading-none">Admin Panel</h1>
-              <p className="text-[9px] text-[#4a5568] font-mono">DTU Hub Control Center</p>
+              <h1 className="text-sm font-black leading-none">Admin Panel</h1>
+              <p className={`text-[9px] ${isDarkMode ? "text-[#4a5568]" : "text-slate-500"}`}>DTU Hub Control Center</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] text-[#4a5568] font-mono">
-          <span className="w-2 h-2 rounded-full bg-[#82ffc8] animate-pulse" />
-          Admin
+        <div className="flex items-center gap-3">
+          {/* Sun / Moon Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              isDarkMode ? "text-[#bacbbf] hover:text-white hover:bg-[#1f2d3d]" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+
+          <div className={`flex items-center gap-2 text-xs font-semibold ${
+            isDarkMode ? "text-[#bacbbf]" : "text-slate-600"
+          }`}>
+            <span className="w-2 h-2 rounded-full bg-[#00C896] animate-pulse" />
+            Admin
+          </div>
         </div>
       </header>
 
       {/* Section Tabs */}
-      <div className="bg-[#0b1326] border-b border-[#1f2d3d] px-4 sm:px-6">
+      <div className={`border-b px-4 sm:px-6 transition-colors ${
+        isDarkMode ? "bg-[#0b1326] border-[#1f2d3d]" : "bg-white border-slate-200"
+      }`}>
         <nav className="flex gap-1">
           {navItems.map(item => {
             const Icon = item.icon;
@@ -793,8 +820,8 @@ export default function AdminPanel() {
                 onClick={() => setSection(item.id)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
                   isActive
-                    ? "border-[#82ffc8] text-[#82ffc8]"
-                    : "border-transparent text-[#bacbbf] hover:text-white hover:border-[#2d3449]"
+                    ? isDarkMode ? "border-[#82ffc8] text-[#82ffc8]" : "border-emerald-600 text-emerald-600 font-bold"
+                    : isDarkMode ? "border-transparent text-[#bacbbf] hover:text-white hover:border-[#2d3449]" : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -807,9 +834,9 @@ export default function AdminPanel() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto p-4 sm:p-6">
-        {section === "resources" && <ResourcesManager />}
-        {section === "timetable" && <TimetableManager />}
-        {section === "subjects"  && <SubjectsManager />}
+        {section === "resources" && <ResourcesManager isDarkMode={isDarkMode} />}
+        {section === "timetable" && <TimetableManager isDarkMode={isDarkMode} />}
+        {section === "subjects"  && <SubjectsManager isDarkMode={isDarkMode} />}
       </main>
     </div>
   );
