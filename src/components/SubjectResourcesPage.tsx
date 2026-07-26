@@ -303,7 +303,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             {subject?.description && (
               <p className="text-xs text-on-surface-variant mt-1 line-clamp-1">{subject.description}</p>
             )}
-            <p className="text-[11px] text-on-surface-variant/60 font-mono mt-1">
+            <p className="text-xs text-on-surface-variant/70 mt-1">
               {loading
                 ? "Fetching resources..."
                 : resources.length === 0

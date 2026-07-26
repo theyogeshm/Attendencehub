@@ -142,7 +142,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                         <span>files available</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] text-on-surface-variant/60 italic">No files yet</span>
+                      <span className="text-xs text-on-surface-variant/70">No files yet</span>
                     )}
                   </div>
                   <span className="text-primary font-bold text-xs flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
