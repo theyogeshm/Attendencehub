@@ -12,6 +12,7 @@ import { supabase } from "../lib/supabase";
 import { isAdminEmail, sanitizeText, sanitizeUrl } from "../lib/security";
 import type { DbResource } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import dtuData from "../../dtu_subjects.json";
 import {
   ShieldAlert,
   Loader2,
@@ -83,14 +84,27 @@ function ResourcesManager() {
   const { toast, show } = useToast();
 
   // Form state
-  const [semester,  setSemester]  = useState<string>("");
-  const [subject,   setSubject]   = useState("");
-  const [tabType,   setTabType]   = useState<string>("");
-  const [fileName,  setFileName]  = useState("");
-  const [fileUrl,   setFileUrl]   = useState("");
-  const [year,      setYear]      = useState("");
-  const [fileSize,  setFileSize]  = useState("");
-  const [adding,    setAdding]    = useState(false);
+  const [semester,       setSemester]       = useState<string>("");
+  const [subjectSelect,  setSubjectSelect]  = useState<string>("");
+  const [customSubject,  setCustomSubject]  = useState<string>("");
+  const [tabType,        setTabType]        = useState<string>("");
+  const [fileName,       setFileName]       = useState("");
+  const [fileUrl,        setFileUrl]        = useState("");
+  const [year,           setYear]           = useState("");
+  const [fileSize,       setFileSize]       = useState("");
+  const [adding,         setAdding]         = useState(false);
+
+  // Filter subject options based on selected semester
+  const availableSubjects = (() => {
+    const semNum = parseInt(semester, 10);
+    if (!isNaN(semNum) && dtuData?.branches?.[0]?.semesters) {
+      const found = dtuData.branches[0].semesters.find((s: any) => s.sem === semNum);
+      if (found?.subjects?.length) return found.subjects;
+    }
+    // Fallback: all subjects across all semesters in dtuData
+    const all = dtuData?.branches?.[0]?.semesters?.flatMap((s: any) => s.subjects || []) || [];
+    return Array.from(new Set(all));
+  })();
 
   // Table state
   const [resources, setResources] = useState<DbResource[]>([]);
@@ -114,7 +128,8 @@ function ResourcesManager() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleAdd = async () => {
-    if (!subject.trim() || !fileName.trim() || !fileUrl.trim() || !tabType.trim()) {
+    const finalSubject = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
+    if (!finalSubject || !fileName.trim() || !fileUrl.trim() || !tabType.trim()) {
       show("Subject, Tab Type, File Name and URL are required", false);
       return;
     }
@@ -127,7 +142,7 @@ function ResourcesManager() {
     const finalTabType = tabType.trim();
     setAdding(true);
     const { error } = await supabase.from("resources").insert({
-      subject:   sanitizeText(subject.trim(), 200),
+      subject:   sanitizeText(finalSubject, 200),
       semester:  semester || null,
       tab_type:  sanitizeText(finalTabType, 50),
       file_name: sanitizeText(fileName.trim(), 300),
@@ -138,7 +153,13 @@ function ResourcesManager() {
     setAdding(false);
     if (error) { show("Insert failed: " + error.message, false); return; }
     show("Resource added ✓");
-    setFileName(""); setFileUrl(""); setYear(""); setFileSize(""); setSubject(""); setTabType("");
+    setSubjectSelect("");
+    setCustomSubject("");
+    setFileName("");
+    setFileUrl("");
+    setTabType("");
+    setYear("");
+    setFileSize("");
     fetchAll();
   };
 
@@ -178,14 +199,41 @@ function ResourcesManager() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div>
             <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Semester</label>
-            <select value={semester} onChange={e => setSemester(e.target.value)} className={SEL}>
-              <option value="">— Any —</option>
+            <select
+              value={semester}
+              onChange={e => {
+                setSemester(e.target.value);
+                setSubjectSelect("");
+                setCustomSubject("");
+              }}
+              className={SEL}
+            >
+              <option value="">— Any / All Semesters —</option>
               {SEMESTERS.map(s => <option key={s} value={`${s}${s===1?"st":s===2?"nd":s===3?"rd":"th"} Semester`}>{s}th Sem</option>)}
             </select>
           </div>
           <div>
             <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Subject *</label>
-            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Data Structures" className={INP} />
+            <select
+              value={subjectSelect}
+              onChange={e => setSubjectSelect(e.target.value)}
+              className={SEL}
+            >
+              <option value="">— Select Subject —</option>
+              {availableSubjects.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+              <option value="__CUSTOM__">+ Other (Type Elective / Custom Subject)</option>
+            </select>
+
+            {subjectSelect === "__CUSTOM__" && (
+              <input
+                value={customSubject}
+                onChange={e => setCustomSubject(e.target.value)}
+                placeholder="Type custom or elective subject name..."
+                className={`${INP} mt-2`}
+              />
+            )}
           </div>
           <div>
             <label className="text-[10px] font-bold text-[#bacbbf] uppercase tracking-wider block mb-1">Tab / Section *</label>

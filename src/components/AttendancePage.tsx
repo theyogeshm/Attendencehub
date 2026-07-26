@@ -280,49 +280,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
             </div>
           </div>
 
-          {/* Upcoming targets Goals list */}
-          <div className="glass-card p-6 rounded-2xl">
-            <h4 className="text-[10px] font-bold text-on-surface-variant mb-4 uppercase tracking-widest">Upcoming Attendance Goals</h4>
-            <div className="space-y-5">
-              
-              {/* Goal 1: Scholarship Tier */}
-              <div>
-                <div className="flex mb-1.5 items-center justify-between">
-                  <span className="text-[9px] font-extrabold inline-block py-1 px-2.5 uppercase rounded-full text-secondary-container bg-secondary/10">
-                    Scholarship Tier (85%)
-                  </span>
-                  <span className="text-xs font-bold text-secondary font-mono">
-                    {aggregateAttendance >= 85 ? "Completed ✔" : `${(85 - aggregateAttendance).toFixed(1)}% to go`}
-                  </span>
-                </div>
-                <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-[#171f33]">
-                  <div 
-                    className="shadow-none flex flex-col text-center justify-center bg-secondary rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (aggregateAttendance / 85) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
 
-              {/* Goal 2: Dean's List */}
-              <div>
-                <div className="flex mb-1.5 items-center justify-between">
-                  <span className="text-[9px] font-extrabold inline-block py-1 px-2.5 uppercase rounded-full text-primary-container bg-primary/10">
-                    Dean's List (95%)
-                  </span>
-                  <span className="text-xs font-bold text-primary font-mono">
-                    {aggregateAttendance >= 95 ? "Completed ✔" : `${(95 - aggregateAttendance).toFixed(1)}% to go`}
-                  </span>
-                </div>
-                <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-[#171f33]">
-                  <div 
-                    className="shadow-none flex flex-col text-center justify-center bg-primary rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (aggregateAttendance / 95) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-
-            </div>
-          </div>
 
         </div>
       </div>
