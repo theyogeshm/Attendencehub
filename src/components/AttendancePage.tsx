@@ -105,10 +105,10 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Subject Breakdown Cards Grid (9 of 12) */}
-        <div className="xl:col-span-8 space-y-4">
+        {/* Subject Breakdown Cards Grid (8 of 12) */}
+        <div className="lg:col-span-8 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-bold text-on-surface">Subject Breakdown</h3>
             <div className="flex gap-2">
@@ -202,7 +202,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
 
         {/* Right Calculator Panel & Goal targets Column (4 of 12) */}
-        <div className="xl:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           
           {/* Can I Miss This Class Widget */}
           <div className="glass-card p-6 rounded-2xl border border-primary/20 relative overflow-hidden">
