@@ -49,15 +49,18 @@ CREATE TABLE IF NOT EXISTS public.resources (
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access
-CREATE POLICY "Allow public read access" ON public.resources
-  FOR SELECT USING (true);
+-- Create policies for access
+DROP POLICY IF EXISTS "Allow public read access" ON public.resources;
+CREATE POLICY "Allow public read access" ON public.resources FOR SELECT USING (true);
 
--- Allow public insert and delete
-CREATE POLICY "Allow public insert" ON public.resources
-  FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public delete" ON public.resources
-  FOR DELETE USING (true);
+DROP POLICY IF EXISTS "Allow public insert" ON public.resources;
+CREATE POLICY "Allow public insert" ON public.resources FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public delete" ON public.resources;
+CREATE POLICY "Allow public delete" ON public.resources FOR DELETE USING (true);
+
+-- Reload PostgREST schema cache
+NOTIFY pgrst, 'reload schema';
 `;
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -244,8 +247,13 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     setAdding(false);
 
     if (!inserted && lastError) {
+      const isSchemaErr = lastError.message.includes("schema cache") || lastError.message.includes("does not exist");
       setDbError(lastError.message);
-      show("Insert failed: " + lastError.message, false);
+      if (isSchemaErr) {
+        show("Database table missing in Supabase. Please click 'Copy Setup SQL Script' below and run it in Supabase SQL Editor.", false);
+      } else {
+        show("Insert failed: " + lastError.message, false);
+      }
       return;
     }
 
@@ -300,12 +308,55 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const BTN_PRIMARY = getBtnPrimary(isDarkMode);
   const BTN_SECONDARY = getBtnSecondary(isDarkMode);
 
+  const [showSqlGuide, setShowSqlGuide] = useState(false);
+
   return (
     <div className="space-y-6">
       {toast && (
         <div className={`flex items-center gap-2 p-3 rounded-lg text-sm font-semibold ${toast.ok ? "bg-green-900/40 border border-green-500/40 text-green-300" : "bg-red-900/40 border border-red-500/40 text-red-300"}`}>
           {toast.ok ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
           {toast.msg}
+        </div>
+      )}
+
+      {/* ── Always-Visible or Triggered Supabase Setup Warning Banner ── */}
+      {(dbError || resources.length === 0) && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2.5 font-bold text-sm text-amber-400">
+              <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+              <span>Supabase Database Table Setup Guide</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSqlGuide(!showSqlGuide)}
+                className="px-3 py-1.5 border border-amber-500/40 text-amber-300 font-bold text-xs rounded-lg hover:bg-amber-500/20 transition-colors cursor-pointer"
+              >
+                {showSqlGuide ? "Hide SQL Code" : "View SQL Code"}
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(SETUP_SQL);
+                  show("SQL script copied! Paste into Supabase -> SQL Editor and click Run.");
+                }}
+                className="px-3.5 py-1.5 bg-amber-500 text-slate-950 font-bold text-xs rounded-lg hover:bg-amber-400 transition-colors cursor-pointer shadow-sm"
+              >
+                📋 Copy Setup SQL Script
+              </button>
+            </div>
+          </div>
+
+          <p className="text-xs text-amber-200/90 leading-relaxed">
+            If uploads fail with <code className="bg-amber-950/80 px-1.5 py-0.5 rounded text-amber-300 font-mono">schema cache</code> errors, your Supabase project needs the <code className="bg-amber-950/80 px-1.5 py-0.5 rounded text-amber-300 font-mono">public.resources</code> table created. Click <strong>Copy Setup SQL Script</strong>, open <strong>Supabase Dashboard → SQL Editor</strong>, paste the script and click <strong>Run</strong>.
+          </p>
+
+          {showSqlGuide && (
+            <div className="mt-3 p-3 bg-[#060e20] border border-amber-500/30 rounded-xl overflow-x-auto">
+              <pre className="text-[11px] font-mono text-amber-200 leading-normal whitespace-pre">
+                {SETUP_SQL}
+              </pre>
+            </div>
+          )}
         </div>
       )}
 
