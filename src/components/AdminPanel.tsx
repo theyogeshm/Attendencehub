@@ -110,7 +110,8 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [semester,       setSemester]       = useState<string>("");
   const [subjectSelect,  setSubjectSelect]  = useState<string>("");
   const [customSubject,  setCustomSubject]  = useState<string>("");
-  const [tabType,        setTabType]        = useState<string>("");
+  const [tabSelect,      setTabSelect]      = useState<string>("");
+  const [customTab,      setCustomTab]      = useState<string>("");
   const [fileName,       setFileName]       = useState("");
   const [fileUrl,        setFileUrl]        = useState("");
   const [year,           setYear]           = useState("");
@@ -134,6 +135,14 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [loading,   setLoading]   = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Existing tab types derived from database resources + default presets
+  const availableTabs = (() => {
+    const defaultPresets = ["PYQ", "Notes", "Lab", "Handwritten Notes", "Video Lectures", "Syllabus"];
+    const dbTabs = resources.map(r => r.tab_type).filter(Boolean);
+    const combined = [...defaultPresets, ...dbTabs];
+    return Array.from(new Set(combined));
+  })();
+
   // Filter — free-text search across subject + file name + tab_type
   const [filterQ, setFilterQ] = useState("");
 
@@ -152,7 +161,8 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleAdd = async () => {
     const finalSubject = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
-    if (!finalSubject || !fileName.trim() || !fileUrl.trim() || !tabType.trim()) {
+    const finalTabType = tabSelect === "__CUSTOM__" ? customTab.trim() : tabSelect.trim();
+    if (!finalSubject || !fileName.trim() || !fileUrl.trim() || !finalTabType) {
       show("Subject, Tab Type, File Name and URL are required", false);
       return;
     }
@@ -162,7 +172,6 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
       show("File URL must start with https:// or http://", false);
       return;
     }
-    const finalTabType = tabType.trim();
     setAdding(true);
     const { error } = await supabase.from("resources").insert({
       subject:   sanitizeText(finalSubject, 200),
@@ -178,9 +187,10 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     show("Resource added ✓");
     setSubjectSelect("");
     setCustomSubject("");
+    setTabSelect("");
+    setCustomTab("");
     setFileName("");
     setFileUrl("");
-    setTabType("");
     setYear("");
     setFileSize("");
     fetchAll();
@@ -265,12 +275,26 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
           </div>
           <div>
             <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Tab / Section *</label>
-            <input
-              value={tabType}
-              onChange={e => setTabType(e.target.value)}
-              placeholder="e.g. PYQ, Notes, Lab, Handwritten Notes, Video Lectures"
-              className={INP}
-            />
+            <select
+              value={tabSelect}
+              onChange={e => setTabSelect(e.target.value)}
+              className={SEL}
+            >
+              <option value="">— Select Tab / Section —</option>
+              {availableTabs.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+              <option value="__CUSTOM__">+ Other (Create new section...)</option>
+            </select>
+
+            {tabSelect === "__CUSTOM__" && (
+              <input
+                value={customTab}
+                onChange={e => setCustomTab(e.target.value)}
+                placeholder="Type new section name (e.g. Mid-Term Papers)..."
+                className={`${INP} mt-2`}
+              />
+            )}
           </div>
           <div>
             <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>File Name *</label>
