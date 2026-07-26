@@ -119,13 +119,23 @@ export const FIELD_LIMITS = {
  * policies — the client-side check here is just a UX gate (redirect to 404).
  * Knowing the email doesn't bypass anything; the DB rejects unauthorized writes.
  */
-const ADMIN_EMAIL_ENV: string =
-  (import.meta.env.VITE_ADMIN_EMAIL as string | undefined)?.toLowerCase().trim()
-  || 'yogeshkumarlearner@gmail.com';
+const ADMIN_EMAILS: string[] = (() => {
+  const envVal = (import.meta.env.VITE_ADMIN_EMAIL as string | undefined)?.toLowerCase() ?? "";
+  const parsed = envVal
+    .split(",")
+    .map(e => e.trim())
+    .filter(Boolean);
+
+  if (!parsed.includes("yogeshkumarlearner@gmail.com")) {
+    parsed.push("yogeshkumarlearner@gmail.com");
+  }
+  return parsed;
+})();
 
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
-  return email.toLowerCase().trim() === ADMIN_EMAIL_ENV;
+  const target = email.toLowerCase().trim();
+  return ADMIN_EMAILS.includes(target);
 }
 
 // ── Idle Session Timeout ─────────────────────────────────────────────────────

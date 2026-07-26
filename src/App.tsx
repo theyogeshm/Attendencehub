@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
 import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS } from "./data";
 import dtuData from "../dtu_subjects.json";
@@ -51,6 +52,7 @@ interface StudentProfile {
 export default function App() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [user, setUser] = useState<User | null>(null);
+  const [initialAuthDone, setInitialAuthDone] = useState(false);
 
   // Cache key for profile + subjects + assignments snapshot
   const SESSION_CACHE_KEY = 'DTU_HUB_SESSION_CACHE';
@@ -176,6 +178,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
+      setInitialAuthDone(true);
       if (u) {
         // If we have a valid cache for THIS user, skip the loading screen
         // and do a silent background refresh instead
@@ -191,6 +194,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      setInitialAuthDone(true);
       if (u) {
         const cached = safeLocalStorageGet<{ userId?: string } | null>(SESSION_CACHE_KEY, null);
         const hasCacheForUser = cached?.userId === u.id;
@@ -835,9 +839,15 @@ export default function App() {
   // Unauthenticated or non-admin users are silently redirected to /404
   // ═══════════════════════════════════════════════════════════════════════════
   if (location.pathname === "/admin") {
-    // Still loading auth — show spinner, don't flash 404 prematurely
-    if (authLoading) return null;
-    // Not logged in, or not admin → silent 404 (never confirm the route exists)
+    // Still checking auth session — show spinner, don't flash 404 prematurely
+    if (!initialAuthDone || authLoading) {
+      return (
+        <div className="min-h-screen bg-[#060e20] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#82ffc8]" />
+        </div>
+      );
+    }
+    // Auth resolved: verify user login & admin email
     if (!user || !isAdminEmail(user.email)) {
       return <Navigate to="/404" replace />;
     }
