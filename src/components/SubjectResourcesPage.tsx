@@ -270,40 +270,42 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     <div className="-m-4 sm:-m-6 min-h-screen flex flex-col">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-8 pt-5 pb-0 flex-shrink-0">
+      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0">
 
         {/* Back */}
         <button
           id="back-to-resources-btn"
           onClick={() => navigate("/resources")}
-          className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors mb-4 group cursor-pointer"
+          className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors mb-2.5 group cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
           Back to Resources
         </button>
 
         {/* ── Gradient divider ───────────────────────────────────────────── */}
-        <div className="relative mb-5 h-px">
+        <div className="relative mb-3 h-px">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/60 via-primary/20 to-transparent rounded-full" />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-transparent to-transparent blur-sm rounded-full" />
         </div>
 
         {/* Subject hero */}
-        <div className="flex items-start gap-4 mb-5">
-          <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/5">
-            <span className="material-symbols-outlined text-primary text-[28px]">{icon}</span>
+        <div className="flex items-center gap-3.5 mb-3.5">
+          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
+            <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-black text-on-surface leading-tight">
-              {decodedName}
-            </h1>
-            {subject?.code && (
-              <span className="text-[10px] font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant inline-block mt-0.5">{subject.code}</span>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold text-on-surface leading-tight">
+                {decodedName}
+              </h1>
+              {subject?.code && (
+                <span className="text-[10px] font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">{subject.code}</span>
+              )}
+            </div>
             {subject?.description && (
-              <p className="text-xs text-on-surface-variant mt-1 line-clamp-1">{subject.description}</p>
+              <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{subject.description}</p>
             )}
-            <p className="text-xs text-on-surface-variant/70 mt-1">
+            <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
               {loading
                 ? "Fetching resources..."
                 : resources.length === 0
