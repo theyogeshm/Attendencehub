@@ -50,7 +50,20 @@ interface StudentProfile {
 export default function App() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+
+  // Cache key for profile + subjects + assignments snapshot
+  const SESSION_CACHE_KEY = 'DTU_HUB_SESSION_CACHE';
+
+  // Start with NO loading screen if we already have a cached session.
+  // This runs synchronously before the first render so returning users
+  // never see the spinner at all.
+  const [authLoading, setAuthLoading] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_CACHE_KEY);
+      if (raw) { JSON.parse(raw); return false; } // cache hit → skip spinner
+    } catch { /* ignore bad cache */ }
+    return true; // no cache → show spinner (first-ever login)
+  });
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const location = useLocation();
@@ -163,8 +176,11 @@ export default function App() {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        loadUserData(u);
-        // Start 24-hour idle tracker; if expired already, signs out immediately
+        // If we have a valid cache for THIS user, skip the loading screen
+        // and do a silent background refresh instead
+        const cached = safeLocalStorageGet<{ userId?: string } | null>(SESSION_CACHE_KEY, null);
+        const hasCacheForUser = cached?.userId === u.id;
+        loadUserData(u, hasCacheForUser /* backgroundRefresh */);
         stopIdleTimer = startIdleTimer(doSignOut);
       } else {
         setAuthLoading(false);
@@ -175,8 +191,9 @@ export default function App() {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        loadUserData(u);
-        // Re-arm idle timer when a new session is established (e.g. after OAuth redirect)
+        const cached = safeLocalStorageGet<{ userId?: string } | null>(SESSION_CACHE_KEY, null);
+        const hasCacheForUser = cached?.userId === u.id;
+        loadUserData(u, hasCacheForUser);
         if (stopIdleTimer) stopIdleTimer();
         stopIdleTimer = startIdleTimer(doSignOut);
       } else {
@@ -195,39 +212,79 @@ export default function App() {
   }, []);
 
   // ── Load user data from Supabase ──────────────────────────────────────────
-  const loadUserData = async (u: User) => {
-    setAuthLoading(true);
+  // backgroundRefresh=true → cache already applied, don't show loading screen,
+  //                          just quietly update state when fetch completes.
+  const loadUserData = async (u: User, backgroundRefresh = false) => {
+    // ── Step 1: apply cached data instantly (zero-latency render) ─────────────
+    if (backgroundRefresh) {
+      try {
+        const raw = localStorage.getItem(SESSION_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached.userId === u.id) {
+            if (cached.profile)     setProfile(cached.profile);
+            if (cached.subjects)    setSubjects(cached.subjects);
+            if (cached.assignments) setAssignments(cached.assignments);
+            if (cached.onboardingDone === false) {
+              setShowOnboarding(true);
+              setAuthLoading(false);
+              return; // still need onboarding — don't fetch in background
+            }
+          }
+        }
+      } catch { /* ignore bad cache */ }
+      // Don't show loading screen — data already rendered from cache
+    } else {
+      setAuthLoading(true);
+    }
 
-    const t0 = performance.now();
+    // ── Step 2: fetch fresh data with a 3-second timeout ──────────────────────
+    const TIMEOUT_MS = 3000;
+    const timeout = new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), TIMEOUT_MS));
+
     try {
-      // 1. Fetch profile FIRST — gate everything on onboarding_done
-      const pStart = performance.now();
-      const { data: pData, error: pErr } = await supabase
+      // 1. Fetch profile — gated on onboarding_done
+      const profileFetch = supabase
         .from("profiles")
         .select("*")
         .eq("id", u.id)
         .single();
 
+      const profileResult = await Promise.race([profileFetch, timeout]);
+
+      // If timed out and we already rendered from cache, just give up quietly
+      if (profileResult === 'timeout') {
+        setAuthLoading(false);
+        return;
+      }
+
+      const { data: pData } = profileResult as Awaited<typeof profileFetch>;
 
       if (pData) {
-        setProfile({
+        const freshProfile: StudentProfile = {
           name:     pData.full_name  || u.user_metadata?.full_name || "Student",
           rollNo:   pData.roll_no    || "2K24/---/---",
           branch:   pData.branch     || "Computer Science & Engineering",
           semester: pData.semester   || "2nd Semester",
           section:  pData.section    || "1",
-        });
+        };
+        setProfile(freshProfile);
 
-        // Note: subjects are loaded further below, merged with attendance data in one pass
-
-        // If onboarding not completed, show it and STOP — don't load other data yet
         if (pData.onboarding_done !== true) {
-
           setShowOnboarding(true);
           setAuthLoading(false);
+          // Cache minimal state so next load knows onboarding is pending
+          try {
+            localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
+              userId: u.id,
+              profile: freshProfile,
+              subjects: [],
+              assignments: [],
+              onboardingDone: false,
+            }));
+          } catch { /* ignore */ }
           return;
         }
-
 
       } else {
         // Brand new user — create profile row, trigger onboarding
@@ -239,34 +296,34 @@ export default function App() {
           avatar_url:      u.user_metadata?.avatar_url ?? null,
           onboarding_done: false,
         });
-
         setProfile(prev => ({ ...prev, name: displayName }));
         setShowOnboarding(true);
         setAuthLoading(false);
-        return; // don't load attendance/assignments for new users
+        return;
       }
 
-      // 2 & 3. Fetch Attendance and Assignments IN PARALLEL
-      const parallelStart = performance.now();
-      const [attRes, asgRes] = await Promise.all([
+      // 2 & 3. Fetch Attendance and Assignments IN PARALLEL (also with timeout)
+      const parallelFetch = Promise.all([
         supabase.from("attendance").select("*").eq("user_id", u.id),
         supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
       ]);
+      const parallelResult = await Promise.race([parallelFetch, timeout]);
 
+      // Timed out — use whatever is in state (from cache) and stop loading
+      if (parallelResult === 'timeout') {
+        setAuthLoading(false);
+        return;
+      }
+
+      const [attRes, asgRes] = parallelResult as Awaited<typeof parallelFetch>;
       const attData = attRes.data;
 
-
-
-      // Merge subjects with saved attendance in ONE operation (avoid React batching issue)
-      // attData may have multiple rows per subject (one per date) — aggregate them
+      // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
       if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
         const baseSubjects = subjectNamestoSubjects(pData.subjects);
 
         if (attData && attData.length > 0) {
-          // NEW schema: (user_id, subject, date, status)
-          // Group by subject name, count present rows for attendanceCount,
-          // count all non-leave rows for totalClasses
           const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
           for (const row of attData) {
             const key = (row.subject ?? "").toLowerCase().trim();
@@ -276,16 +333,13 @@ export default function App() {
             if (s !== "leave") agg[key].total_classes += 1;
             if (s === "present") agg[key].attendance_count += 1;
           }
-
           const merged = baseSubjects.map(sub => {
             const key = sub.name.toLowerCase().trim();
             const saved = agg[key];
-            if (saved) {
-              return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
-            }
-            return { ...sub, attendanceCount: 0, totalClasses: 0 };
+            return saved
+              ? { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes }
+              : { ...sub, attendanceCount: 0, totalClasses: 0 };
           });
-
           setSubjects(merged);
           resolvedSubjects = merged;
         } else {
@@ -295,49 +349,61 @@ export default function App() {
         }
       }
 
-      // Populate today's attendance status for dashboard button highlights
       fetchTodayAttendance(u, resolvedSubjects);
 
+      // Process assignments
       const asgData = asgRes.data;
+      const dummyTitles = [
+        "Data Structures Lab Report",
+        "Discrete Maths Problem Set",
+        "Physics Lab Experiment",
+        "ML Assignment 1 — Linear Regression"
+      ];
+      let freshAssignments: Assignment[] = [];
       if (asgData && asgData.length > 0) {
-        // Automatically clean up old dummy assignments from previous versions
-        const dummyTitles = [
-          "Data Structures Lab Report", 
-          "Discrete Maths Problem Set", 
-          "Physics Lab Experiment", 
-          "ML Assignment 1 — Linear Regression"
-        ];
-        
         const validAsgData = asgData.filter(a => {
           if (dummyTitles.includes(a.title)) {
-            // Delete from Supabase in the background
-            supabase.from("assignments").delete().eq("id", a.id).then(({ error }) => {
-
-            });
+            supabase.from("assignments").delete().eq("id", a.id).then(() => {});
             return false;
           }
           return true;
         });
-
         if (validAsgData.length > 0) {
-          setAssignments(
-            validAsgData.map(a => ({
-              id:          a.id,
-              title:       a.title,
-              description: a.description,
-              subject:     a.subject,
-              dueDate:     a.due_date,
-              done:        a.done,
-            }))
-          );
+          freshAssignments = validAsgData.map(a => ({
+            id:          a.id,
+            title:       a.title,
+            description: a.description,
+            subject:     a.subject,
+            dueDate:     a.due_date,
+            done:        a.done,
+          }));
+          setAssignments(freshAssignments);
         } else {
           setAssignments([]);
         }
       }
 
+      // ── Step 3: persist fresh snapshot to cache ────────────────────────────
+      try {
+        const freshProfile: StudentProfile = {
+          name:     pData.full_name  || u.user_metadata?.full_name || "Student",
+          rollNo:   pData.roll_no    || "2K24/---/---",
+          branch:   pData.branch     || "Computer Science & Engineering",
+          semester: pData.semester   || "2nd Semester",
+          section:  pData.section    || "1",
+        };
+        localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
+          userId:         u.id,
+          profile:        freshProfile,
+          subjects:       resolvedSubjects,
+          assignments:    freshAssignments,
+          onboardingDone: true,
+          cachedAt:       Date.now(),
+        }));
+      } catch { /* localStorage full — ignore */ }
 
     } catch (err) {
-
+      // Network error — cache already applied, silently proceed
     } finally {
       setAuthLoading(false);
     }
