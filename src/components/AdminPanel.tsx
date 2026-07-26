@@ -31,6 +31,35 @@ import {
 } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
+const RESOURCE_TABLE_NAMES = ["resources", "subject_resources", "study_resources"];
+
+const SETUP_SQL = `-- Run this in Supabase SQL Editor to create the resources table:
+CREATE TABLE IF NOT EXISTS public.resources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject TEXT NOT NULL,
+  semester TEXT,
+  tab_type TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  year TEXT,
+  file_size TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access
+CREATE POLICY "Allow public read access" ON public.resources
+  FOR SELECT USING (true);
+
+-- Allow public insert and delete
+CREATE POLICY "Allow public insert" ON public.resources
+  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public delete" ON public.resources
+  FOR DELETE USING (true);
+`;
+
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const SECTIONS  = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const DAYS      = ["MON", "TUE", "WED", "THU", "FRI"] as const;
@@ -134,6 +163,7 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [resources, setResources] = useState<DbResource[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [dbError,   setDbError]   = useState<string | null>(null);
 
   // Existing tab types derived from database resources + default presets
   const availableTabs = (() => {
@@ -148,14 +178,27 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("resources")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (!error && data) setResources(data as DbResource[]);
-    else show("Failed to load resources", false);
+    setDbError(null);
+    let lastErr: any = null;
+
+    for (const tableName of RESOURCE_TABLE_NAMES) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setResources(data as DbResource[]);
+        setLoading(false);
+        return;
+      }
+      lastErr = error;
+    }
+
+    if (lastErr) {
+      setDbError(lastErr.message);
+    }
     setLoading(false);
-  }, [show]);
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -172,8 +215,11 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
       show("File URL must start with https:// or http://", false);
       return;
     }
+
     setAdding(true);
-    const { error } = await supabase.from("resources").insert({
+    setDbError(null);
+
+    const payload = {
       subject:   sanitizeText(finalSubject, 200),
       semester:  semester || null,
       tab_type:  sanitizeText(finalTabType, 50),
@@ -181,9 +227,28 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
       file_url:  safeUrl,
       year:      sanitizeText(year.trim(), 10) || null,
       file_size: sanitizeText(fileSize.trim(), 20) || null,
-    });
+    };
+
+    let inserted = false;
+    let lastError: any = null;
+
+    for (const tableName of RESOURCE_TABLE_NAMES) {
+      const { error } = await supabase.from(tableName).insert(payload);
+      if (!error) {
+        inserted = true;
+        break;
+      }
+      lastError = error;
+    }
+
     setAdding(false);
-    if (error) { show("Insert failed: " + error.message, false); return; }
+
+    if (!inserted && lastError) {
+      setDbError(lastError.message);
+      show("Insert failed: " + lastError.message, false);
+      return;
+    }
+
     show("Resource added ✓");
     setSubjectSelect("");
     setCustomSubject("");
@@ -198,9 +263,24 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    const { error } = await supabase.from("resources").delete().eq("id", id);
+    let deleted = false;
+    let lastErr: any = null;
+
+    for (const tableName of RESOURCE_TABLE_NAMES) {
+      const { error } = await supabase.from(tableName).delete().eq("id", id);
+      if (!error) {
+        deleted = true;
+        break;
+      }
+      lastErr = error;
+    }
+
     setDeletingId(null);
-    if (error) { show("Delete failed: " + error.message, false); return; }
+    if (!deleted && lastErr) {
+      show("Delete failed: " + lastErr.message, false);
+      return;
+    }
+
     setResources(prev => prev.filter(r => r.id !== id));
     show("Resource deleted ✓");
   };

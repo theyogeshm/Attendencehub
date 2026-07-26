@@ -122,16 +122,20 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       setResources([]);
       setActiveTab("");
 
-      const { data, error } = await supabase
-        .from("resources")
-        .select("*")
-        .ilike("subject", decodedName)
-        .order("year", { ascending: false });
+      const RESOURCE_TABLE_NAMES = ["resources", "subject_resources", "study_resources"];
+      for (const tableName of RESOURCE_TABLE_NAMES) {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select("*")
+          .ilike("subject", decodedName)
+          .order("year", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        const rows = data as DbResource[];
-        setResources(rows);
-        setActiveTab(rows[0]?.tab_type ?? "");
+        if (!error && data && data.length > 0) {
+          const rows = data as DbResource[];
+          setResources(rows);
+          setActiveTab(rows[0]?.tab_type ?? "");
+          break;
+        }
       }
       setLoading(false);
     })();

@@ -58,14 +58,18 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
     if (subjects.length === 0) { setLoadingCounts(false); return; }
     (async () => {
       setLoadingCounts(true);
-      const { data, error } = await supabase.from("resources").select("subject");
-      if (!error && data) {
-        const map: Record<string, number> = {};
-        data.forEach((row: { subject: string }) => {
-          const key = row.subject.toLowerCase().trim();
-          map[key] = (map[key] ?? 0) + 1;
-        });
-        setCountMap(map);
+      const RESOURCE_TABLE_NAMES = ["resources", "subject_resources", "study_resources"];
+      for (const tableName of RESOURCE_TABLE_NAMES) {
+        const { data, error } = await supabase.from(tableName).select("subject");
+        if (!error && data) {
+          const map: Record<string, number> = {};
+          data.forEach((row: { subject: string }) => {
+            const key = row.subject.toLowerCase().trim();
+            map[key] = (map[key] ?? 0) + 1;
+          });
+          setCountMap(map);
+          break;
+        }
       }
       setLoadingCounts(false);
     })();
