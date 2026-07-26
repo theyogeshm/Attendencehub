@@ -129,7 +129,7 @@ export default function AssignmentsPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column: Form & Dynamic Count Stats (4 of 12) */}
+        {/* Left Column: Form (4 of 12) */}
         <div className="lg:col-span-4 space-y-6">
           
           <section className="glass-card rounded-2xl p-6 sticky top-2">
@@ -142,7 +142,7 @@ export default function AssignmentsPage({
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-mono font-bold text-on-surface-variant mb-1 uppercase">Subject</label>
+                <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Subject</label>
                 <select 
                   value={formSubject}
                   onChange={(e) => setFormSubject(e.target.value)}
@@ -157,7 +157,7 @@ export default function AssignmentsPage({
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-on-surface-variant mb-1 uppercase font-mono">Title</label>
+                <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Title</label>
                 <input 
                   type="text"
                   placeholder="e.g., Process Scheduling Lab"
@@ -168,7 +168,7 @@ export default function AssignmentsPage({
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-on-surface-variant mb-1 uppercase font-mono">Due Date</label>
+                <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Due Date</label>
                 <input 
                   type="date"
                   value={formDueDate}
@@ -178,7 +178,7 @@ export default function AssignmentsPage({
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono font-bold text-on-surface-variant mb-1 uppercase font-mono">Description</label>
+                <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Description</label>
                 <textarea 
                   placeholder="Additional specifications or links..."
                   rows={3}
@@ -197,18 +197,6 @@ export default function AssignmentsPage({
               </button>
             </form>
           </section>
-
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-              <span className="text-3xl font-extrabold text-primary font-mono">{pendingCount}</span>
-              <span className="text-[11px] font-semibold text-on-surface-variant mt-1">Pending</span>
-            </div>
-            <div className="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-              <span className="text-3xl font-extrabold text-secondary font-mono">{completedCount}</span>
-              <span className="text-[11px] font-semibold text-on-surface-variant mt-1">Completed</span>
-            </div>
-          </div>
 
         </div>
 
@@ -329,12 +317,24 @@ export default function AssignmentsPage({
 
             {/* List footer - shows total count */}
             <div className="p-4 text-center bg-[#131b2e]/30 border-t border-outline-variant">
-              <span className="text-[11px] font-mono font-bold text-on-surface-variant">
+              <span className="text-[11px] font-bold text-on-surface-variant">
                 {assignments.filter(a => a.done).length} of {assignments.length} completed
               </span>
             </div>
 
           </section>
+
+          {/* Quick Stats Grid - placed below Timeline */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="glass-card p-5 rounded-2xl flex flex-col items-center justify-center text-center">
+              <span className="text-3xl font-extrabold text-primary">{pendingCount}</span>
+              <span className="text-xs font-semibold text-on-surface-variant mt-1">Pending</span>
+            </div>
+            <div className="glass-card p-5 rounded-2xl flex flex-col items-center justify-center text-center">
+              <span className="text-3xl font-extrabold text-secondary">{completedCount}</span>
+              <span className="text-xs font-semibold text-on-surface-variant mt-1">Completed</span>
+            </div>
+          </div>
 
         </div>
 
