@@ -19,6 +19,7 @@ import {
   Share2,
   Info,
   Layers,
+  ChevronDown,
 } from "lucide-react";
 import { Subject } from "../types";
 import {
@@ -319,10 +320,6 @@ export default function TimetablePage({
             <span className="px-3 py-1 rounded-full text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
               {TIMETABLE_SEM_3_DATA.semester}
             </span>
-            <span className="px-3 py-1 rounded-full text-xs font-medium text-on-surface-variant bg-surface-variant/80 border border-outline-variant/30 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              Effective: {TIMETABLE_SEM_3_DATA.effective_from}
-            </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
@@ -335,7 +332,7 @@ export default function TimetablePage({
           </p>
         </div>
 
-        {/* Section Quick Stats */}
+        {/* Section Quick Stats & Section Switcher */}
         <div className="relative z-10 flex items-center gap-3 self-start md:self-auto">
           <div className="p-3.5 rounded-2xl bg-surface-container/90 border border-outline-variant/40 text-center min-w-[120px]">
             <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Default Room</p>
@@ -344,14 +341,26 @@ export default function TimetablePage({
               {sectionData.room}
             </p>
           </div>
-          <button
-            onClick={handleCopySchedule}
-            className="p-3.5 rounded-2xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-all cursor-pointer flex flex-col items-center justify-center min-w-[80px] active:scale-95"
-            title="Copy entire timetable to clipboard"
-          >
-            <Share2 className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] font-bold">Copy</span>
-          </button>
+
+          <div className="flex flex-col">
+            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
+              Switch Section
+            </label>
+            <div className="relative">
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+                className="py-2 pl-3 pr-8 rounded-2xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs sm:text-sm border border-primary/30 focus:outline-none transition-all cursor-pointer shadow-sm appearance-none"
+              >
+                {SECTION_OPTIONS.map((sec) => (
+                  <option key={sec.id} value={sec.id} className="bg-[#0b1326] text-white font-medium">
+                    {sec.label} ({sec.room})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-primary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
         </div>
       </div>
 
