@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Subject } from "../types";
 import { Calculator, BookOpen, FileText, Calendar, X, Filter, MoreVertical, Award, ArrowUpRight } from "lucide-react";
+import CustomSelect from "./CustomSelect";
 
 interface AttendancePageProps {
   subjects: Subject[];
@@ -100,9 +101,9 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
   // Helper to determine if a grouped base card is Safe (>= 75%)
   const isCardSafe = (card: UnifiedCardData) => {
-    const tRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 100;
-    const lRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 100;
-    const sRate = card.singleSub && card.singleSub.totalClasses > 0 ? (card.singleSub.attendanceCount / card.singleSub.totalClasses) * 100 : 100;
+    const tRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 0;
+    const lRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 0;
+    const sRate = card.singleSub && card.singleSub.totalClasses > 0 ? (card.singleSub.attendanceCount / card.singleSub.totalClasses) * 100 : 0;
 
     const minRate = Math.min(
       card.theorySub ? tRate : 100,
@@ -281,21 +282,20 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
               <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
                 <div>
-                  <label className="text-[10px] font-bold text-on-surface-variant block mb-2 tracking-widest">SELECT SUBJECT</label>
-                  <select 
+                  <label className="text-[10px] font-bold text-on-surface-variant block mb-2 tracking-widest uppercase">SELECT SUBJECT</label>
+                  <CustomSelect
                     value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
-                    className="w-full bg-[#060e20] border border-outline-variant rounded-xl px-4 py-3 text-sm focus:border-primary focus:ring-0 appearance-none text-on-surface cursor-pointer focus:outline-none"
-                  >
-                    {subjects.map((sub) => {
+                    options={subjects.map((sub) => {
                       const pct = sub.totalClasses > 0 ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0) : "0";
-                      return (
-                        <option key={sub.id} value={sub.id} className="bg-[#0b1326] text-on-surface">
-                          {sub.name} ({pct}%)
-                        </option>
-                      );
+                      return {
+                        value: sub.id,
+                        label: sub.name,
+                        badge: `${pct}%`,
+                      };
                     })}
-                  </select>
+                    onChange={(val) => setSelectedSubjectId(val)}
+                    isDarkMode={isDarkMode}
+                  />
                 </div>
 
                 <div>

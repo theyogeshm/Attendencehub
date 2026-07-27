@@ -28,10 +28,12 @@ import {
   parseTimetableEntry,
   TimetableEntry,
 } from "../data/timetableSem3";
+import CustomSelect from "./CustomSelect";
 
 interface TimetablePageProps {
   subjects?: Subject[];
   userSection?: string;
+  isDarkMode?: boolean;
   onMarkAttendance?: (subjectId: string, isPresent: boolean) => void;
   onUpdateSubjectHours?: (subjectId: string, attendanceCount: number, totalClasses: number) => void;
 }
@@ -47,6 +49,7 @@ const DAYS_OF_WEEK = [
 export default function TimetablePage({
   subjects = [],
   userSection = "A1",
+  isDarkMode = true,
   onMarkAttendance,
   onUpdateSubjectHours,
 }: TimetablePageProps) {
@@ -342,24 +345,20 @@ export default function TimetablePage({
             </p>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-[170px]">
             <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
               Switch Section
             </label>
-            <div className="relative">
-              <select
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-                className="py-2 pl-3 pr-8 rounded-2xl bg-emerald-500/15 text-emerald-700 dark:bg-primary/10 dark:text-primary font-bold text-xs sm:text-sm border border-emerald-500/30 dark:border-primary/30 focus:outline-none transition-all cursor-pointer shadow-sm appearance-none"
-              >
-                {SECTION_OPTIONS.map((sec) => (
-                  <option key={sec.id} value={sec.id} className="bg-white text-slate-900 dark:bg-[#0b1326] dark:text-white font-semibold">
-                    {sec.label} ({sec.room})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-primary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <CustomSelect
+              value={selectedSection}
+              options={SECTION_OPTIONS.map((sec) => ({
+                value: sec.id,
+                label: sec.label,
+                badge: sec.room,
+              }))}
+              onChange={(val) => setSelectedSection(val)}
+              isDarkMode={isDarkMode}
+            />
           </div>
         </div>
       </div>
