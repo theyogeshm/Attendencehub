@@ -87,22 +87,30 @@ export default function TimetablePage({
   const sectionData = TIMETABLE_SEM_3_DATA.sections[selectedSection] || TIMETABLE_SEM_3_DATA.sections["A1"];
   const sectionMeta = SECTION_OPTIONS.find((s) => s.id === selectedSection) || SECTION_OPTIONS[0];
 
-  // Helper to match subject in user's enrolled subjects
+  // Helper to match subject in user's enrolled subjects (Theory vs Lab split aware)
   const findMatchingSubject = (entryText: string): Subject | undefined => {
     if (!entryText || !subjects || subjects.length === 0) return undefined;
-    const lower = entryText.toLowerCase();
-    return subjects.find((s) => {
+    const parsed = parseTimetableEntry(entryText, sectionData.room);
+    const targetSplitName = parsed.splitSubjectName.toLowerCase().trim();
+
+    // 1. Exact match on splitSubjectName (e.g. "operating system design (os) - theory")
+    let match = subjects.find(s => s.name.toLowerCase().trim() === targetSplitName);
+    if (match) return match;
+
+    // 2. Base subject + component match
+    match = subjects.find(s => {
       const sName = s.name.toLowerCase().trim();
-      const sCode = s.code.toLowerCase().trim();
-      return (
-        (sCode && lower.includes(sCode)) ||
-        (sName && lower.includes(sName)) ||
-        (sName.includes("operating") && lower.includes("os")) ||
-        (sName.includes("algo") && lower.includes("daa")) ||
-        (sName.includes("logic") && lower.includes("dld")) ||
-        (sName.includes("software") && lower.includes("se")) ||
-        (sName.includes("object") && lower.includes("oop"))
-      );
+      const baseLower = parsed.baseSubjectName.toLowerCase().trim();
+      const compLower = parsed.componentType.toLowerCase();
+      return sName.includes(baseLower) && sName.includes(compLower);
+    });
+    if (match) return match;
+
+    // 3. Fallback to base subject match
+    return subjects.find(s => {
+      const sName = s.name.toLowerCase().trim();
+      const baseLower = parsed.baseSubjectName.toLowerCase().trim();
+      return sName.includes(baseLower);
     });
   };
 
@@ -121,7 +129,7 @@ export default function TimetablePage({
     }
   };
 
-  // Helper for rendering badges by type
+  // Helper for rendering badges by type (Theory vs Lab)
   const getTypeBadge = (entry: TimetableEntry) => {
     if (entry.isLab) {
       return (
@@ -135,14 +143,14 @@ export default function TimetablePage({
       return (
         <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          TUTORIAL
+          TUTORIAL (THEORY)
         </span>
       );
     }
     return (
       <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-        LECTURE
+        THEORY LECTURE
       </span>
     );
   };

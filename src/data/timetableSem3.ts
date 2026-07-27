@@ -5,12 +5,15 @@
 
 export interface TimetableEntry {
   raw: string;
-  subjectName: string;
-  subjectCode: string;
+  subjectName: string;      // Full display name e.g. "Operating System Design (OS) [CS207]"
+  baseSubjectName: string;  // Base name e.g. "Operating System Design (OS)"
+  splitSubjectName: string; // Enrolled split name e.g. "Operating System Design (OS) - Theory" or "... - Lab"
+  subjectCode: string;      // e.g. "CS207"
   faculty: string;
   room: string;
   isLab: boolean;
   isTutorial: boolean;
+  componentType: "Theory" | "Lab";
 }
 
 export interface DaySchedule {
@@ -388,23 +391,28 @@ export const ALL_TIME_SLOTS = [
 ];
 
 /**
- * Helper to parse a slot entry string into structured metadata
+ * Helper to parse a slot entry string into structured metadata with mapped full names & Theory/Lab split names
  */
 export function parseTimetableEntry(raw: string, defaultRoom: string = ""): TimetableEntry {
   if (!raw) {
     return {
       raw: "",
       subjectName: "",
+      baseSubjectName: "",
+      splitSubjectName: "",
       subjectCode: "",
       faculty: "",
       room: "",
       isLab: false,
       isTutorial: false,
+      componentType: "Theory",
     };
   }
 
-  const isLab = raw.toLowerCase().includes("lab");
-  const isTutorial = raw.toLowerCase().includes("tutorial");
+  const lower = raw.toLowerCase();
+  const isLab = lower.includes("lab");
+  const isTutorial = lower.includes("tutorial");
+  const componentType: "Theory" | "Lab" = isLab ? "Lab" : "Theory";
 
   // Extract bracket content for faculty and room
   const bracketMatches = Array.from(raw.matchAll(/\[([^\]]+)\]/g)).map(m => m[1]);
@@ -412,7 +420,6 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   let room = defaultRoom;
 
   if (bracketMatches.length > 0) {
-    // If multiple bracketed strings, check if one looks like a room (e.g. AB4-xxx, Lab, etc.)
     for (const text of bracketMatches) {
       if (text.startsWith("AB4") || text.toLowerCase().includes("lab") || text.toLowerCase().includes("deptt")) {
         room = text;
@@ -422,22 +429,56 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
     }
   }
 
-  // Extract subject name / code
-  let cleanName = raw.replace(/\[[^\]]+\]/g, "").trim();
-  // Strip TH- or Lab- or Tutorial- prefix for subject name display
-  const subjectName = cleanName;
-
-  // Extract subject code if present (e.g. CS209, CS207, CS205, CS203, DA201, DA205, DA207, DA209, CS201)
-  const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|DA\d{3}|ECE-[A-Za-z]+)\b/i);
+  // Extract subject code
+  const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|DA\d{3})\b/i);
   const subjectCode = codeMatch ? codeMatch[1].toUpperCase() : "";
+
+  // Map to standardized full subject name
+  let baseSubjectName = "";
+  if (codeMatch) {
+    const code = codeMatch[1].toUpperCase();
+    if (code.startsWith("CS203")) baseSubjectName = "Object Oriented Programming (OOP)";
+    else if (code.startsWith("CS205")) baseSubjectName = "Algorithm Design and Analysis (DAA)";
+    else if (code.startsWith("CS207")) baseSubjectName = "Operating System Design (OS)";
+    else if (code.startsWith("CS209")) baseSubjectName = "Software Engineering (SE)";
+    else if (code.startsWith("DA201")) baseSubjectName = "Design & Analysis of Algorithm (DAA)";
+    else if (code.startsWith("DA203")) baseSubjectName = "Foundation to Data Science";
+    else if (code.startsWith("DA205")) baseSubjectName = "Linear Algebra";
+    else if (code.startsWith("DA207")) baseSubjectName = "Machine Learning";
+    else if (code.startsWith("DA209")) baseSubjectName = "Computer Organization & OS Design";
+  }
+
+  if (!baseSubjectName) {
+    if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("ece")) {
+      baseSubjectName = "Digital Electronics";
+    } else if (lower.includes("operating system") || lower.includes("os")) {
+      baseSubjectName = "Operating System Design (OS)";
+    } else if (lower.includes("algorithm") || lower.includes("daa")) {
+      baseSubjectName = "Algorithm Design and Analysis (DAA)";
+    } else if (lower.includes("software engineering") || lower.includes("se")) {
+      baseSubjectName = "Software Engineering (SE)";
+    } else if (lower.includes("object oriented") || lower.includes("oop")) {
+      baseSubjectName = "Object Oriented Programming (OOP)";
+    } else {
+      baseSubjectName = raw.replace(/\[[^\]]+\]/g, "").replace(/^(TH-|Lab-|Tutorial-)/i, "").trim();
+    }
+  }
+
+  const splitSubjectName = `${baseSubjectName} - ${componentType}`;
+  const subjectName = subjectCode
+    ? `${baseSubjectName} [${subjectCode}]`
+    : baseSubjectName;
 
   return {
     raw,
     subjectName,
+    baseSubjectName,
+    splitSubjectName,
     subjectCode,
     faculty,
     room,
     isLab,
     isTutorial,
+    componentType,
   };
 }

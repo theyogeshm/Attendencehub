@@ -327,7 +327,27 @@ export default function App() {
       // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
       if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
-        const baseSubjects = subjectNamestoSubjects(pData.subjects);
+        let expandedSubjectsList: string[] = [];
+        for (const name of pData.subjects) {
+          const lower = name.toLowerCase().trim();
+          if (lower.includes("theory") || lower.includes("lab")) {
+            expandedSubjectsList.push(name);
+          } else if (lower.includes("operating system") || lower === "os") {
+            expandedSubjectsList.push("Operating System Design (OS) - Theory", "Operating System Design (OS) - Lab");
+          } else if (lower.includes("algorithm") || lower.includes("daa")) {
+            expandedSubjectsList.push("Algorithm Design and Analysis (DAA) - Theory", "Algorithm Design and Analysis (DAA) - Lab");
+          } else if (lower.includes("object oriented") || lower.includes("oop")) {
+            expandedSubjectsList.push("Object Oriented Programming (OOP) - Theory", "Object Oriented Programming (OOP) - Lab");
+          } else if (lower.includes("software engineering") || lower.includes("se")) {
+            expandedSubjectsList.push("Software Engineering (SE) - Theory", "Software Engineering (SE) - Lab");
+          } else if (lower.includes("digital logic") || lower.includes("digital electronics")) {
+            expandedSubjectsList.push("Digital Electronics - Theory", "Digital Electronics - Lab");
+          } else {
+            expandedSubjectsList.push(name);
+          }
+        }
+        expandedSubjectsList = Array.from(new Set(expandedSubjectsList));
+        const baseSubjects = subjectNamestoSubjects(expandedSubjectsList);
 
         if (attData && attData.length > 0) {
           const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
