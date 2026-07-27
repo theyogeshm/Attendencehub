@@ -227,11 +227,11 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     const payload = {
       subject:   sanitizeText(finalSubject, 200),
       semester:  semester || null,
-      tab_type:  sanitizeText(finalTabType, 50),
+      tab_type:  sanitizeText(finalTabType, 100),
       file_name: sanitizeText(fileName.trim(), 300),
       file_url:  safeUrl,
-      year:      sanitizeText(year.trim(), 10) || null,
-      file_size: sanitizeText(fileSize.trim(), 20) || null,
+      year:      sanitizeText(year.trim(), 100) || null,
+      file_size: sanitizeText(fileSize.trim(), 50) || null,
     };
 
     let inserted = false;
@@ -327,11 +327,11 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     const payload = {
       subject:   sanitizeText(finalSubject, 200),
       semester:  semester || null,
-      tab_type:  sanitizeText(finalTabType, 50),
+      tab_type:  sanitizeText(finalTabType, 100),
       file_name: sanitizeText(fileName.trim(), 300),
       file_url:  safeUrl,
-      year:      sanitizeText(year.trim(), 10) || null,
-      file_size: sanitizeText(fileSize.trim(), 20) || null,
+      year:      sanitizeText(year.trim(), 100) || null,
+      file_size: sanitizeText(fileSize.trim(), 50) || null,
     };
 
     let updated = false;
