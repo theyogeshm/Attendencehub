@@ -560,6 +560,10 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
           <div className="lg:col-span-2">
             <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>File URL * (Drive / YouTube / Direct)</label>
             <input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://drive.google.com/..." className={INP} />
+            <p className="text-[11px] text-amber-400/90 mt-1 flex items-center gap-1 font-medium">
+              <span>💡</span>
+              <span><strong>Google Drive Tip:</strong> Set file sharing to <u>"Anyone with the link" (Viewer)</u> in Google Drive so students can open it without requesting access!</span>
+            </p>
           </div>
           <div>
             <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Sub-Heading / Group (e.g. Assignment 1, Unit 1, 2026)</label>
