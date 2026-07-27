@@ -41,13 +41,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 4. Build — inject secrets as env vars (never stored in code)
+      # 4. Build — inject secrets/vars as env vars (never stored in code)
       - name: Build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
-          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL || vars.VITE_ADMIN_EMAIL }}
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL || vars.VITE_APP_URL }}
         run: npm run build
 
       # 5. Deploy dist/ to gh-pages branch
