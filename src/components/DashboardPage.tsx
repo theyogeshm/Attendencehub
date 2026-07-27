@@ -241,8 +241,8 @@ export default function DashboardPage({
             <div className="space-y-3">
               {(() => {
                 const sorted = [...todayTimetable].sort((a, b) => {
-                  const aMarked = !!todayAttendance[a.id];
-                  const bMarked = !!todayAttendance[b.id];
+                  const aMarked = !!todayAttendance[a.id] || ((a as any).rawSubjectId ? !!todayAttendance[(a as any).rawSubjectId] : false);
+                  const bMarked = !!todayAttendance[b.id] || ((b as any).rawSubjectId ? !!todayAttendance[(b as any).rawSubjectId] : false);
                   if (aMarked !== bMarked) {
                     return aMarked ? 1 : -1;
                   }

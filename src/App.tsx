@@ -515,8 +515,21 @@ export default function App() {
 
   // ── Attendance handler (5 statuses) ──────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
-    const currentSub = subjects.find(s => s.id === subjectId);
-    if (!currentSub) return;
+    let currentSub = subjects.find(s => s.id === subjectId);
+    if (!currentSub) {
+      currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+    }
+    if (!currentSub) {
+      // Dynamic fallback subject matching
+      const cleanName = subjectId.replace(/^sub-/, "").replace(/-/g, " ");
+      currentSub = {
+        id: subjectId,
+        name: cleanName,
+        prof: "Faculty",
+        attendanceCount: 0,
+        totalClasses: 0,
+      };
+    }
     const dateStr = targetDate || new Date().toISOString().split("T")[0];
     const isMarkingToday = dateStr === new Date().toISOString().split("T")[0];
 
@@ -870,7 +883,7 @@ export default function App() {
         const parsed = parseTimetableEntry(partText, secData.room);
         const targetName = parsed.splitSubjectName.toLowerCase().trim();
 
-        const matched = subjects.find(s =>
+        let matched = subjects.find(s =>
           s.name.toLowerCase().trim() === targetName ||
           s.name.toLowerCase().trim().includes(parsed.baseSubjectName.toLowerCase().trim())
         );
@@ -882,6 +895,24 @@ export default function App() {
             time: `${cleanSlot} (${parsed.room || secData.room})`,
             prof: parsed.faculty || matched.prof,
             type: parsed.isLab ? "LAB" : "LEC",
+            timeOrder,
+          });
+        } else {
+          // Construct fallback subject entry so all scheduled classes appear
+          const fallbackId = `sub-${parsed.splitSubjectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+          todayList.push({
+            id: fallbackId,
+            rawSubjectId: fallbackId,
+            name: parsed.splitSubjectName,
+            code: parsed.subjectCode || "CS200",
+            prof: parsed.faculty || "Faculty",
+            room: parsed.room || secData.room,
+            category: "Core",
+            description: parsed.splitSubjectName,
+            time: `${cleanSlot} (${parsed.room || secData.room})`,
+            type: parsed.isLab ? "LAB" : "LEC",
+            attendanceCount: 0,
+            totalClasses: 0,
             timeOrder,
           });
         }
