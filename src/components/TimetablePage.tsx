@@ -107,26 +107,31 @@ export default function TimetablePage({
     if (!entryText || !subjects || subjects.length === 0) return undefined;
     const parsed = parseTimetableEntry(entryText, sectionData.room);
     const targetSplitName = parsed.splitSubjectName.toLowerCase().trim();
+    const baseLower = parsed.baseSubjectName.toLowerCase().trim();
 
-    // 1. Exact match on splitSubjectName (e.g. "operating system design (os) - theory")
+    // 1. Exact match on splitSubjectName
     let match = subjects.find(s => s.name.toLowerCase().trim() === targetSplitName);
     if (match) return match;
 
-    // 2. Base subject + component match
-    match = subjects.find(s => {
-      const sName = s.name.toLowerCase().trim();
-      const baseLower = parsed.baseSubjectName.toLowerCase().trim();
-      const compLower = parsed.componentType.toLowerCase();
-      return sName.includes(baseLower) && sName.includes(compLower);
-    });
+    // 2. Strict Lab vs Theory component match
+    if (parsed.isLab) {
+      match = subjects.find(
+        s =>
+          s.name.toLowerCase().trim().includes(baseLower) &&
+          (s.type === "LAB" || s.name.toLowerCase().includes("lab"))
+      );
+    } else {
+      match = subjects.find(
+        s =>
+          s.name.toLowerCase().trim().includes(baseLower) &&
+          s.type !== "LAB" &&
+          !s.name.toLowerCase().includes("lab")
+      );
+    }
     if (match) return match;
 
     // 3. Fallback to base subject match
-    return subjects.find(s => {
-      const sName = s.name.toLowerCase().trim();
-      const baseLower = parsed.baseSubjectName.toLowerCase().trim();
-      return sName.includes(baseLower);
-    });
+    return subjects.find(s => s.name.toLowerCase().trim().includes(baseLower));
   };
 
   // Quick mark attendance handler

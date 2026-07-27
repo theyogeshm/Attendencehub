@@ -921,11 +921,33 @@ export default function App() {
       parts.forEach((partText) => {
         const parsed = parseTimetableEntry(partText, secData.room);
         const targetName = parsed.splitSubjectName.toLowerCase().trim();
+        const baseLower = parsed.baseSubjectName.toLowerCase().trim();
 
-        let matched = subjects.find(s =>
-          s.name.toLowerCase().trim() === targetName ||
-          s.name.toLowerCase().trim().includes(parsed.baseSubjectName.toLowerCase().trim())
-        );
+        // 1. Exact match on splitSubjectName
+        let matched = subjects.find(s => s.name.toLowerCase().trim() === targetName);
+
+        // 2. Strict Lab vs Theory component match
+        if (!matched) {
+          if (parsed.isLab) {
+            matched = subjects.find(
+              s =>
+                s.name.toLowerCase().trim().includes(baseLower) &&
+                (s.type === "LAB" || s.name.toLowerCase().includes("lab"))
+            );
+          } else {
+            matched = subjects.find(
+              s =>
+                s.name.toLowerCase().trim().includes(baseLower) &&
+                s.type !== "LAB" &&
+                !s.name.toLowerCase().includes("lab")
+            );
+          }
+        }
+
+        // 3. Fallback matching
+        if (!matched) {
+          matched = subjects.find(s => s.name.toLowerCase().trim().includes(baseLower));
+        }
 
         if (matched) {
           todayList.push({

@@ -267,7 +267,7 @@ export default function DashboardPage({
                 return (
                   <div
                     key={sub.id}
-                    className={`glass-card rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all duration-300 ${
+                    className={`glass-card rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all duration-300 relative ${
                       currentStatus
                         ? "border-l-4 " + (
                             currentStatus === "present" ? "border-primary" :
@@ -278,6 +278,12 @@ export default function DashboardPage({
                         : "hover:border-primary/50"
                     }`}
                   >
+                    {currentStatus && statusBadge[currentStatus] && (
+                      <span className={`absolute top-3.5 right-3.5 text-[10px] px-2.5 py-0.5 rounded-full font-extrabold shadow-sm ${statusBadge[currentStatus].cls}`}>
+                        {statusBadge[currentStatus].label}
+                      </span>
+                    )}
+
                     <div className="flex items-center gap-4">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center border border-outline-variant transition-colors ${
                         isLab
@@ -287,7 +293,7 @@ export default function DashboardPage({
                         <span className="material-symbols-outlined text-[22px]">{icon}</span>
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap pr-20 md:pr-0">
                           <h4 className="font-semibold text-sm text-on-surface">{sub.name}</h4>
                           <span className={`text-[9px] px-2 py-0.5 rounded uppercase font-bold font-mono ${
                             isLab
@@ -305,11 +311,6 @@ export default function DashboardPage({
                                 : isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]"
                             }`}>
                               {attPct}%
-                            </span>
-                          )}
-                          {currentStatus && statusBadge[currentStatus] && (
-                            <span className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold ${statusBadge[currentStatus].cls}`}>
-                              {statusBadge[currentStatus].label}
                             </span>
                           )}
                         </div>
