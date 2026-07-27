@@ -1015,7 +1015,19 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Main App
+  // Unauthenticated User -> Render Login Page
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (!user) {
+    return (
+      <LoginPage
+        onToast={showToast}
+        isDarkMode={isDarkMode}
+      />
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Main App (Authenticated)
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#F8F9FA] text-[#111827]"}`}>
@@ -1092,7 +1104,7 @@ export default function App() {
             )}
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-bold text-on-surface truncate">{profile.name}</p>
-              <p className="text-[9px] text-on-surface-variant truncate">{user.email}</p>
+              <p className="text-[9px] text-on-surface-variant truncate">{user?.email ?? ""}</p>
             </div>
             <button
               onClick={() => setConfirmLogout(true)}
