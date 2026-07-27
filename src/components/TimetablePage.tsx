@@ -163,6 +163,14 @@ export default function TimetablePage({
     );
   };
 
+  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">(
+    () => (localStorage.getItem("dtu_lab_group") as any) || "All"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("dtu_lab_group", selectedLabGroup);
+  }, [selectedLabGroup]);
+
   // Render combined lab session formatting
   const renderSlotContent = (rawText: string) => {
     if (!rawText) return null;
@@ -172,25 +180,47 @@ export default function TimetablePage({
       const parts = rawText.split(" / ");
       return (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
               Combined Lab Session ({parts.length} Groups)
             </span>
+            {selectedLabGroup !== "All" && (
+              <span className="text-[9px] font-bold text-emerald-400 font-mono">
+                Showing {selectedLabGroup}
+              </span>
+            )}
           </div>
           <div className="space-y-1.5">
             {parts.map((part, idx) => {
               const parsed = parseTimetableEntry(part, sectionData.room);
+              const isUserGrpMatch =
+                selectedLabGroup !== "All" &&
+                (parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup));
+              const isFacultyTbd = parsed.faculty === "Faculty TBD";
+
               return (
                 <div
                   key={idx}
-                  className="p-2 rounded-xl bg-surface-container/80 border border-outline-variant/30 hover:border-emerald-500/40 transition-all text-xs"
+                  className={`p-2.5 rounded-xl transition-all text-xs border ${
+                    isUserGrpMatch
+                      ? "bg-emerald-500/10 border-emerald-500 ring-1 ring-emerald-500/40 shadow-sm"
+                      : "bg-surface-container/80 border-outline-variant/30 hover:border-emerald-500/40"
+                  }`}
                 >
-                  <p className="font-bold text-on-surface leading-snug break-words">
-                    {parsed.subjectName}
-                  </p>
-                  <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1 gap-2 flex-wrap">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold text-on-surface leading-snug break-words">
+                      {parsed.subjectName}
+                    </p>
+                    {isUserGrpMatch && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-400 text-[#002114]">
+                        YOUR LAB ({selectedLabGroup})
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1.5 gap-2 flex-wrap">
                     {parsed.faculty && (
-                      <span className="flex items-center gap-1 text-primary font-medium">
+                      <span className={`flex items-center gap-1 font-medium ${isFacultyTbd ? "text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded" : "text-primary"}`}>
                         <UserIcon className="w-3 h-3" />
                         {parsed.faculty}
                       </span>
@@ -211,15 +241,29 @@ export default function TimetablePage({
     }
 
     const parsed = parseTimetableEntry(rawText, sectionData.room);
+    const isUserGrpMatch =
+      selectedLabGroup !== "All" &&
+      (parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup));
+    const isFacultyTbd = parsed.faculty === "Faculty TBD";
+
     return (
-      <div className="space-y-2">
+      <div className={`space-y-2 p-2 rounded-xl border ${
+        isUserGrpMatch ? "bg-emerald-500/10 border-emerald-500 ring-1 ring-emerald-500/40" : "border-transparent"
+      }`}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {getTypeBadge(parsed)}
-          {parsed.subjectCode && (
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant border border-outline-variant/30">
-              {parsed.subjectCode}
-            </span>
-          )}
+          <div className="flex items-center gap-1">
+            {isUserGrpMatch && (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-400 text-[#002114]">
+                YOUR LAB ({selectedLabGroup})
+              </span>
+            )}
+            {parsed.subjectCode && (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant border border-outline-variant/30">
+                {parsed.subjectCode}
+              </span>
+            )}
+          </div>
         </div>
 
         <p className="text-xs sm:text-sm font-bold text-on-surface leading-snug break-words">
@@ -228,7 +272,7 @@ export default function TimetablePage({
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant pt-0.5">
           {parsed.faculty && (
-            <span className="flex items-center gap-1 text-primary font-medium">
+            <span className={`flex items-center gap-1 font-medium ${isFacultyTbd ? "text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded" : "text-primary"}`}>
               <UserIcon className="w-3.5 h-3.5" />
               {parsed.faculty}
             </span>
@@ -316,28 +360,48 @@ export default function TimetablePage({
 
         {/* View Mode Toggle & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-          {/* Day / Week View Tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
-            <button
-              onClick={() => setViewMode("week")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                viewMode === "week"
-                  ? "bg-primary text-[#002114] shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              Full Week
-            </button>
-            <button
-              onClick={() => setViewMode("day")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                viewMode === "day"
-                  ? "bg-primary text-[#002114] shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              Day-by-Day
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Day / Week View Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
+              <button
+                onClick={() => setViewMode("week")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === "week"
+                    ? "bg-primary text-[#002114] shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                Full Week
+              </button>
+              <button
+                onClick={() => setViewMode("day")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === "day"
+                    ? "bg-primary text-[#002114] shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                Day-by-Day
+              </button>
+            </div>
+
+            {/* Lab Group Filter Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
+              <span className="text-[10px] font-bold text-on-surface-variant uppercase px-2">Lab Group:</span>
+              {(["All", "G1", "G2", "G3"] as const).map((grp) => (
+                <button
+                  key={grp}
+                  onClick={() => setSelectedLabGroup(grp)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedLabGroup === grp
+                      ? "bg-emerald-400 text-[#002114] shadow-sm scale-105"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  {grp === "All" ? "All" : grp}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Search Bar */}
