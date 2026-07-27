@@ -603,12 +603,51 @@ export default function App() {
     const newAttended = Math.max(0, attended);
     const newTotal    = Math.max(0, total);
 
-    setSubjects(prev =>
-      prev.map(sub => sub.id === id ? { ...sub, attendanceCount: newAttended, totalClasses: newTotal } : sub)
-    );
+    const targetSub = subjects.find(s => s.id === id);
 
-    if (user) {
+    setSubjects(prev => {
+      const updated = prev.map(sub => sub.id === id ? { ...sub, attendanceCount: newAttended, totalClasses: newTotal } : sub);
+      try {
+        localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
+      } catch { /* ignore */ }
+      return updated;
+    });
 
+    if (user && targetSub) {
+      const deltaTotal = newTotal - targetSub.totalClasses;
+      const deltaAttended = newAttended - targetSub.attendanceCount;
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      if (deltaTotal < 0 || deltaAttended < 0) {
+        // UNDO operation: delete latest attendance record for this subject
+        const { data: latest } = await supabase
+          .from("attendance")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("subject", targetSub.name)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (latest && latest.length > 0) {
+          await supabase.from("attendance").delete().eq("id", latest[0].id);
+        }
+      } else if (deltaAttended > 0) {
+        // Manual Present addition
+        await supabase.from("attendance").insert({
+          user_id: user.id,
+          subject: targetSub.name,
+          status: "present",
+          date: todayStr,
+        });
+      } else if (deltaTotal > 0 && deltaAttended === 0) {
+        // Manual Absent addition
+        await supabase.from("attendance").insert({
+          user_id: user.id,
+          subject: targetSub.name,
+          status: "absent",
+          date: todayStr,
+        });
+      }
     }
   };
 

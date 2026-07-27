@@ -45,11 +45,44 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   // Selected subject config logic inside calculator
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
 
-  // Filtered subjects list
-  const filteredSubjects = subjects.filter((s) => {
-    const rate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
-    if (statusFilter === "safe") return rate >= 75;
-    if (statusFilter === "danger") return rate < 75;
+  // Group subjects into Unified Base Cards (e.g., Software Engineering (SE))
+  interface UnifiedCardData {
+    baseName: string;
+    theorySub?: Subject;
+    labSub?: Subject;
+    singleSub?: Subject;
+  }
+
+  const groupedCardsMap = new Map<string, UnifiedCardData>();
+  subjects.forEach(sub => {
+    const isTheory = sub.name.toLowerCase().endsWith("- theory");
+    const isLab = sub.name.toLowerCase().endsWith("- lab");
+    const baseName = sub.name.replace(/ - (Theory|Lab)$/i, "").trim();
+
+    if (!groupedCardsMap.has(baseName)) {
+      groupedCardsMap.set(baseName, { baseName });
+    }
+    const entry = groupedCardsMap.get(baseName)!;
+    if (isTheory) entry.theorySub = sub;
+    else if (isLab) entry.labSub = sub;
+    else entry.singleSub = sub;
+  });
+
+  const groupedCards = Array.from(groupedCardsMap.values());
+
+  const filteredCards = groupedCards.filter(card => {
+    const tRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 100;
+    const lRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 100;
+    const sRate = card.singleSub && card.singleSub.totalClasses > 0 ? (card.singleSub.attendanceCount / card.singleSub.totalClasses) * 100 : 100;
+
+    const minRate = Math.min(
+      card.theorySub ? tRate : 100,
+      card.labSub ? lRate : 100,
+      card.singleSub ? sRate : 100
+    );
+
+    if (statusFilter === "safe") return minRate >= 75;
+    if (statusFilter === "danger") return minRate < 75;
     return true;
   });
 
@@ -117,7 +150,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <h3 className="text-xl font-bold text-on-surface">Subject Breakdown</h3>
-              <span className="text-xs text-on-surface-variant font-mono">({filteredSubjects.length})</span>
+              <span className="text-xs text-on-surface-variant font-mono">({filteredCards.length})</span>
             </div>
 
             {/* Filter Pills Bar */}
@@ -130,7 +163,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
-                All ({subjects.length})
+                All ({groupedCards.length})
               </button>
               <button
                 onClick={() => setStatusFilter("safe")}
@@ -158,113 +191,15 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {filteredSubjects.map((sub) => {
-              const attendanceRate = sub.totalClasses > 0 ? (sub.attendanceCount / sub.totalClasses) * 100 : 0;
-              const isSafe = attendanceRate >= 75;
-              const hasSubInfo = Boolean(sub.prof?.trim() || sub.time?.trim());
-
-              return (
-                <div 
-                  key={sub.id} 
-                  className="glass-card p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="font-bold text-base text-on-surface tracking-tight">{sub.name}</h4>
-                        {hasSubInfo && (
-                          <p className="text-xs text-on-surface-variant mt-1">
-                            {[sub.prof?.trim(), sub.time?.trim()].filter(Boolean).join(" • ")}
-                          </p>
-                        )}
-                      </div>
-                      <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${isSafe ? (isDarkMode ? "bg-primary/10 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
-                        {isSafe ? "Safe" : "Danger"}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-on-surface-variant font-medium">Attendance Rate</span>
-                        <span className={`font-black text-sm ${isSafe ? 'text-primary' : 'text-error'}`}>
-                          {attendanceRate.toFixed(1)}%
-                        </span>
-                      </div>
-
-                      {/* Bar indicator */}
-                      <div className="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden mb-3">
-                        <div 
-                          className={`h-full progress-glow transition-all duration-300 ${isSafe ? (isDarkMode ? "bg-gradient-to-r from-primary to-secondary" : "bg-[#00C896]") : (isDarkMode ? "bg-error" : "bg-[#E53E3E]")}`}
-                          style={{ width: `${Math.min(100, attendanceRate)}%` }}
-                        ></div>
-                      </div>
-
-                      {/* Clear Present / Absent Breakdown Badges */}
-                      <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-surface-container/60 border border-outline-variant/30 text-center">
-                        <div>
-                          <p className="text-[9px] font-bold text-on-surface-variant uppercase">Attended</p>
-                          <p className="text-xs font-extrabold text-primary mt-0.5">{sub.attendanceCount}</p>
-                        </div>
-                        <div className="border-l border-r border-outline-variant/30">
-                          <p className="text-[9px] font-bold text-on-surface-variant uppercase">Missed</p>
-                          <p className="text-xs font-extrabold text-error mt-0.5">{Math.max(0, sub.totalClasses - sub.attendanceCount)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-bold text-on-surface-variant uppercase">Total Held</p>
-                          <p className="text-xs font-extrabold text-on-surface mt-0.5">{sub.totalClasses}</p>
-                        </div>
-                      </div>
-
-                      {/* 1-Tap Attendance Marker Buttons (Pill Capsule Style) */}
-                      <div className="grid grid-cols-3 gap-2 pt-1">
-                        <button 
-                          onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount + 1, sub.totalClasses + 1)}
-                          className="py-2 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
-                          title="Mark Present (+1 Attended, +1 Total)"
-                        >
-                          <span>Present</span>
-                        </button>
-                        <button 
-                          onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount, sub.totalClasses + 1)}
-                          className="py-2 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
-                          title="Mark Absent (+1 Missed, +1 Total)"
-                        >
-                          <span>Absent</span>
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if (sub.totalClasses > 0) {
-                              onUpdateSubjectHours(sub.id, Math.max(0, sub.attendanceCount - 1), Math.max(0, sub.totalClasses - 1));
-                            }
-                          }}
-                          className={`py-2 px-3 rounded-full font-bold text-xs shadow-md transition-all duration-150 flex items-center justify-center gap-1 ${
-                            sub.totalClasses > 0
-                              ? "bg-[#64748b] hover:bg-[#475569] text-white hover:shadow-lg active:scale-95 cursor-pointer"
-                              : "bg-[#475569] text-white/90 cursor-not-allowed opacity-90"
-                          }`}
-                          title="Undo last class entry"
-                        >
-                          <span>Undo</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-outline-variant/30">
-                    <span className="text-[11px] font-semibold text-on-surface-variant">
-                      {isSafe ? "Target (75%) Achieved" : "Attendance below 75%"}
-                    </span>
-                    <button
-                      onClick={() => setDetailSubject(sub)}
-                      className="text-primary text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      <span>Details</span>
-                      <span>→</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredCards.map((card) => (
+              <UnifiedSubjectCard
+                key={card.baseName}
+                card={card}
+                isDarkMode={isDarkMode}
+                onUpdateSubjectHours={onUpdateSubjectHours}
+                onOpenDetails={(sub) => setDetailSubject(sub)}
+              />
+            ))}
           </div>
         </div>
 
@@ -430,6 +365,167 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function UnifiedSubjectCard({
+  card,
+  isDarkMode,
+  onUpdateSubjectHours,
+  onOpenDetails,
+}: {
+  key?: string;
+  card: { baseName: string; theorySub?: Subject; labSub?: Subject; singleSub?: Subject };
+  isDarkMode: boolean;
+  onUpdateSubjectHours: (id: string, attended: number, total: number) => void;
+  onOpenDetails: (sub: Subject) => void;
+}) {
+  const hasBoth = Boolean(card.theorySub && card.labSub);
+  const [activeTab, setActiveTab] = useState<"Theory" | "Lab">(
+    card.theorySub ? "Theory" : card.labSub ? "Lab" : "Theory"
+  );
+
+  const activeSub =
+    activeTab === "Theory"
+      ? (card.theorySub || card.singleSub || card.labSub)
+      : (card.labSub || card.singleSub || card.theorySub);
+
+  if (!activeSub) return null;
+
+  const attendanceRate = activeSub.totalClasses > 0 ? (activeSub.attendanceCount / activeSub.totalClasses) * 100 : 0;
+  const isSafe = attendanceRate >= 75;
+
+  const theoryRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 0;
+  const labRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 0;
+
+  return (
+    <div className="glass-card p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between">
+      <div>
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h4 className="font-bold text-base text-on-surface tracking-tight">{card.baseName}</h4>
+            {hasBoth && (
+              <p className="text-[11px] text-on-surface-variant mt-0.5 font-medium">
+                Theory: <span className={theoryRate >= 75 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{theoryRate.toFixed(0)}%</span> • Lab: <span className={labRate >= 75 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{labRate.toFixed(0)}%</span>
+              </p>
+            )}
+          </div>
+          <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${isSafe ? (isDarkMode ? "bg-primary/10 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
+            {isSafe ? "Safe" : "Danger"}
+          </span>
+        </div>
+
+        {hasBoth && (
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container/80 border border-outline-variant/30 mb-3">
+            <button
+              onClick={() => setActiveTab("Theory")}
+              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === "Theory"
+                  ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span>Theory</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === "Theory" ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
+                {theoryRate.toFixed(0)}%
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("Lab")}
+              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === "Lab"
+                  ? "bg-emerald-400 text-[#002114] shadow-sm scale-[1.02]"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span>Lab</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === "Lab" ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
+                {labRate.toFixed(0)}%
+              </span>
+            </button>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-on-surface-variant font-medium">
+              {hasBoth ? `${activeTab} Attendance Rate` : "Attendance Rate"}
+            </span>
+            <span className={`font-black text-sm ${isSafe ? 'text-primary' : 'text-error'}`}>
+              {attendanceRate.toFixed(1)}%
+            </span>
+          </div>
+
+          <div className="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden mb-3">
+            <div 
+              className={`h-full progress-glow transition-all duration-300 ${isSafe ? (isDarkMode ? "bg-gradient-to-r from-primary to-secondary" : "bg-[#00C896]") : (isDarkMode ? "bg-error" : "bg-[#E53E3E]")}`}
+              style={{ width: `${Math.min(100, attendanceRate)}%` }}
+            ></div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-surface-container/60 border border-outline-variant/30 text-center">
+            <div>
+              <p className="text-[9px] font-bold text-on-surface-variant uppercase">Attended</p>
+              <p className="text-xs font-extrabold text-primary mt-0.5">{activeSub.attendanceCount}</p>
+            </div>
+            <div className="border-l border-r border-outline-variant/30">
+              <p className="text-[9px] font-bold text-on-surface-variant uppercase">Missed</p>
+              <p className="text-xs font-extrabold text-error mt-0.5">{Math.max(0, activeSub.totalClasses - activeSub.attendanceCount)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-on-surface-variant uppercase">Total Held</p>
+              <p className="text-xs font-extrabold text-on-surface mt-0.5">{activeSub.totalClasses}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <button 
+              onClick={() => onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount + 1, activeSub.totalClasses + 1)}
+              className="py-2 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
+              title="Mark Present (+1 Attended, +1 Total)"
+            >
+              <span>Present</span>
+            </button>
+            <button 
+              onClick={() => onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount, activeSub.totalClasses + 1)}
+              className="py-2 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
+              title="Mark Absent (+1 Missed, +1 Total)"
+            >
+              <span>Absent</span>
+            </button>
+            <button 
+              onClick={() => {
+                if (activeSub.totalClasses > 0) {
+                  onUpdateSubjectHours(activeSub.id, Math.max(0, activeSub.attendanceCount - 1), Math.max(0, activeSub.totalClasses - 1));
+                }
+              }}
+              className={`py-2 px-3 rounded-full font-bold text-xs shadow-md transition-all duration-150 flex items-center justify-center gap-1 ${
+                activeSub.totalClasses > 0
+                  ? "bg-[#64748b] hover:bg-[#475569] text-white hover:shadow-lg active:scale-95 cursor-pointer"
+                  : "bg-[#475569] text-white/90 cursor-not-allowed opacity-90"
+              }`}
+              title="Undo last class entry"
+            >
+              <span>Undo</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mt-3 pt-2 border-t border-outline-variant/30">
+        <span className="text-[11px] font-semibold text-on-surface-variant">
+          {isSafe ? "Target (75%) Achieved" : "Attendance below 75%"}
+        </span>
+        <button
+          onClick={() => onOpenDetails(activeSub)}
+          className="text-primary text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
+        >
+          <span>Details</span>
+          <span>→</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -104,10 +104,21 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
 
-  const decodedName = decodeURIComponent(subjectName ?? "");
+  const rawDecoded = decodeURIComponent(subjectName ?? "");
+  const decodedName = rawDecoded.replace(/ - (Theory|Lab)$/i, "").trim();
 
   const subject =
-    subjects.find((s) => s.name.toLowerCase() === decodedName.toLowerCase()) ?? null;
+    subjects.find((s) => s.name.replace(/ - (Theory|Lab)$/i, "").trim().toLowerCase() === decodedName.toLowerCase()) ?? {
+      id: "res-" + decodedName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+      name: decodedName,
+      code: "CS200",
+      prof: "Faculty",
+      room: "AB4",
+      category: "Core",
+      description: decodedName,
+      attendanceCount: 0,
+      totalClasses: 0,
+    };
 
   const [resources, setResources] = useState<DbResource[]>([]);
   const [loading, setLoading]     = useState(true);

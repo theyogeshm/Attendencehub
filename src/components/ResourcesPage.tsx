@@ -75,7 +75,17 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
     })();
   }, [subjects]);
 
-  const filteredSubjects = subjects.filter((s) =>
+  // Deduplicate resources subjects by base subject name so Theory and Lab are unified
+  const displaySubjects = Array.from(
+    new Map(
+      subjects.map((s) => {
+        const baseName = s.name.replace(/ - (Theory|Lab)$/i, "").trim();
+        return [baseName, { ...s, name: baseName }];
+      })
+    ).values()
+  );
+
+  const filteredSubjects = displaySubjects.filter((s) =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
