@@ -225,15 +225,15 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         <div className="flex-1 min-w-0">
           <div
             onClick={() => isLongName && setIsExpanded(!isExpanded)}
-            className={isLongName ? "cursor-pointer select-none" : ""}
+            className={isLongName ? "cursor-pointer select-none sm:cursor-auto" : ""}
           >
             <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
-              !isExpanded && isLongName ? "line-clamp-2" : ""
+              !isExpanded && isLongName ? "line-clamp-2 sm:line-clamp-none" : ""
             }`}>
               {res.file_name}
             </p>
             {isLongName && (
-              <span className="text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
+              <span className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
                 {isExpanded ? "Show less ▲" : "Show more ▼"}
               </span>
             )}
