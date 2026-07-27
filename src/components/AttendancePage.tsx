@@ -15,6 +15,15 @@ interface AttendancePageProps {
   isDarkMode: boolean;
 }
 
+interface UnifiedSubjectCardProps {
+  key?: string;
+  card: { baseName: string; theorySub?: Subject; labSub?: Subject; tutSub?: Subject; singleSub?: Subject };
+  isDarkMode: boolean;
+  mergeAttendance?: boolean;
+  onUpdateSubjectHours: (id: string, attended: number, total: number) => void;
+  onOpenDetails: (sub: Subject) => void;
+}
+
 export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkMode }: AttendancePageProps) {
   const navigate = useNavigate();
 
@@ -25,6 +34,14 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   // Interactive UI Filter & Modal States
   const [statusFilter, setStatusFilter] = useState<"all" | "safe" | "danger">("all");
   const [detailSubject, setDetailSubject] = useState<Subject | null>(null);
+  const [mergeAttendance, setMergeAttendance] = useState<boolean>(() => {
+    return localStorage.getItem("dtu_merge_attendance") === "true";
+  });
+
+  const toggleMergeAttendance = (val: boolean) => {
+    setMergeAttendance(val);
+    localStorage.setItem("dtu_merge_attendance", String(val));
+  };
 
   // Calculate stats based on actual live subjects array!
   const totalClassesAttended = subjects.reduce((sum, s) => sum + s.attendanceCount, 0);
@@ -51,25 +68,31 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
     baseName: string;
     theorySub?: Subject;
     labSub?: Subject;
+    tutSub?: Subject;
     singleSub?: Subject;
   }
 
   const groupedCardsMap = new Map<string, UnifiedCardData>();
   subjects.forEach(sub => {
     const isLab = sub.name.toLowerCase().includes("lab") || sub.type === "LAB";
+    const isTut = sub.name.toLowerCase().includes("tutorial") || sub.type === "TUT";
     const baseName = sub.name
-      .replace(/ - (Theory|Lab)$/i, "")
-      .replace(/ (Theory|Lab)$/i, "")
+      .replace(/ - (Theory|Lab|Tutorial)$/i, "")
+      .replace(/ (Theory|Lab|Tutorial)$/i, "")
       .trim();
 
     if (!groupedCardsMap.has(baseName)) {
       groupedCardsMap.set(baseName, { baseName });
     }
     const entry = groupedCardsMap.get(baseName)!;
-    if (isLab && isLabSubject(baseName)) {
+    if (isLab) {
       entry.labSub = sub;
-    } else {
+    } else if (isTut) {
+      entry.tutSub = sub;
+    } else if (sub.name.toLowerCase().includes("theory") || sub.type === "LEC") {
       entry.theorySub = sub;
+    } else {
+      if (!entry.singleSub) entry.singleSub = sub;
     }
   });
 
@@ -256,6 +279,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                 key={card.baseName}
                 card={card}
                 isDarkMode={isDarkMode}
+                mergeAttendance={mergeAttendance}
                 onUpdateSubjectHours={onUpdateSubjectHours}
                 onOpenDetails={(sub) => setDetailSubject(sub)}
               />
@@ -428,43 +452,56 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   );
 }
 
-function UnifiedSubjectCard({
-  card,
-  isDarkMode,
-  onUpdateSubjectHours,
-  onOpenDetails,
-}: {
-  key?: string;
-  card: { baseName: string; theorySub?: Subject; labSub?: Subject; singleSub?: Subject };
-  isDarkMode: boolean;
-  onUpdateSubjectHours: (id: string, attended: number, total: number) => void;
-  onOpenDetails: (sub: Subject) => void;
-}) {
-  const hasLab = Boolean(card.labSub);
-  const [activeTab, setActiveTab] = useState<"Theory" | "Lab">("Theory");
+function UnifiedSubjectCard(props: UnifiedSubjectCardProps) {
+  const { card, isDarkMode, mergeAttendance = false, onUpdateSubjectHours, onOpenDetails } = props;
+  const availableTabs: ("Theory" | "Tutorial" | "Lab")[] = [];
+  if (card.theorySub) availableTabs.push("Theory");
+  if (card.tutSub) availableTabs.push("Tutorial");
+  if (card.labSub) availableTabs.push("Lab");
+
+  const hasMultipleComponents = availableTabs.length > 1;
+  const [activeTab, setActiveTab] = useState<"Theory" | "Tutorial" | "Lab">(availableTabs[0] || "Theory");
+
+  // Combined totals if merged
+  const allComponents = [card.theorySub, card.tutSub, card.labSub, card.singleSub].filter(Boolean) as Subject[];
+  const mergedAttended = allComponents.reduce((acc, c) => acc + c.attendanceCount, 0);
+  const mergedTotal = allComponents.reduce((acc, c) => acc + c.totalClasses, 0);
+  const mergedRate = mergedTotal > 0 ? (mergedAttended / mergedTotal) * 100 : 0;
 
   const activeSub =
     activeTab === "Lab" && card.labSub
       ? card.labSub
-      : (card.theorySub || card.singleSub || card.labSub);
+      : activeTab === "Tutorial" && card.tutSub
+      ? card.tutSub
+      : (card.theorySub || card.singleSub || card.labSub || card.tutSub);
 
   if (!activeSub) return null;
 
-  const attendanceRate = activeSub.totalClasses > 0 ? (activeSub.attendanceCount / activeSub.totalClasses) * 100 : 0;
+  const currentAttended = mergeAttendance ? mergedAttended : activeSub.attendanceCount;
+  const currentTotal = mergeAttendance ? mergedTotal : activeSub.totalClasses;
+  const attendanceRate = mergeAttendance ? mergedRate : (activeSub.totalClasses > 0 ? (activeSub.attendanceCount / activeSub.totalClasses) * 100 : 0);
   const isSafe = attendanceRate >= 75;
 
-  const theoryRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 0;
-  const labRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 0;
+  const getCompRate = (sub?: Subject) => (sub && sub.totalClasses > 0 ? (sub.attendanceCount / sub.totalClasses) * 100 : 0);
 
   return (
     <div className="glass-card p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h4 className="font-bold text-base text-on-surface tracking-tight">{card.baseName}</h4>
-            {hasLab && (
-              <p className="text-[11px] text-on-surface-variant mt-0.5 font-medium">
-                Theory: <span className={theoryRate >= 75 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{theoryRate.toFixed(0)}%</span> • Lab: <span className={labRate >= 75 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{labRate.toFixed(0)}%</span>
+            <h4 className="font-bold text-base text-on-surface tracking-tight flex items-center gap-2">
+              <span>{card.baseName}</span>
+              {mergeAttendance && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  MERGED
+                </span>
+              )}
+            </h4>
+            {hasMultipleComponents && !mergeAttendance && (
+              <p className="text-[11px] text-on-surface-variant mt-0.5 font-medium flex items-center gap-1.5 flex-wrap">
+                {card.theorySub && <span>Theory: <b className={getCompRate(card.theorySub) >= 75 ? "text-emerald-400" : "text-error"}>{getCompRate(card.theorySub).toFixed(0)}%</b></span>}
+                {card.tutSub && <span>• Tutorial: <b className={getCompRate(card.tutSub) >= 75 ? "text-emerald-400" : "text-error"}>{getCompRate(card.tutSub).toFixed(0)}%</b></span>}
+                {card.labSub && <span>• Lab: <b className={getCompRate(card.labSub) >= 75 ? "text-emerald-400" : "text-error"}>{getCompRate(card.labSub).toFixed(0)}%</b></span>}
               </p>
             )}
           </div>
@@ -473,62 +510,48 @@ function UnifiedSubjectCard({
           </span>
         </div>
 
-        {hasLab && (
-          <div className={`grid grid-cols-2 gap-1.5 p-1 rounded-xl border mb-3 shadow-inner ${
+        {hasMultipleComponents && !mergeAttendance && (
+          <div className={`grid ${availableTabs.length === 3 ? "grid-cols-3" : availableTabs.length === 2 ? "grid-cols-2" : "grid-cols-1"} gap-1.5 p-1 rounded-xl border mb-3 shadow-inner ${
             isDarkMode
               ? "bg-surface-container/80 border-outline-variant/30"
               : "bg-slate-100 border-slate-200/80"
           }`}>
-            <button
-              onClick={() => setActiveTab("Theory")}
-              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === "Theory"
-                  ? isDarkMode
-                    ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
-                    : "bg-[#00C896] text-white shadow-sm scale-[1.02]"
-                  : isDarkMode
-                    ? "text-on-surface-variant hover:text-on-surface"
-                    : "text-slate-700 hover:text-slate-900 font-bold"
-              }`}
-            >
-              <span className="font-bold tracking-wide">Theory</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
-                activeTab === "Theory"
-                  ? isDarkMode ? "bg-[#002114]/20 text-[#002114]" : "bg-black/20 text-white"
-                  : isDarkMode ? "bg-surface-variant text-on-surface-variant" : "bg-slate-200 text-slate-700"
-              }`}>
-                {theoryRate.toFixed(0)}%
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("Lab")}
-              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === "Lab"
-                  ? isDarkMode
-                    ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
-                    : "bg-[#00C896] text-white shadow-sm scale-[1.02]"
-                  : isDarkMode
-                    ? "text-on-surface-variant hover:text-on-surface"
-                    : "text-slate-700 hover:text-slate-900 font-bold"
-              }`}
-            >
-              <span className="font-bold tracking-wide">Lab</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
-                activeTab === "Lab"
-                  ? isDarkMode ? "bg-[#002114]/20 text-[#002114]" : "bg-black/20 text-white"
-                  : isDarkMode ? "bg-surface-variant text-on-surface-variant" : "bg-slate-200 text-slate-700"
-              }`}>
-                {labRate.toFixed(0)}%
-              </span>
-            </button>
+            {availableTabs.map((tab) => {
+              const subComp = tab === "Theory" ? card.theorySub : tab === "Tutorial" ? card.tutSub : card.labSub;
+              const rate = getCompRate(subComp);
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    isActive
+                      ? isDarkMode
+                        ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
+                        : "bg-[#00C896] text-white shadow-sm scale-[1.02]"
+                      : isDarkMode
+                        ? "text-on-surface-variant hover:text-on-surface"
+                        : "text-slate-700 hover:text-slate-900 font-bold"
+                  }`}
+                >
+                  <span>{tab}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-extrabold ${
+                    isActive
+                      ? isDarkMode ? "bg-[#002114]/20 text-[#002114]" : "bg-black/20 text-white"
+                      : isDarkMode ? "bg-surface-variant text-on-surface-variant" : "bg-slate-200 text-slate-700"
+                  }`}>
+                    {rate.toFixed(0)}%
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs">
             <span className="text-on-surface-variant font-medium">
-              {hasLab ? `${activeTab} Attendance Rate` : "Attendance Rate"}
+              {mergeAttendance ? "Combined Attendance Rate" : (hasMultipleComponents ? `${activeTab} Attendance Rate` : "Attendance Rate")}
             </span>
             <span className={`font-black text-sm ${isSafe ? 'text-primary' : 'text-error'}`}>
               {attendanceRate.toFixed(1)}%
@@ -545,28 +568,40 @@ function UnifiedSubjectCard({
           <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-surface-container/60 border border-outline-variant/30 text-center">
             <div>
               <p className="text-[9px] font-bold text-on-surface-variant uppercase">Attended</p>
-              <p className="text-xs font-extrabold text-primary mt-0.5">{activeSub.attendanceCount}</p>
+              <p className="text-xs font-extrabold text-primary mt-0.5">{currentAttended}</p>
             </div>
             <div className="border-l border-r border-outline-variant/30">
               <p className="text-[9px] font-bold text-on-surface-variant uppercase">Missed</p>
-              <p className="text-xs font-extrabold text-error mt-0.5">{Math.max(0, activeSub.totalClasses - activeSub.attendanceCount)}</p>
+              <p className="text-xs font-extrabold text-error mt-0.5">{Math.max(0, currentTotal - currentAttended)}</p>
             </div>
             <div>
               <p className="text-[9px] font-bold text-on-surface-variant uppercase">Total Held</p>
-              <p className="text-xs font-extrabold text-on-surface mt-0.5">{activeSub.totalClasses}</p>
+              <p className="text-xs font-extrabold text-on-surface mt-0.5">{currentTotal}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-1">
             <button 
-              onClick={() => onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount + 1, activeSub.totalClasses + 1)}
+              onClick={() => {
+                if (mergeAttendance) {
+                  allComponents.forEach(c => onUpdateSubjectHours(c.id, c.attendanceCount + 1, c.totalClasses + 1));
+                } else {
+                  onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount + 1, activeSub.totalClasses + 1);
+                }
+              }}
               className="py-2 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
               title="Mark Present (+1 Attended, +1 Total)"
             >
               <span>Present</span>
             </button>
             <button 
-              onClick={() => onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount, activeSub.totalClasses + 1)}
+              onClick={() => {
+                if (mergeAttendance) {
+                  allComponents.forEach(c => onUpdateSubjectHours(c.id, c.attendanceCount, c.totalClasses + 1));
+                } else {
+                  onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount, activeSub.totalClasses + 1);
+                }
+              }}
               className="py-2 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
               title="Mark Absent (+1 Missed, +1 Total)"
             >
@@ -574,16 +609,22 @@ function UnifiedSubjectCard({
             </button>
             <button 
               onClick={() => {
-                if (activeSub.totalClasses > 0) {
+                if (mergeAttendance) {
+                  allComponents.forEach(c => {
+                    if (c.totalClasses > 0) {
+                      onUpdateSubjectHours(c.id, Math.max(0, c.attendanceCount - 1), Math.max(0, c.totalClasses - 1));
+                    }
+                  });
+                } else if (activeSub.totalClasses > 0) {
                   onUpdateSubjectHours(activeSub.id, Math.max(0, activeSub.attendanceCount - 1), Math.max(0, activeSub.totalClasses - 1));
                 }
               }}
               className={`py-2 px-3 rounded-full font-bold text-xs shadow-md transition-all duration-150 flex items-center justify-center gap-1 ${
-                activeSub.totalClasses > 0
+                currentTotal > 0
                   ? "bg-[#64748b] hover:bg-[#475569] text-white hover:shadow-lg active:scale-95 cursor-pointer"
                   : "bg-[#475569] text-white/90 cursor-not-allowed opacity-90"
               }`}
-              title="Undo last class entry"
+              title="Undo last mark"
             >
               <span>Undo</span>
             </button>

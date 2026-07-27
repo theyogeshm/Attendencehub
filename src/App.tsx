@@ -1270,6 +1270,7 @@ export default function App() {
                 <TimetablePage
                   subjects={subjects}
                   userSection={profile.section}
+                  userSemester={profile.semester}
                   isDarkMode={isDarkMode}
                   onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")}
                   onUpdateSubjectHours={handleUpdateSubjectHours}

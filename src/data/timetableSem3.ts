@@ -422,6 +422,10 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
     }
   }
 
+  if (!faculty || faculty.trim() === "") {
+    faculty = "Faculty TBD";
+  }
+
   // Extract subject code
   const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|DA\d{3}|HU301|EE HU301)\b/i);
   const subjectCode = codeMatch ? codeMatch[1].toUpperCase() : "";

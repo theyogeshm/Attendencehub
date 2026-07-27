@@ -38,6 +38,7 @@ import CustomSelect from "./CustomSelect";
 interface TimetablePageProps {
   subjects?: Subject[];
   userSection?: string;
+  userSemester?: string;
   isDarkMode?: boolean;
   onMarkAttendance?: (subjectId: string, isPresent: boolean) => void;
   onUpdateSubjectHours?: (subjectId: string, attendanceCount: number, totalClasses: number) => void;
@@ -54,6 +55,7 @@ const DAYS_OF_WEEK = [
 export default function TimetablePage({
   subjects = [],
   userSection = "A1",
+  userSemester = "3rd Semester",
   isDarkMode = true,
   onMarkAttendance,
   onUpdateSubjectHours,
@@ -65,16 +67,11 @@ export default function TimetablePage({
       ? DAYS_OF_WEEK[currentDayIndex - 1].id
       : "MON";
 
-  // Semester Selection - default based on enrolled subjects or saved setting
-  const [selectedSemester, setSelectedSemester] = useState<number>(() => {
-    const saved = localStorage.getItem("dtu_timetable_semester");
-    if (saved) return parseInt(saved, 10);
+  // Semester Selection - strictly derived from student's enrolled semester
+  const selectedSemester = useMemo(() => {
+    if (userSemester && userSemester.includes("5")) return 5;
     return subjects.some(s => s.name.includes("Compiler") || s.name.includes("Machine Learning")) ? 5 : 3;
-  });
-
-  useEffect(() => {
-    localStorage.setItem("dtu_timetable_semester", String(selectedSemester));
-  }, [selectedSemester]);
+  }, [userSemester, subjects]);
 
   const currentSectionOptions = selectedSemester === 5 ? SECTION_OPTIONS_SEM_5 : SECTION_OPTIONS;
   const currentTimetableData = selectedSemester === 5 ? TIMETABLE_SEM_5_DATA : TIMETABLE_SEM_3_DATA;
@@ -402,29 +399,6 @@ export default function TimetablePage({
             <span className="px-3 py-1 rounded-full text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
               {currentTimetableData.semester}
             </span>
-            {/* Semester Switcher Tabs */}
-            <div className="flex items-center gap-1 bg-surface-container/80 p-1 rounded-xl border border-outline-variant/40">
-              <button
-                onClick={() => setSelectedSemester(3)}
-                className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                  selectedSemester === 3
-                    ? "bg-[#00C896] text-white dark:bg-primary dark:text-[#002114] shadow-sm"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                3rd Sem (CSE)
-              </button>
-              <button
-                onClick={() => setSelectedSemester(5)}
-                className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                  selectedSemester === 5
-                    ? "bg-[#00C896] text-white dark:bg-primary dark:text-[#002114] shadow-sm"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                5th Sem (CSE-V)
-              </button>
-            </div>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
@@ -464,17 +438,6 @@ export default function TimetablePage({
           </div>
         </div>
       </div>
-
-      {/* ── SECTION WARNING NOTE BANNER ── */}
-      {sectionData?.note && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-amber-300 text-xs shadow-sm">
-          <span className="material-symbols-outlined text-xl text-amber-400 shrink-0">warning</span>
-          <div>
-            <span className="font-extrabold text-amber-200 text-sm block">Section Notice ({selectedSection})</span>
-            <p className="mt-0.5 opacity-90 leading-relaxed">{sectionData.note}</p>
-          </div>
-        </div>
-      )}
 
       {/* ── ELECTIVE OVERRIDES PANEL (SEM 5 ONLY) ── */}
       {selectedSemester === 5 && (

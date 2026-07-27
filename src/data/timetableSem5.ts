@@ -560,7 +560,8 @@ export function convertSem5SlotToString(slotVal: any): string {
     const formattedParts = slotVal.map(item => {
       const roomPart = item.venue ? `[${item.venue}]` : (item.room ? `[${item.room}]` : "");
       const groupPart = item.group ? `-${item.group}` : "";
-      return `Lab-${item.subject}${groupPart} [${item.faculty}]${roomPart}`;
+      const fac = item.faculty ? item.faculty : "Faculty TBD";
+      return `Lab-${item.subject}${groupPart} [${fac}]${roomPart}`;
     });
     return formattedParts.join(" / ");
   }
@@ -569,7 +570,8 @@ export function convertSem5SlotToString(slotVal: any): string {
     const formattedParts = slotVal.groups.map((gItem: any) => {
       const roomPart = gItem.venue ? `[${gItem.venue}]` : (gItem.room ? `[${gItem.room}]` : "");
       const groupPart = gItem.group ? `-${gItem.group}` : "";
-      return `${slotVal.subject}${groupPart} [${gItem.faculty}]${roomPart}`;
+      const fac = gItem.faculty ? gItem.faculty : "Faculty TBD";
+      return `${slotVal.subject}${groupPart} [${fac}]${roomPart}`;
     });
     return formattedParts.join(" / ");
   }
@@ -577,11 +579,12 @@ export function convertSem5SlotToString(slotVal: any): string {
   if (typeof slotVal === "object" && slotVal.subject) {
     const roomPart = slotVal.venue ? `[${slotVal.venue}]` : (slotVal.room ? `[${slotVal.room}]` : "");
     const sub = slotVal.subject;
+    const fac = slotVal.faculty ? slotVal.faculty : "Faculty TBD";
     let prefix = "";
     if (!sub.toLowerCase().startsWith("tutorial") && !sub.toLowerCase().includes("lab")) {
       prefix = "TH-";
     }
-    return `${prefix}${sub} [${slotVal.faculty}]${roomPart}`;
+    return `${prefix}${sub} [${fac}]${roomPart}`;
   }
 
   return String(slotVal);
