@@ -176,8 +176,10 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── File card ───────────────────────────────────────────────────────────────
   const FileCard = ({ res }: { res: DbResource }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
     const resIsVideo  = res.tab_type.toLowerCase().includes("video");
     const embedUrl    = resIsVideo ? getYouTubeEmbedUrl(res.file_url) : null;
+    const isLongName  = res.file_name.length > 40;
 
     // YouTube embed
     if (resIsVideo && embedUrl) {
@@ -191,8 +193,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             className="w-full aspect-video"
           />
           <div className="px-4 py-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-on-surface truncate">{res.file_name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-semibold text-on-surface break-words leading-snug">{res.file_name}</p>
               {res.year && <p className="text-[10px] text-on-surface-variant mt-0.5">{res.year}</p>}
             </div>
             <a
@@ -211,20 +213,33 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
     // Standard file card
     return (
-      <div className="group flex items-center gap-4 p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
+      <div className="group flex items-start sm:items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
         {/* Icon */}
-        <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-          <span className="material-symbols-outlined text-primary text-[20px]">
+        <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center mt-0.5 sm:mt-0">
+          <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
             {getTabIcon(res.tab_type)}
           </span>
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-on-surface truncate leading-snug">
-            {res.file_name}
-          </p>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <div
+            onClick={() => isLongName && setIsExpanded(!isExpanded)}
+            className={isLongName ? "cursor-pointer select-none" : ""}
+          >
+            <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
+              !isExpanded && isLongName ? "line-clamp-2" : ""
+            }`}>
+              {res.file_name}
+            </p>
+            {isLongName && (
+              <span className="text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
+                {isExpanded ? "Show less ▲" : "Show more ▼"}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 flex-wrap">
             <span className="text-[9px] font-bold font-mono uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
               {res.tab_type}
             </span>
@@ -246,7 +261,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         </div>
 
         {/* Actions */}
-        <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 self-center">
           <a
             href={res.file_url}
             target="_blank"
