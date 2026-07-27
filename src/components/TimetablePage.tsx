@@ -194,7 +194,10 @@ export default function TimetablePage({
       return (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <span
+              style={isDarkMode ? undefined : { backgroundColor: "#00C896", color: "#ffffff" }}
+              className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shadow-sm dark:bg-emerald-500/15 dark:text-emerald-400 dark:border dark:border-emerald-500/30"
+            >
               Combined Lab Session ({parts.length} Groups)
             </span>
             {selectedLabGroup !== "All" && (
@@ -225,7 +228,10 @@ export default function TimetablePage({
                       {parsed.subjectName}
                     </p>
                     {isUserGrpMatch && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-400 text-[#002114]">
+                      <span
+                        style={isDarkMode ? undefined : { backgroundColor: "#00C896", color: "#ffffff" }}
+                        className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#00C896] dark:bg-emerald-400 dark:text-[#002114]"
+                      >
                         YOUR LAB ({selectedLabGroup})
                       </span>
                     )}
@@ -267,7 +273,10 @@ export default function TimetablePage({
           {getTypeBadge(parsed)}
           <div className="flex items-center gap-1">
             {isUserGrpMatch && (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-400 text-[#002114]">
+              <span
+                style={isDarkMode ? undefined : { backgroundColor: "#00C896", color: "#ffffff" }}
+                className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#00C896] dark:bg-emerald-400 dark:text-[#002114]"
+              >
                 YOUR LAB ({selectedLabGroup})
               </span>
             )}
