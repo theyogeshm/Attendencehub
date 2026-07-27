@@ -20,7 +20,6 @@ export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
     "Operating System Design (OS) - Lab",
     "Software Engineering (SE) - Theory",
     "Software Engineering (SE) - Lab",
-    "Software Engineering (SE) - Tutorial",
     "Digital Electronics - Theory",
     "Digital Electronics - Lab",
   ],

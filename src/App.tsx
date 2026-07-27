@@ -331,7 +331,7 @@ export default function App() {
         let expandedSubjectsList: string[] = [];
         for (const name of pData.subjects) {
           const lower = name.toLowerCase().trim();
-          if (lower.includes("theory") || lower.includes("lab") || lower.includes("tutorial")) {
+          if (lower.includes("theory") || lower.includes("lab")) {
             expandedSubjectsList.push(name);
           } else if (lower.includes("operating system") || lower === "os") {
             expandedSubjectsList.push("Operating System Design (OS) - Theory", "Operating System Design (OS) - Lab");
@@ -340,7 +340,7 @@ export default function App() {
           } else if (lower.includes("object oriented") || lower.includes("oop")) {
             expandedSubjectsList.push("Object Oriented Programming (OOP) - Theory", "Object Oriented Programming (OOP) - Lab");
           } else if (lower.includes("software engineering") || lower.includes("se")) {
-            expandedSubjectsList.push("Software Engineering (SE) - Theory", "Software Engineering (SE) - Lab", "Software Engineering (SE) - Tutorial");
+            expandedSubjectsList.push("Software Engineering (SE) - Theory", "Software Engineering (SE) - Lab");
           } else if (lower.includes("digital logic") || lower.includes("digital electronics")) {
             expandedSubjectsList.push("Digital Electronics - Theory", "Digital Electronics - Lab");
           } else {

@@ -50,7 +50,6 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
     baseName: string;
     theorySub?: Subject;
     labSub?: Subject;
-    tutorialSub?: Subject;
     singleSub?: Subject;
   }
 
@@ -58,8 +57,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   subjects.forEach(sub => {
     const isTheory = sub.name.toLowerCase().endsWith("- theory");
     const isLab = sub.name.toLowerCase().endsWith("- lab");
-    const isTutorial = sub.name.toLowerCase().endsWith("- tutorial");
-    const baseName = sub.name.replace(/ - (Theory|Lab|Tutorial)$/i, "").trim();
+    const baseName = sub.name.replace(/ - (Theory|Lab)$/i, "").trim();
 
     if (!groupedCardsMap.has(baseName)) {
       groupedCardsMap.set(baseName, { baseName });
@@ -67,7 +65,6 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
     const entry = groupedCardsMap.get(baseName)!;
     if (isTheory) entry.theorySub = sub;
     else if (isLab) entry.labSub = sub;
-    else if (isTutorial) entry.tutorialSub = sub;
     else entry.singleSub = sub;
   });
 
@@ -76,13 +73,11 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   const filteredCards = groupedCards.filter(card => {
     const tRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 100;
     const lRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 100;
-    const tutRate = card.tutorialSub && card.tutorialSub.totalClasses > 0 ? (card.tutorialSub.attendanceCount / card.tutorialSub.totalClasses) * 100 : 100;
     const sRate = card.singleSub && card.singleSub.totalClasses > 0 ? (card.singleSub.attendanceCount / card.singleSub.totalClasses) * 100 : 100;
 
     const minRate = Math.min(
       card.theorySub ? tRate : 100,
       card.labSub ? lRate : 100,
-      card.tutorialSub ? tutRate : 100,
       card.singleSub ? sRate : 100
     );
 
@@ -381,47 +376,26 @@ function UnifiedSubjectCard({
   onOpenDetails,
 }: {
   key?: string;
-  card: { baseName: string; theorySub?: Subject; labSub?: Subject; tutorialSub?: Subject; singleSub?: Subject };
+  card: { baseName: string; theorySub?: Subject; labSub?: Subject; singleSub?: Subject };
   isDarkMode: boolean;
   onUpdateSubjectHours: (id: string, attended: number, total: number) => void;
   onOpenDetails: (sub: Subject) => void;
 }) {
-  const availableTypes: ("Theory" | "Lab" | "Tutorial")[] = [];
-  if (card.theorySub) availableTypes.push("Theory");
-  if (card.labSub) availableTypes.push("Lab");
-  if (card.tutorialSub) availableTypes.push("Tutorial");
-
-  const hasMultiple = availableTypes.length > 1;
-
-  const [activeTab, setActiveTab] = useState<"Theory" | "Lab" | "Tutorial">(
-    availableTypes[0] || "Theory"
-  );
+  const hasLab = Boolean(card.labSub);
+  const [activeTab, setActiveTab] = useState<"Theory" | "Lab">("Theory");
 
   const activeSub =
-    activeTab === "Theory"
-      ? (card.theorySub || card.singleSub || card.labSub || card.tutorialSub)
-      : activeTab === "Lab"
-      ? (card.labSub || card.singleSub || card.theorySub || card.tutorialSub)
-      : (card.tutorialSub || card.singleSub || card.theorySub || card.labSub);
+    activeTab === "Lab" && card.labSub
+      ? card.labSub
+      : (card.theorySub || card.singleSub || card.labSub);
 
   if (!activeSub) return null;
 
   const attendanceRate = activeSub.totalClasses > 0 ? (activeSub.attendanceCount / activeSub.totalClasses) * 100 : 0;
   const isSafe = attendanceRate >= 75;
 
-  const summaryParts: string[] = [];
-  if (card.theorySub) {
-    const r = card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 0;
-    summaryParts.push(`Theory: ${r.toFixed(0)}%`);
-  }
-  if (card.labSub) {
-    const r = card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 0;
-    summaryParts.push(`Lab: ${r.toFixed(0)}%`);
-  }
-  if (card.tutorialSub) {
-    const r = card.tutorialSub.totalClasses > 0 ? (card.tutorialSub.attendanceCount / card.tutorialSub.totalClasses) * 100 : 0;
-    summaryParts.push(`Tutorial: ${r.toFixed(0)}%`);
-  }
+  const theoryRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 0;
+  const labRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 0;
 
   return (
     <div className="glass-card p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between">
@@ -429,52 +403,53 @@ function UnifiedSubjectCard({
         <div className="flex justify-between items-start mb-3">
           <div>
             <h4 className="font-bold text-base text-on-surface tracking-tight">{card.baseName}</h4>
-            {hasMultiple && (
+            {hasLab && (
               <p className="text-[11px] text-on-surface-variant mt-0.5 font-medium">
-                {summaryParts.join(" • ")}
+                Theory: <span className={theoryRate >= 75 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{theoryRate.toFixed(0)}%</span> • Lab: <span className={labRate >= 75 ? "text-emerald-400 font-bold" : "text-error font-bold"}>{labRate.toFixed(0)}%</span>
               </p>
             )}
           </div>
-          <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${isSafe ? (isDarkMode ? "bg-primary/10 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/10 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
+          <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${isSafe ? (isDarkMode ? "bg-[#00e1a1]/20 text-[#47ffbc]" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/20 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
             {isSafe ? "Safe" : "Danger"}
           </span>
         </div>
 
-        {hasMultiple && (
-          <div className={`grid gap-1.5 p-1 rounded-xl bg-surface-container/80 border border-outline-variant/30 mb-3 ${availableTypes.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
-            {availableTypes.map((type) => {
-              const subObj = type === "Theory" ? card.theorySub : type === "Lab" ? card.labSub : card.tutorialSub;
-              const rate = subObj && subObj.totalClasses > 0 ? (subObj.attendanceCount / subObj.totalClasses) * 100 : 0;
-              const isActive = activeTab === type;
+        {hasLab && (
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container/80 border border-outline-variant/30 mb-3">
+            <button
+              onClick={() => setActiveTab("Theory")}
+              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === "Theory"
+                  ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span>Theory</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === "Theory" ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
+                {theoryRate.toFixed(0)}%
+              </span>
+            </button>
 
-              return (
-                <button
-                  key={type}
-                  onClick={() => setActiveTab(type)}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                    isActive
-                      ? type === "Theory"
-                        ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
-                        : type === "Lab"
-                        ? "bg-emerald-400 text-[#002114] shadow-sm scale-[1.02]"
-                        : "bg-purple-400 text-[#002114] shadow-sm scale-[1.02]"
-                      : "text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <span>{type}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
-                    {rate.toFixed(0)}%
-                  </span>
-                </button>
-              );
-            })}
+            <button
+              onClick={() => setActiveTab("Lab")}
+              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === "Lab"
+                  ? "bg-emerald-400 text-[#002114] shadow-sm scale-[1.02]"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span>Lab</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === "Lab" ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
+                {labRate.toFixed(0)}%
+              </span>
+            </button>
           </div>
         )}
 
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs">
             <span className="text-on-surface-variant font-medium">
-              {hasMultiple ? `${activeTab} Attendance Rate` : "Attendance Rate"}
+              {hasLab ? `${activeTab} Attendance Rate` : "Attendance Rate"}
             </span>
             <span className={`font-black text-sm ${isSafe ? 'text-primary' : 'text-error'}`}>
               {attendanceRate.toFixed(1)}%
