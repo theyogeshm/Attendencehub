@@ -184,58 +184,75 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-on-surface-variant">Attendance Count</span>
-                        <span className="text-on-surface font-bold">{sub.attendanceCount} / {sub.totalClasses}</span>
-                      </div>
-                      
-                      {/* Interactive adjustment controls directly in card */}
-                      <div className="flex py-1.5 items-center justify-between gap-1 border-t border-b border-outline-variant/30 my-2">
-                        <span className="text-[10px] uppercase text-on-surface-variant">Adjust Hours</span>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            disabled={sub.attendanceCount <= 0}
-                            onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount - 1, sub.totalClasses - 1)}
-                            className="w-6 h-6 rounded bg-[#0b1326] hover:bg-surface-variant text-xs font-bold disabled:opacity-40 transition-colors cursor-pointer flex items-center justify-center border border-outline-variant"
-                            title="Decrement hour"
-                          >
-                            -
-                          </button>
-                          <span className="text-xs font-mono font-bold text-primary">{sub.attendanceCount}</span>
-                          <button 
-                            onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount + 1, sub.totalClasses + 1)}
-                            className="w-6 h-6 rounded bg-[#0b1326] hover:bg-surface-variant text-xs font-bold transition-colors cursor-pointer flex items-center justify-center border border-outline-variant"
-                            title="Increment hour"
-                          >
-                            +
-                          </button>
-                          
-                          <span className="text-xs font-mono text-on-surface-variant">/</span>
-
-                          <span className="text-xs font-mono font-bold text-on-surface">{sub.totalClasses}</span>
-                          <button 
-                            onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount, sub.totalClasses + 1)}
-                            className="w-6 h-6 rounded bg-[#0b1326] hover:bg-surface-variant text-xs font-bold transition-colors cursor-pointer flex items-center justify-center border border-outline-variant"
-                            title="Add total class only"
-                          >
-                            +T
-                          </button>
-                        </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-on-surface-variant font-medium">Attendance Rate</span>
+                        <span className={`font-black text-sm ${isSafe ? 'text-primary' : 'text-error'}`}>
+                          {attendanceRate.toFixed(1)}%
+                        </span>
                       </div>
 
                       {/* Bar indicator */}
-                      <div className="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden mb-3">
                         <div 
                           className={`h-full progress-glow transition-all duration-300 ${isSafe ? (isDarkMode ? "bg-gradient-to-r from-primary to-secondary" : "bg-[#00C896]") : (isDarkMode ? "bg-error" : "bg-[#E53E3E]")}`}
                           style={{ width: `${Math.min(100, attendanceRate)}%` }}
                         ></div>
                       </div>
+
+                      {/* Clear Present / Absent Breakdown Badges */}
+                      <div className="grid grid-cols-3 gap-2 my-2.5 p-2 rounded-xl bg-surface-container/60 border border-outline-variant/30 text-center">
+                        <div>
+                          <p className="text-[9px] font-bold text-on-surface-variant uppercase">Attended</p>
+                          <p className="text-xs font-extrabold text-primary mt-0.5">{sub.attendanceCount}</p>
+                        </div>
+                        <div className="border-l border-r border-outline-variant/30">
+                          <p className="text-[9px] font-bold text-on-surface-variant uppercase">Missed</p>
+                          <p className="text-xs font-extrabold text-error mt-0.5">{Math.max(0, sub.totalClasses - sub.attendanceCount)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-on-surface-variant uppercase">Total Held</p>
+                          <p className="text-xs font-extrabold text-on-surface mt-0.5">{sub.totalClasses}</p>
+                        </div>
+                      </div>
+
+                      {/* 1-Tap Attendance Marker Buttons */}
+                      <div className="grid grid-cols-3 gap-1.5 pt-1">
+                        <button 
+                          onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount + 1, sub.totalClasses + 1)}
+                          className="py-1.5 px-2 rounded-xl bg-primary/10 border border-primary/30 text-primary font-bold text-xs hover:bg-primary/20 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                          title="Mark Present (+1 Attended, +1 Total)"
+                        >
+                          <span>🟢</span>
+                          <span>Present</span>
+                        </button>
+                        <button 
+                          onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount, sub.totalClasses + 1)}
+                          className="py-1.5 px-2 rounded-xl bg-error/10 border border-error/30 text-error font-bold text-xs hover:bg-error/20 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                          title="Mark Absent (+1 Missed, +1 Total)"
+                        >
+                          <span>🔴</span>
+                          <span>Absent</span>
+                        </button>
+                        <button 
+                          disabled={sub.totalClasses <= 0}
+                          onClick={() => {
+                            if (sub.totalClasses > 0) {
+                              onUpdateSubjectHours(sub.id, Math.max(0, sub.attendanceCount - 1), Math.max(0, sub.totalClasses - 1));
+                            }
+                          }}
+                          className="py-1.5 px-2 rounded-xl bg-surface-variant/50 border border-outline-variant/40 text-on-surface-variant font-bold text-xs hover:text-on-surface disabled:opacity-40 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          title="Undo last class entry"
+                        >
+                          <span>🔄</span>
+                          <span>Undo</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center mt-4 pt-1">
-                    <span className={`text-2xl font-extrabold tracking-tight ${isSafe ? 'text-primary' : 'text-error'}`}>
-                      {attendanceRate.toFixed(0)}%
+                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-outline-variant/30">
+                    <span className="text-[11px] font-semibold text-on-surface-variant">
+                      {isSafe ? "Target (75%) Achieved" : "Attendance below 75%"}
                     </span>
                     <button
                       onClick={() => setDetailSubject(sub)}
