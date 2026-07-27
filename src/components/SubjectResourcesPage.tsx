@@ -180,7 +180,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     // YouTube embed
     if (resIsVideo && embedUrl) {
       return (
-        <div className="rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-high">
+        <div className="rounded-2xl overflow-hidden glass-card border border-outline-variant shadow-sm">
           <iframe
             src={embedUrl}
             title={res.file_name}
@@ -209,7 +209,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
     // Standard file card
     return (
-      <div className="group flex items-center gap-4 p-4 rounded-2xl border border-outline-variant bg-surface-container-high hover:border-primary/40 hover:bg-surface-container transition-all duration-200">
+      <div className="group flex items-center gap-4 p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
         {/* Icon */}
         <div className={`flex-shrink-0 w-11 h-11 rounded-xl ${color.bg} flex items-center justify-center`}>
           <span className={`material-symbols-outlined ${color.accent} text-[20px]`}>
