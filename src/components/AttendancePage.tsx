@@ -48,16 +48,16 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   // Helper: check if a subject has a lab component
   const isLabSubject = (name: string) => {
     const lower = name.toLowerCase();
+    if (lower.includes("object oriented") || lower.includes("software engineering")) {
+      return false;
+    }
     return (
       lower.includes("operating system") ||
-      lower.includes("object oriented") ||
       lower.includes("algorithm") ||
-      lower.includes("software engineering") ||
       lower.includes("digital") ||
       lower.includes("machine learning") ||
       lower.includes("data science") ||
-      lower.includes("computer organization") ||
-      lower.includes("lab")
+      lower.includes("computer organization")
     );
   };
 
@@ -81,7 +81,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
       groupedCardsMap.set(baseName, { baseName });
     }
     const entry = groupedCardsMap.get(baseName)!;
-    if (isLab) {
+    if (isLab && isLabSubject(baseName)) {
       entry.labSub = sub;
     } else {
       entry.theorySub = sub;
@@ -107,6 +107,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           type: "LAB",
         };
       }
+    } else {
+      entry.labSub = undefined;
     }
   });
 
