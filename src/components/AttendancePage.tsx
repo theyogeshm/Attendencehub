@@ -195,37 +195,55 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
             </div>
 
             {/* Filter Pills Bar */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto shadow-sm">
+            <div className={`flex items-center gap-1 p-1 rounded-2xl border shadow-sm ${
+              isDarkMode
+                ? "bg-surface-container border-outline-variant/50"
+                : "bg-slate-100 border-slate-200/80"
+            }`}>
               <button
                 onClick={() => setStatusFilter("all")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   statusFilter === "all"
-                    ? "bg-emerald-600 dark:bg-primary text-white dark:text-[#002114] shadow-sm scale-[1.02]"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    ? isDarkMode
+                      ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
+                      : "bg-[#00C896] text-white shadow-sm scale-[1.02]"
+                    : isDarkMode
+                      ? "text-on-surface-variant hover:text-on-surface"
+                      : "text-slate-700 hover:text-slate-900"
                 }`}
               >
                 All ({groupedCards.length})
               </button>
+
               <button
                 onClick={() => setStatusFilter("safe")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                   statusFilter === "safe"
-                    ? "bg-emerald-600 dark:bg-emerald-500/30 text-white dark:text-[#47ffbc] border border-emerald-600 dark:border-emerald-500/40 shadow-sm scale-[1.02]"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    ? isDarkMode
+                      ? "bg-primary/20 text-[#47ffbc] border border-primary/40 shadow-sm scale-[1.02]"
+                      : "bg-[#D1FAE5] text-[#065F46] border border-[#065F46]/30 shadow-sm scale-[1.02]"
+                    : isDarkMode
+                      ? "text-on-surface-variant hover:text-on-surface"
+                      : "text-slate-700 hover:text-slate-900"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${statusFilter === "safe" ? "bg-white dark:bg-[#47ffbc]" : "bg-emerald-500"}`} />
+                <span className={`w-2 h-2 rounded-full ${statusFilter === "safe" ? "bg-[#00C896]" : "bg-emerald-500"}`} />
                 <span>Safe ({safeCount})</span>
               </button>
+
               <button
                 onClick={() => setStatusFilter("danger")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                   statusFilter === "danger"
-                    ? "bg-red-600 dark:bg-error/30 text-white dark:text-error border border-red-600 dark:border-error/40 shadow-sm scale-[1.02]"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    ? isDarkMode
+                      ? "bg-error/20 text-error border border-error/40 shadow-sm scale-[1.02]"
+                      : "bg-[#FEE2E2] text-[#991B1B] border border-[#991B1B]/30 shadow-sm scale-[1.02]"
+                    : isDarkMode
+                      ? "text-on-surface-variant hover:text-on-surface"
+                      : "text-slate-700 hover:text-slate-900"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${statusFilter === "danger" ? "bg-white dark:bg-error" : "bg-red-500"}`} />
+                <span className={`w-2 h-2 rounded-full ${statusFilter === "danger" ? "bg-red-500" : "bg-red-400"}`} />
                 <span>At Risk ({dangerCount})</span>
               </button>
             </div>
@@ -456,17 +474,29 @@ function UnifiedSubjectCard({
         </div>
 
         {hasLab && (
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-300/80 dark:border-slate-700/50 mb-3 shadow-inner">
+          <div className={`grid grid-cols-2 gap-1.5 p-1 rounded-xl border mb-3 shadow-inner ${
+            isDarkMode
+              ? "bg-surface-container/80 border-outline-variant/30"
+              : "bg-slate-100 border-slate-200/80"
+          }`}>
             <button
               onClick={() => setActiveTab("Theory")}
               className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === "Theory"
-                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-sm scale-[1.02]"
-                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  ? isDarkMode
+                    ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
+                    : "bg-[#00C896] text-white shadow-sm scale-[1.02]"
+                  : isDarkMode
+                    ? "text-on-surface-variant hover:text-on-surface"
+                    : "text-slate-700 hover:text-slate-900 font-bold"
               }`}
             >
-              <span className={`font-bold tracking-wide ${activeTab === "Theory" ? "text-white" : "text-slate-800 dark:text-slate-200"}`}>Theory</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${activeTab === "Theory" ? "bg-black/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
+              <span className="font-bold tracking-wide">Theory</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                activeTab === "Theory"
+                  ? isDarkMode ? "bg-[#002114]/20 text-[#002114]" : "bg-black/20 text-white"
+                  : isDarkMode ? "bg-surface-variant text-on-surface-variant" : "bg-slate-200 text-slate-700"
+              }`}>
                 {theoryRate.toFixed(0)}%
               </span>
             </button>
@@ -475,12 +505,20 @@ function UnifiedSubjectCard({
               onClick={() => setActiveTab("Lab")}
               className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === "Lab"
-                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-sm scale-[1.02]"
-                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  ? isDarkMode
+                    ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
+                    : "bg-[#00C896] text-white shadow-sm scale-[1.02]"
+                  : isDarkMode
+                    ? "text-on-surface-variant hover:text-on-surface"
+                    : "text-slate-700 hover:text-slate-900 font-bold"
               }`}
             >
-              <span className={`font-bold tracking-wide ${activeTab === "Lab" ? "text-white" : "text-slate-800 dark:text-slate-200"}`}>Lab</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${activeTab === "Lab" ? "bg-black/20 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
+              <span className="font-bold tracking-wide">Lab</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                activeTab === "Lab"
+                  ? isDarkMode ? "bg-[#002114]/20 text-[#002114]" : "bg-black/20 text-white"
+                  : isDarkMode ? "bg-surface-variant text-on-surface-variant" : "bg-slate-200 text-slate-700"
+              }`}>
                 {labRate.toFixed(0)}%
               </span>
             </button>
