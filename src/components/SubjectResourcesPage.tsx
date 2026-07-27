@@ -148,11 +148,6 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     if (!tabList.includes(r.tab_type)) tabList.push(r.tab_type);
   }
 
-  // Assign palette colors (stable across renders)
-  const tabColors: Record<string, typeof TAB_PALETTE[0]> = {};
-  tabList.forEach((tab, i) => { tabColors[tab] = TAB_PALETTE[i % TAB_PALETTE.length]; });
-
-  const activeColor  = tabColors[activeTab] ?? TAB_PALETTE[0];
   const tabResources = resources.filter((r) => r.tab_type === activeTab);
   const isPyqTab     =
     activeTab.toLowerCase().includes("pyq") ||
@@ -173,7 +168,6 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── File card ───────────────────────────────────────────────────────────────
   const FileCard = ({ res }: { res: DbResource }) => {
-    const color       = tabColors[res.tab_type] ?? TAB_PALETTE[0];
     const resIsVideo  = res.tab_type.toLowerCase().includes("video");
     const embedUrl    = resIsVideo ? getYouTubeEmbedUrl(res.file_url) : null;
 
@@ -211,8 +205,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     return (
       <div className="group flex items-center gap-4 p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
         {/* Icon */}
-        <div className={`flex-shrink-0 w-11 h-11 rounded-xl ${color.bg} flex items-center justify-center`}>
-          <span className={`material-symbols-outlined ${color.accent} text-[20px]`}>
+        <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+          <span className="material-symbols-outlined text-primary text-[20px]">
             {getTabIcon(res.tab_type)}
           </span>
         </div>
@@ -223,7 +217,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             {res.file_name}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className={`text-[9px] font-bold font-mono uppercase px-2 py-0.5 rounded-full ${color.bg} ${color.accent}`}>
+            <span className="text-[9px] font-bold font-mono uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
               {res.tab_type}
             </span>
             {res.year && (
@@ -258,7 +252,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           <a
             href={res.file_url}
             download={res.file_name}
-            className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl hover:opacity-90 active:scale-95 transition-all duration-200"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
             title="Download"
           >
             <Download className="w-3.5 h-3.5" />
@@ -328,7 +324,6 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           >
             {tabList.map((tab) => {
               const isActive = activeTab === tab;
-              const color    = tabColors[tab] ?? TAB_PALETTE[0];
               const count    = resources.filter((r) => r.tab_type === tab).length;
               return (
                 <button
@@ -339,14 +334,14 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   onClick={() => setActiveTab(tab)}
                   className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-200 cursor-pointer border-b-2 whitespace-nowrap ${
                     isActive
-                      ? `${color.accent} border-current`
+                      ? "text-primary border-primary font-bold"
                       : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[15px]">{getTabIcon(tab)}</span>
                   <span>{tab}</span>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive ? `${color.bg} ${color.accent}` : "bg-surface-variant text-on-surface-variant"
+                    isActive ? "bg-primary/10 text-primary" : "bg-surface-variant text-on-surface-variant"
                   }`}>
                     {count}
                   </span>
@@ -394,19 +389,6 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         {/* Tab content */}
         {!loading && resources.length > 0 && (
           <div>
-            {/* Section heading */}
-            <div className="flex items-center gap-2 mb-5">
-              <span className={`material-symbols-outlined text-[18px] ${activeColor.accent}`}>
-                {getTabIcon(activeTab)}
-              </span>
-              <h2 className="text-xs font-bold uppercase text-on-surface-variant">
-                {activeTab}
-              </h2>
-              <span className="text-[10px] text-on-surface-variant/50">
-                ({tabResources.length} {tabResources.length === 1 ? "file" : "files"})
-              </span>
-            </div>
-
             {/* PYQ — year grouped */}
             {isPyqTab ? (
               <div className="space-y-8">
@@ -419,7 +401,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   .map(([year, files]) => (
                     <div key={year}>
                       <div className="flex items-center gap-3 mb-4">
-                        <span className={`text-sm font-black ${activeColor.accent}`}>
+                        <span className="text-sm font-black text-primary">
                           {year}
                         </span>
                         <div className="flex-1 h-px bg-outline-variant/50" />
