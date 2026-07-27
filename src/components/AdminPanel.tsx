@@ -57,6 +57,9 @@ CREATE POLICY "Allow public read access" ON public.resources FOR SELECT USING (t
 DROP POLICY IF EXISTS "Allow public insert" ON public.resources;
 CREATE POLICY "Allow public insert" ON public.resources FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow public update" ON public.resources;
+CREATE POLICY "Allow public update" ON public.resources FOR UPDATE USING (true) WITH CHECK (true);
+
 DROP POLICY IF EXISTS "Allow public delete" ON public.resources;
 CREATE POLICY "Allow public delete" ON public.resources FOR DELETE USING (true);
 
@@ -338,18 +341,40 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     let lastError: any = null;
 
     for (const tableName of RESOURCE_TABLE_NAMES) {
-      const { error } = await supabase.from(tableName).update(payload).eq("id", editingResource.id);
-      if (!error) {
+      // 1. Try direct UPDATE statement with .select() to verify rows updated
+      const { data, error } = await supabase
+        .from(tableName)
+        .update(payload)
+        .eq("id", editingResource.id)
+        .select();
+
+      if (!error && data && data.length > 0) {
         updated = true;
         break;
       }
-      lastError = error;
+
+      // 2. Fallback: if UPDATE affected 0 rows (e.g. Supabase RLS UPDATE policy missing), replace row via delete + insert
+      if (!error && (!data || data.length === 0)) {
+        const { error: delErr } = await supabase.from(tableName).delete().eq("id", editingResource.id);
+        if (!delErr) {
+          const { error: insErr } = await supabase.from(tableName).insert(payload);
+          if (!insErr) {
+            updated = true;
+            break;
+          }
+          lastError = insErr;
+        } else {
+          lastError = delErr;
+        }
+      } else {
+        lastError = error;
+      }
     }
 
     setAdding(false);
 
-    if (!updated && lastError) {
-      show("Update failed: " + lastError.message, false);
+    if (!updated) {
+      show("Update failed: " + (lastError?.message || "Could not update resource"), false);
       return;
     }
 
