@@ -238,7 +238,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                               onUpdateSubjectHours(sub.id, Math.max(0, sub.attendanceCount - 1), Math.max(0, sub.totalClasses - 1));
                             }
                           }}
-                          className="py-2 px-2.5 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs disabled:opacity-40 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
+                          className="py-2 px-3 rounded-full bg-slate-600 hover:bg-slate-500 text-white font-bold text-xs shadow-md hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer border border-slate-500/40"
                           title="Undo last class entry"
                         >
                           <span>Undo</span>
