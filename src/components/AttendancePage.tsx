@@ -456,17 +456,17 @@ function UnifiedSubjectCard({
         </div>
 
         {hasLab && (
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container/80 border border-outline-variant/30 mb-3">
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-900/90 dark:bg-surface-container/80 border border-slate-700/50 dark:border-outline-variant/30 mb-3">
             <button
               onClick={() => setActiveTab("Theory")}
               className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === "Theory"
-                  ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-md scale-[1.02]"
+                  : "text-slate-300 dark:text-on-surface-variant hover:text-white"
               }`}
             >
-              <span>Theory</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === "Theory" ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
+              <span className="text-white font-bold tracking-wide">Theory</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold text-white ${activeTab === "Theory" ? "bg-black/30" : "bg-white/15"}`}>
                 {theoryRate.toFixed(0)}%
               </span>
             </button>
@@ -475,12 +475,12 @@ function UnifiedSubjectCard({
               onClick={() => setActiveTab("Lab")}
               className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === "Lab"
-                  ? "bg-emerald-400 text-[#002114] shadow-sm scale-[1.02]"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-md scale-[1.02]"
+                  : "text-slate-300 dark:text-on-surface-variant hover:text-white"
               }`}
             >
-              <span>Lab</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === "Lab" ? "bg-[#002114]/20 text-[#002114]" : "bg-surface-variant text-on-surface-variant"}`}>
+              <span className="text-white font-bold tracking-wide">Lab</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold text-white ${activeTab === "Lab" ? "bg-black/30" : "bg-white/15"}`}>
                 {labRate.toFixed(0)}%
               </span>
             </button>

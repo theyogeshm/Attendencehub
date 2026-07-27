@@ -350,10 +350,10 @@ export default function TimetablePage({
               <select
                 value={selectedSection}
                 onChange={(e) => setSelectedSection(e.target.value)}
-                className="py-2 pl-3 pr-8 rounded-2xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs sm:text-sm border border-primary/30 focus:outline-none transition-all cursor-pointer shadow-sm appearance-none"
+                className="py-2 pl-3 pr-8 rounded-2xl bg-emerald-500/15 text-emerald-700 dark:bg-primary/10 dark:text-primary font-bold text-xs sm:text-sm border border-emerald-500/30 dark:border-primary/30 focus:outline-none transition-all cursor-pointer shadow-sm appearance-none"
               >
                 {SECTION_OPTIONS.map((sec) => (
-                  <option key={sec.id} value={sec.id} className="bg-[#0b1326] text-white font-medium">
+                  <option key={sec.id} value={sec.id} className="bg-white text-slate-900 dark:bg-[#0b1326] dark:text-white font-semibold">
                     {sec.label} ({sec.room})
                   </option>
                 ))}
