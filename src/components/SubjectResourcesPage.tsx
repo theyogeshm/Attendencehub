@@ -223,21 +223,29 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div
-            onClick={() => isLongName && setIsExpanded(!isExpanded)}
-            className={isLongName ? "cursor-pointer select-none sm:cursor-auto" : ""}
-          >
-            <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
-              !isExpanded && isLongName ? "line-clamp-2 sm:line-clamp-none" : ""
-            }`}>
-              {res.file_name}
-            </p>
-            {isLongName && (
+          {isLongName ? (
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-left w-full cursor-pointer select-none sm:cursor-auto bg-transparent border-none p-0 focus:outline-none"
+            >
+              <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
+                !isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""
+              }`}>
+                {res.file_name}
+              </p>
               <span className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
                 {isExpanded ? "Show less ▲" : "Show more ▼"}
               </span>
-            )}
-          </div>
+            </button>
+          ) : (
+            <div>
+              <p className="text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words">
+                {res.file_name}
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 flex-wrap">
             {res.file_size ? (
