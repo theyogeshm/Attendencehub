@@ -112,6 +112,11 @@ export default function DashboardPage({
 
 
 
+  // Next class calculation (first unmarked class today)
+  const unmarkedClasses = todayTimetable.filter((sub) => !todayAttendance[sub.id]);
+  const nextClass = unmarkedClasses.length > 0 ? unmarkedClasses[0] : null;
+  const allMarkedToday = todayTimetable.length > 0 && unmarkedClasses.length === 0;
+
   return (
     <div className="space-y-6">
       {/* ── STAT CARDS ── */}
@@ -168,6 +173,24 @@ export default function DashboardPage({
               <div className="h-4 bg-outline-variant/30 rounded w-3/4"></div>
               <div className="h-3 bg-outline-variant/20 rounded w-1/2"></div>
             </div>
+          ) : allMarkedToday ? (
+            <>
+              <h4 className="text-sm font-bold text-primary flex items-center gap-1">
+                <span>🎉 All Done!</span>
+              </h4>
+              <p className="text-[11px] text-on-surface-variant mt-1">All classes marked for today</p>
+              <span className="mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">
+                COMPLETED
+              </span>
+            </>
+          ) : nextClass ? (
+            <>
+              <h4 className="text-base font-bold text-on-surface line-clamp-1">{nextClass.name}</h4>
+              <p className="text-[11px] text-primary font-medium mt-1">{nextClass.time || "Next up"}</p>
+              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded ${nextClass.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
+                {nextClass.type ?? "LEC"}
+              </span>
+            </>
           ) : todayTimetable.length > 0 ? (
             <>
               <h4 className="text-base font-bold text-on-surface line-clamp-1">{todayTimetable[0].name}</h4>
