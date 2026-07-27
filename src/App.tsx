@@ -275,7 +275,8 @@ export default function App() {
         };
         setProfile(freshProfile);
 
-        if (pData.onboarding_done !== true) {
+        const hasSubjects = pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0;
+        if (pData.onboarding_done === false && !hasSubjects) {
           setShowOnboarding(true);
           setAuthLoading(false);
           // Cache minimal state so next load knows onboarding is pending
