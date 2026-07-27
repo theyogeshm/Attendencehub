@@ -880,10 +880,13 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
 function SubjectsManager({ isDarkMode }: { isDarkMode: boolean }) {
   const { toast, show } = useToast();
 
-  const [subjects, setSubjects] = useState<SubjectEntry[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [newSem,   setNewSem]   = useState(1);
-  const [newSub,   setNewSub]   = useState("");
+  const [subjects, setSubjects]       = useState<SubjectEntry[]>([]);
+  const [loading,  setLoading]        = useState(true);
+  const [newSem,   setNewSem]         = useState(1);
+  const [newSub,   setNewSub]         = useState("");
+  const [hasTheory, setHasTheory]     = useState(true);
+  const [hasLab, setHasLab]           = useState(true);
+  const [hasTutorial, setHasTutorial] = useState(false);
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
@@ -905,10 +908,20 @@ function SubjectsManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleAdd = async () => {
     if (!newSub.trim()) return;
-    const name = sanitizeText(newSub.trim(), 100);
-    const { error } = await supabase.from("subject_list").insert({ sem: newSem, name });
+    const baseName = sanitizeText(newSub.trim(), 100);
+    const toInsert: { sem: number; name: string }[] = [];
+
+    if (hasTheory)   toInsert.push({ sem: newSem, name: `${baseName} - Theory` });
+    if (hasLab)      toInsert.push({ sem: newSem, name: `${baseName} - Lab` });
+    if (hasTutorial) toInsert.push({ sem: newSem, name: `${baseName} - Tutorial` });
+
+    if (toInsert.length === 0) {
+      toInsert.push({ sem: newSem, name: baseName });
+    }
+
+    const { error } = await supabase.from("subject_list").insert(toInsert);
     if (error) { show("Add failed: " + error.message, false); return; }
-    show(`Added "${name}" to Sem ${newSem} ✓`);
+    show(`Added "${baseName}" to Sem ${newSem} ✓`);
     setNewSub("");
     fetchSubjects();
   };
@@ -937,26 +950,61 @@ function SubjectsManager({ isDarkMode }: { isDarkMode: boolean }) {
         <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
           <Plus className="w-4 h-4" /> Add Subject to Master List
         </h3>
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
-            <select value={newSem} onChange={e => setNewSem(Number(e.target.value))} className={`${SEL} w-36`}>
-              {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
-            </select>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
+              <select value={newSem} onChange={e => setNewSem(Number(e.target.value))} className={`${SEL} w-36`}>
+                {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Name</label>
+              <input
+                value={newSub}
+                onChange={e => setNewSub(e.target.value)}
+                placeholder="e.g. Distributed Systems"
+                className={INP}
+                onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
+              />
+            </div>
+            <button onClick={handleAdd} className={BTN_PRIMARY}>
+              <Plus className="w-4 h-4" /> Add
+            </button>
           </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Name</label>
-            <input
-              value={newSub}
-              onChange={e => setNewSub(e.target.value)}
-              placeholder="e.g. Distributed Systems"
-              className={INP}
-              onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
-            />
+
+          <div className="flex items-center gap-5 pt-1">
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>
+              Component Types:
+            </span>
+            <label className="text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasTheory}
+                onChange={e => setHasTheory(e.target.checked)}
+                className="rounded accent-emerald-500 cursor-pointer w-3.5 h-3.5"
+              />
+              <span>Theory</span>
+            </label>
+            <label className="text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasLab}
+                onChange={e => setHasLab(e.target.checked)}
+                className="rounded accent-emerald-500 cursor-pointer w-3.5 h-3.5"
+              />
+              <span>Lab</span>
+            </label>
+            <label className="text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasTutorial}
+                onChange={e => setHasTutorial(e.target.checked)}
+                className="rounded accent-emerald-500 cursor-pointer w-3.5 h-3.5"
+              />
+              <span>Tutorial</span>
+            </label>
           </div>
-          <button onClick={handleAdd} className={BTN_PRIMARY}>
-            <Plus className="w-4 h-4" /> Add
-          </button>
         </div>
       </div>
 
