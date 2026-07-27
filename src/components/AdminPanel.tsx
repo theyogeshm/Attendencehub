@@ -263,14 +263,9 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     }
 
     show("Resource added ✓");
-    setSubjectSelect("");
-    setCustomSubject("");
-    setTabSelect("");
-    setCustomTab("");
+    // Preserve Semester, Subject, Tab, and Sub-heading for rapid multi-file uploads
     setFileName("");
     setFileUrl("");
-    setYear("");
-    setFileSize("");
     fetchAll();
   };
 
@@ -300,6 +295,11 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleCancelEdit = () => {
     setEditingResource(null);
+    handleResetForm();
+  };
+
+  const handleResetForm = () => {
+    setSemester("");
     setSubjectSelect("");
     setCustomSubject("");
     setTabSelect("");
@@ -500,7 +500,11 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
               className={SEL}
             >
               <option value="">— Any / All Semesters —</option>
-              {SEMESTERS.map(s => <option key={s} value={`${s}${s===1?"st":s===2?"nd":s===3?"rd":"th"} Semester`}>{s}th Sem</option>)}
+              {SEMESTERS.map(s => (
+                <option key={s} value={`${s}${s===1?"st":s===2?"nd":s===3?"rd":"th"} Semester`}>
+                  {s}{s===1?"st":s===2?"nd":s===3?"rd":"th"} Sem
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -578,10 +582,15 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
               </button>
             </>
           ) : (
-            <button onClick={handleAdd} disabled={adding} className={BTN_PRIMARY}>
-              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Add Resource
-            </button>
+            <>
+              <button onClick={handleAdd} disabled={adding} className={BTN_PRIMARY}>
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Add Resource
+              </button>
+              <button onClick={handleResetForm} className={BTN_SECONDARY} title="Clear form to select a new subject or section">
+                Reset Form
+              </button>
+            </>
           )}
         </div>
       </div>
