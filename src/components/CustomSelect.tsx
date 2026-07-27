@@ -70,10 +70,10 @@ export default function CustomSelect({
 
       {isOpen && (
         <div
-          className={`absolute left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-2xl p-1.5 shadow-2xl border backdrop-blur-xl transition-all custom-scrollbar ${
+          className={`absolute left-0 right-0 z-[100] mt-1.5 min-w-[210px] max-h-60 overflow-y-auto rounded-2xl p-1.5 shadow-2xl border transition-all custom-scrollbar ${
             isDarkMode
-              ? "bg-[#0f172a]/95 border-slate-700/80 text-slate-100 shadow-black/80"
-              : "bg-white/95 border-slate-200 text-slate-800 shadow-slate-300/50"
+              ? "bg-[#0b1326] border-slate-700 text-slate-100 shadow-black/90"
+              : "bg-white border-slate-200 text-slate-800 shadow-slate-400/30"
           }`}
         >
           {options.map((opt) => {
