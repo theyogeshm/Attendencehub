@@ -45,7 +45,23 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   // Selected subject config logic inside calculator
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
 
-  // Group subjects into Unified Base Cards (e.g., Software Engineering (SE))
+  // Helper: check if a subject has a lab component
+  const isLabSubject = (name: string) => {
+    const lower = name.toLowerCase();
+    return (
+      lower.includes("operating system") ||
+      lower.includes("object oriented") ||
+      lower.includes("algorithm") ||
+      lower.includes("software engineering") ||
+      lower.includes("digital") ||
+      lower.includes("machine learning") ||
+      lower.includes("data science") ||
+      lower.includes("computer organization") ||
+      lower.includes("lab")
+    );
+  };
+
+  // Group subjects into Unified Base Cards (e.g., Operating System Design)
   interface UnifiedCardData {
     baseName: string;
     theorySub?: Subject;
@@ -55,17 +71,43 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
   const groupedCardsMap = new Map<string, UnifiedCardData>();
   subjects.forEach(sub => {
-    const isTheory = sub.name.toLowerCase().endsWith("- theory");
-    const isLab = sub.name.toLowerCase().endsWith("- lab");
-    const baseName = sub.name.replace(/ - (Theory|Lab)$/i, "").trim();
+    const isLab = sub.name.toLowerCase().includes("lab") || sub.type === "LAB";
+    const baseName = sub.name
+      .replace(/ - (Theory|Lab)$/i, "")
+      .replace(/ (Theory|Lab)$/i, "")
+      .trim();
 
     if (!groupedCardsMap.has(baseName)) {
       groupedCardsMap.set(baseName, { baseName });
     }
     const entry = groupedCardsMap.get(baseName)!;
-    if (isTheory) entry.theorySub = sub;
-    else if (isLab) entry.labSub = sub;
-    else entry.singleSub = sub;
+    if (isLab) {
+      entry.labSub = sub;
+    } else {
+      entry.theorySub = sub;
+    }
+  });
+
+  // Ensure lab component exists for subjects that have labs
+  groupedCardsMap.forEach((entry, baseName) => {
+    if (isLabSubject(baseName)) {
+      if (!entry.theorySub && entry.labSub) {
+        entry.theorySub = {
+          ...entry.labSub,
+          id: `${entry.labSub.id}-theory`,
+          name: `${baseName} - Theory`,
+          type: "LEC",
+        };
+      }
+      if (!entry.labSub && entry.theorySub) {
+        entry.labSub = {
+          ...entry.theorySub,
+          id: `${entry.theorySub.id}-lab`,
+          name: `${baseName} - Lab`,
+          type: "LAB",
+        };
+      }
+    }
   });
 
   const groupedCards = Array.from(groupedCardsMap.values());
