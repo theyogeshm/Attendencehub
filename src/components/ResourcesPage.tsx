@@ -81,12 +81,12 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-primary tracking-tight">Academic Resources</h2>
-          <p className="text-sm text-on-surface-variant mt-1">
-            Browse previous year papers, notes, tutorials, assignments and more - all in one place.
+          <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">Academic Resources</h2>
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5 sm:mt-1">
+            Browse previous year papers, notes, tutorials, assignments and more.
           </p>
         </div>
         <div className="relative w-full md:w-80">
@@ -111,7 +111,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
       </div>
 
       {filteredSubjects.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
           {filteredSubjects.map((sub) => {
             const count = countMap[sub.name.toLowerCase().trim()] ?? 0;
             const icon  = getSubjectIcon(sub.name);
@@ -120,33 +120,33 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                 key={sub.id}
                 id={`subject-card-${sub.id}`}
                 onClick={() => navigate(`/resources/${encodeURIComponent(sub.name)}`)}
-                className="group text-left relative glass-card rounded-2xl p-6 cursor-pointer hover:border-primary/60 transition-all duration-300 flex flex-col justify-between focus:outline-none focus:border-primary"
+                className="group text-left relative glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between cursor-pointer hover:border-primary/60 transition-all duration-300 focus:outline-none focus:border-primary shadow-sm"
               >
                 <div>
-                  <div className="flex justify-between items-start mb-5">
-                    <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
-                      <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
+                  <div className="flex justify-between items-start mb-3 sm:mb-4">
+                    <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
+                      <span className="material-symbols-outlined text-primary text-[20px] sm:text-[22px]">{icon}</span>
                     </div>
-                    <span className="text-[10px] font-bold bg-surface-variant px-3 py-1 rounded-full text-on-surface-variant">
+                    <span className="text-[9px] sm:text-[10px] font-bold bg-surface-variant px-2.5 py-0.5 sm:py-1 rounded-full text-on-surface-variant">
                       {sub.category}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-on-surface mb-1 leading-snug">{sub.name}</h3>
-                  <p className="text-xs text-on-surface-variant mb-5 line-clamp-2 leading-relaxed">
+                  <h3 className="text-sm sm:text-base font-bold text-on-surface mb-1 leading-snug">{sub.name}</h3>
+                  <p className="text-[11px] sm:text-xs text-on-surface-variant mb-4 line-clamp-2 leading-relaxed">
                     {sub.description || "Tap to browse study materials and resources."}
                   </p>
                 </div>
-                <div className="flex items-center justify-between mt-auto pt-3 border-t border-outline-variant/30">
+                <div className="flex items-center justify-between mt-auto pt-2.5 sm:pt-3 border-t border-outline-variant/30">
                   <div className="flex items-center gap-2">
                     {loadingCounts ? (
                       <div className="w-4 h-4 rounded-full border border-outline-variant/50 animate-pulse bg-surface-variant" />
                     ) : count > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-                        <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold">{count}</span>
+                      <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-primary">
+                        <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold">{count}</span>
                         <span>files available</span>
                       </span>
                     ) : (
-                      <span className="text-xs text-on-surface-variant/70">No files yet</span>
+                      <span className="text-[11px] sm:text-xs text-on-surface-variant/70">No files yet</span>
                     )}
                   </div>
                   <span className="text-primary font-bold text-xs flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
@@ -160,8 +160,8 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
           })}
         </div>
       ) : (
-        <div className="glass-card rounded-2xl p-12 text-center text-on-surface-variant">
-          <BookOpen className="w-12 h-12 mx-auto mb-4 text-outline" />
+        <div className="glass-card rounded-2xl p-8 sm:p-12 text-center text-on-surface-variant">
+          <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-outline" />
           <p className="text-sm font-semibold">No subjects found matching your search.</p>
           <button
             onClick={() => setSearchTerm("")}

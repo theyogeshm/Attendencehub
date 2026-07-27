@@ -867,98 +867,21 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Admin route — only accessible by authenticated admin users
-  // Unauthenticated or non-admin users are silently redirected to /404
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (location.pathname === "/admin") {
-    if (!user || !isAdminEmail(user.email)) {
-      return <Navigate to="/404" replace />;
-    }
-    return <AdminPanel />;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Route Guards — Enforce auth and onboarding status
-  // ═══════════════════════════════════════════════════════════════════════════
-  if (!user && location.pathname !== "/login") {
-    return <Navigate to="/login" replace />;
-  }
-  if (user && location.pathname === "/login") {
-    return <Navigate to="/dashboard" replace />;
-  }
-  if (user && showOnboarding && location.pathname !== "/onboarding") {
-    return <Navigate to="/onboarding" replace />;
-  }
-  if (user && !showOnboarding && location.pathname === "/onboarding") {
-    return <Navigate to="/dashboard" replace />;
-  }
-  if (location.pathname === "/") {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // ── Public layout (Login) ─────────────────────────────────────────────────
-  if (!user) {
-    return <LoginPage />;
-  }
-
-  // ── Onboarding Modal overlay ──────────────────────────────────────────────
-  if (showOnboarding) {
-    return <OnboardingModal userName={profile.name} onComplete={handleOnboardingComplete} />;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // Main App
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#F8F9FA] text-[#111827]"}`}>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* ── Toast notification ── */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-[200] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl border text-sm font-semibold transition-all duration-300 ${
-            toast.type === "success"
-              ? "bg-[#0d1e17] border-[#1AE7A6]/40 text-[#1AE7A6]"
-              : "bg-[#1e0d0d] border-red-500/40 text-red-300"
-          }`}
-          style={{ minWidth: "260px" }}
-        >
-          <span className="material-symbols-outlined text-xl flex-shrink-0">
-            {toast.type === "success" ? "check_circle" : "error"}
-          </span>
-          <span className="flex-1">{toast.msg}</span>
-          <button onClick={() => setToast(null)} className="opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-            <span className="material-symbols-outlined text-base">close</span>
-          </button>
-        </div>
-      )}
-
-      {/* ── SIDEBAR ── */}
-      <aside className={`fixed left-0 top-0 h-full w-[260px] border-r flex flex-col py-6 z-40 transition-all duration-300 ${
+      {/* ── SIDEBAR (Desktop Only) ── */}
+      <aside className={`fixed left-0 top-0 h-full w-[260px] border-r hidden lg:flex flex-col py-6 z-40 transition-all duration-300 ${
         isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"
-      } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
-
-        <div className="px-6 mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-primary-container font-sans flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[24px]">terminal</span>
-              <span>Attendance Hub</span>
-            </h1>
-            <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • Section {profile.section}</p>
-          </div>
-          <button
-            className="lg:hidden p-1 text-on-surface-variant hover:text-primary cursor-pointer"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="w-4 h-4" />
-          </button>
+      }`}>
+        <div className="px-6 mb-8">
+          <h1 className="text-xl font-extrabold tracking-tight text-primary-container font-sans flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[24px]">terminal</span>
+            <span>Attendance Hub</span>
+          </h1>
+          <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • Section {profile.section}</p>
         </div>
 
         <nav className="flex-1 space-y-1 select-none">
@@ -967,7 +890,7 @@ export default function App() {
             return (
               <button
                 key={nav.id}
-                onClick={() => { navigate(`/${nav.id}`); setSidebarOpen(false); }}
+                onClick={() => { navigate(`/${nav.id}`); }}
                 className={`w-full flex items-center gap-4 px-6 py-3 text-left transition-all relative cursor-pointer group active:scale-[0.98] ${
                   isActive
                     ? isDarkMode
@@ -1041,15 +964,11 @@ export default function App() {
         <header className={`h-16 border-b flex justify-between items-center px-4 sm:px-6 sticky top-0 z-30 transition-colors duration-300 ${
           isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"
         }`}>
-          <div className="flex items-center gap-3">
-            {/* Hamburger (mobile) */}
-            <button
-              className="lg:hidden p-2 rounded-xl text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-            <h2 className="text-base sm:text-xl font-bold tracking-tight text-on-surface font-sans truncate">{getHeaderTitle()}</h2>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center lg:hidden flex-shrink-0">
+              <span className="material-symbols-outlined text-primary text-[18px]">terminal</span>
+            </div>
+            <h2 className="text-sm sm:text-xl font-bold tracking-tight text-on-surface font-sans truncate">{getHeaderTitle()}</h2>
           </div>
 
           <div className="flex items-center gap-3">
@@ -1098,7 +1017,7 @@ export default function App() {
             {/* Avatar → Profile */}
             <button
               onClick={() => { setEditProfile(profile); setIsEditingProfile(false); setShowProfileModal(true); }}
-              className="w-9 h-9 rounded-full overflow-hidden hover:scale-105 cursor-pointer transition-transform border-2 border-primary-container"
+              className="w-9 h-9 rounded-full overflow-hidden hover:scale-105 cursor-pointer transition-transform border-2 border-primary-container flex-shrink-0"
               title="View Profile"
             >
               {avatarUrl ? (
@@ -1113,7 +1032,7 @@ export default function App() {
         </header>
 
         {/* ── PAGE CONTENT ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar pb-24">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 custom-scrollbar pb-24 lg:pb-6">
           <div className="max-w-7xl mx-auto">
             <Routes>
               <Route path="/dashboard" element={
@@ -1161,34 +1080,27 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── MOBILE BOTTOM NAV ── */}
-        <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-30 border-t flex items-center justify-around h-16 px-2 ${isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"}`}>
-          {navItems.slice(0, 5).map((nav) => {
+        {/* ── MOBILE BOTTOM NAV (Equidistant 6-Column Grid) ── */}
+        <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t grid grid-cols-6 h-16 w-full items-center ${
+          isDarkMode ? "bg-[#0b1326]/95 border-[#3b4a42]/30 backdrop-blur-md" : "bg-white/95 border-[#E5E7EB] backdrop-blur-md"
+        }`}>
+          {navItems.map((nav) => {
             const isActive = activeTab === nav.id;
             return (
               <button
                 key={nav.id}
                 onClick={() => { navigate(`/${nav.id}`); }}
-                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all cursor-pointer ${
-                  isActive ? "text-primary" : "text-on-surface-variant"
+                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all cursor-pointer ${
+                  isActive ? "text-primary font-bold" : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
-                <span className={`material-symbols-outlined text-xl ${isActive ? "text-primary" : ""}`} style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                <span className={`material-symbols-outlined text-[20px] ${isActive ? "text-primary" : ""}`} style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
                   {nav.icon}
                 </span>
-                <span className="text-[9px] font-bold font-mono">{nav.label.slice(0, 5)}</span>
+                <span className="text-[9px] font-semibold leading-none truncate max-w-full px-0.5">{nav.label.slice(0, 5)}</span>
               </button>
             );
           })}
-          <button
-            onClick={() => { navigate('/analytics'); }}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
-              activeTab === "analytics" ? "text-primary" : "text-on-surface-variant"
-            }`}
-          >
-            <span className="material-symbols-outlined text-xl">leaderboard</span>
-            <span className="text-[9px] font-bold font-mono">Stats</span>
-          </button>
         </nav>
 
         {/* ── FLOATING FEEDBACK BUTTON ── */}
