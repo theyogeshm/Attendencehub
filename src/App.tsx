@@ -1069,7 +1069,12 @@ export default function App() {
                 />
               } />
               <Route path="/timetable" element={
-                <TimetablePage onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")} />
+                <TimetablePage
+                  subjects={subjects}
+                  userSection={profile.section}
+                  onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")}
+                  onUpdateSubjectHours={handleUpdateSubjectHours}
+                />
               } />
               <Route path="/analytics" element={
                 <AnalyticsPage subjects={subjects} isDarkMode={isDarkMode} />

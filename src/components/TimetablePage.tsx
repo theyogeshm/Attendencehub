@@ -3,42 +3,611 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  User as UserIcon,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  BookOpen,
+  ChevronRight,
+  Filter,
+  Share2,
+  Info,
+  Layers,
+} from "lucide-react";
+import { Subject } from "../types";
+import {
+  TIMETABLE_SEM_3_DATA,
+  SECTION_OPTIONS,
+  parseTimetableEntry,
+  TimetableEntry,
+} from "../data/timetableSem3";
 
 interface TimetablePageProps {
-  onMarkAttendance: (subjectId: string, isPresent: boolean) => void;
+  subjects?: Subject[];
+  userSection?: string;
+  onMarkAttendance?: (subjectId: string, isPresent: boolean) => void;
+  onUpdateSubjectHours?: (subjectId: string, attendanceCount: number, totalClasses: number) => void;
 }
 
-export default function TimetablePage({ onMarkAttendance }: TimetablePageProps) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      {/* Animated icon container */}
-      <div className="relative mb-8">
-        <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-primary/15 to-secondary/10 border border-primary/20 flex items-center justify-center shadow-2xl shadow-primary/10">
-          <span className="material-symbols-outlined text-primary text-6xl" style={{ fontVariationSettings: "'FILL' 0" }}>calendar_month</span>
-        </div>
-        {/* Pulse ring */}
-        <div className="absolute inset-0 rounded-3xl border-2 border-primary/30 animate-ping" style={{ animationDuration: '2.5s' }} />
-      </div>
+const DAYS_OF_WEEK = [
+  { id: "MON", label: "Monday", short: "Mon" },
+  { id: "TUE", label: "Tuesday", short: "Tue" },
+  { id: "WED", label: "Wednesday", short: "Wed" },
+  { id: "THUR", label: "Thursday", short: "Thu" },
+  { id: "FRI", label: "Friday", short: "Fri" },
+];
 
-      {/* Heading */}
-      <h2 className="text-3xl font-black text-on-surface mb-3 tracking-tight">
-        Timetable{" "}
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-          Coming Soon
+export default function TimetablePage({
+  subjects = [],
+  userSection = "A1",
+  onMarkAttendance,
+  onUpdateSubjectHours,
+}: TimetablePageProps) {
+  // Determine current day of week to highlight automatically
+  const currentDayIndex = new Date().getDay(); // 0 = Sun, 1 = Mon, ...
+  const defaultDayId =
+    currentDayIndex >= 1 && currentDayIndex <= 5
+      ? DAYS_OF_WEEK[currentDayIndex - 1].id
+      : "MON";
+
+  // Section selection
+  const [selectedSection, setSelectedSection] = useState<string>(() => {
+    const saved = localStorage.getItem("dtu_timetable_section");
+    if (saved && TIMETABLE_SEM_3_DATA.sections[saved]) return saved;
+    // Map profile section if available
+    const normalizedUserSection = userSection.toUpperCase().trim();
+    if (normalizedUserSection.includes("DA") || normalizedUserSection.includes("A8") || normalizedUserSection === "8") {
+      return "CSE-DA_A8";
+    }
+    const match = SECTION_OPTIONS.find((s) => s.id === normalizedUserSection || s.id === `A${normalizedUserSection}`);
+    return match ? match.id : "A1";
+  });
+
+  const [activeDay, setActiveDay] = useState<string>(defaultDayId);
+  const [viewMode, setViewMode] = useState<"day" | "week">("week");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "lecture" | "lab" | "tutorial">("all");
+  const [selectedSlotModal, setSelectedSlotModal] = useState<{
+    timeSlot: string;
+    rawText: string;
+    dayLabel: string;
+  } | null>(null);
+
+  // Save section selection to localStorage
+  useEffect(() => {
+    localStorage.setItem("dtu_timetable_section", selectedSection);
+  }, [selectedSection]);
+
+  const sectionData = TIMETABLE_SEM_3_DATA.sections[selectedSection] || TIMETABLE_SEM_3_DATA.sections["A1"];
+  const sectionMeta = SECTION_OPTIONS.find((s) => s.id === selectedSection) || SECTION_OPTIONS[0];
+
+  // Helper to match subject in user's enrolled subjects
+  const findMatchingSubject = (entryText: string): Subject | undefined => {
+    if (!entryText || !subjects || subjects.length === 0) return undefined;
+    const lower = entryText.toLowerCase();
+    return subjects.find((s) => {
+      const sName = s.name.toLowerCase().trim();
+      const sCode = s.code.toLowerCase().trim();
+      return (
+        (sCode && lower.includes(sCode)) ||
+        (sName && lower.includes(sName)) ||
+        (sName.includes("operating") && lower.includes("os")) ||
+        (sName.includes("algo") && lower.includes("daa")) ||
+        (sName.includes("logic") && lower.includes("dld")) ||
+        (sName.includes("software") && lower.includes("se")) ||
+        (sName.includes("object") && lower.includes("oop"))
+      );
+    });
+  };
+
+  // Quick mark attendance handler
+  const handleQuickMark = (rawEntry: string, isPresent: boolean) => {
+    const matchedSub = findMatchingSubject(rawEntry);
+    if (!matchedSub) return;
+    if (onUpdateSubjectHours) {
+      onUpdateSubjectHours(
+        matchedSub.id,
+        isPresent ? matchedSub.attendanceCount + 1 : matchedSub.attendanceCount,
+        matchedSub.totalClasses + 1
+      );
+    } else if (onMarkAttendance) {
+      onMarkAttendance(matchedSub.id, isPresent);
+    }
+  };
+
+  // Helper for rendering badges by type
+  const getTypeBadge = (entry: TimetableEntry) => {
+    if (entry.isLab) {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          LAB SESSION
         </span>
-      </h2>
+      );
+    }
+    if (entry.isTutorial) {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          TUTORIAL
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+        LECTURE
+      </span>
+    );
+  };
 
-      {/* Subtext */}
-      <p className="text-on-surface-variant text-sm font-medium max-w-xs leading-relaxed">
-        Section-wise timetables will be available soon!
-      </p>
+  // Render combined lab session formatting
+  const renderSlotContent = (rawText: string) => {
+    if (!rawText) return null;
+    const isCombinedLab = rawText.includes(" / ");
 
-      {/* Decorative pill */}
-      <div className="mt-8 flex items-center gap-2 bg-primary/10 border border-primary/20 px-5 py-2.5 rounded-full">
-        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-        <span className="text-primary text-xs font-bold font-mono tracking-wide">IN DEVELOPMENT</span>
+    if (isCombinedLab) {
+      const parts = rawText.split(" / ");
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              ⚡ Combined Lab Session ({parts.length} Groups)
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {parts.map((part, idx) => {
+              const parsed = parseTimetableEntry(part, sectionData.room);
+              return (
+                <div
+                  key={idx}
+                  className="p-2 rounded-xl bg-surface-container/80 border border-outline-variant/30 hover:border-emerald-500/40 transition-all text-xs"
+                >
+                  <p className="font-bold text-on-surface leading-snug break-words">
+                    {parsed.subjectName}
+                  </p>
+                  <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1 gap-2 flex-wrap">
+                    {parsed.faculty && (
+                      <span className="flex items-center gap-1 text-primary font-medium">
+                        <UserIcon className="w-3 h-3" />
+                        {parsed.faculty}
+                      </span>
+                    )}
+                    {parsed.room && (
+                      <span className="flex items-center gap-1 text-on-surface-variant font-mono">
+                        <MapPin className="w-3 h-3" />
+                        {parsed.room}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    const parsed = parseTimetableEntry(rawText, sectionData.room);
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          {getTypeBadge(parsed)}
+          {parsed.subjectCode && (
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant border border-outline-variant/30">
+              {parsed.subjectCode}
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs sm:text-sm font-bold text-on-surface leading-snug break-words">
+          {parsed.subjectName}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant pt-0.5">
+          {parsed.faculty && (
+            <span className="flex items-center gap-1 text-primary font-medium">
+              <UserIcon className="w-3.5 h-3.5" />
+              {parsed.faculty}
+            </span>
+          )}
+          {parsed.room && (
+            <span className="flex items-center gap-1 text-on-surface-variant font-mono">
+              <MapPin className="w-3.5 h-3.5" />
+              {parsed.room}
+            </span>
+          )}
+        </div>
       </div>
+    );
+  };
+
+  // Copy weekly schedule function
+  const handleCopySchedule = () => {
+    let text = `📅 DTU CSE Sem 3 Timetable (${sectionMeta.label} - Room ${sectionData.room})\n`;
+    text += `Effective: ${TIMETABLE_SEM_3_DATA.effective_from}\n\n`;
+
+    DAYS_OF_WEEK.forEach((d) => {
+      const daySlots = sectionData.timetable[d.id];
+      if (daySlots) {
+        text += `=== ${d.label.toUpperCase()} ===\n`;
+        Object.entries(daySlots).forEach(([time, slot]) => {
+          text += `🕒 ${time}: ${slot}\n`;
+        });
+        text += `\n`;
+      }
+    });
+
+    navigator.clipboard.writeText(text);
+    alert("Timetable copied to clipboard! 📋");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ── HEADER & TITLE ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card p-5 sm:p-6 rounded-3xl border border-outline-variant/40 shadow-lg relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-3 py-1 rounded-full text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
+              {TIMETABLE_SEM_3_DATA.semester}
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-medium text-on-surface-variant bg-surface-variant/80 border border-outline-variant/30 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              Effective: {TIMETABLE_SEM_3_DATA.effective_from}
+            </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
+            <BookOpen className="w-7 h-7 text-primary" />
+            <span>Class Timetable</span>
+          </h1>
+
+          <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
+            Official Semester 3 timetable for DTU Computer Science & Engineering. Select your section below to view schedule details.
+          </p>
+        </div>
+
+        {/* Section Quick Stats */}
+        <div className="relative z-10 flex items-center gap-3 self-start md:self-auto">
+          <div className="p-3.5 rounded-2xl bg-surface-container/90 border border-outline-variant/40 text-center min-w-[120px]">
+            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Default Room</p>
+            <p className="text-lg font-black text-primary mt-0.5 flex items-center justify-center gap-1">
+              <MapPin className="w-4 h-4 text-primary" />
+              {sectionData.room}
+            </p>
+          </div>
+          <button
+            onClick={handleCopySchedule}
+            className="p-3.5 rounded-2xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-all cursor-pointer flex flex-col items-center justify-center min-w-[80px] active:scale-95"
+            title="Copy entire timetable to clipboard"
+          >
+            <Share2 className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] font-bold">Copy</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── CONTROLS: SECTION SELECTOR & VIEW MODES ── */}
+      <div className="space-y-4">
+        {/* Section Selector Pills */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-primary" />
+              Select Section
+            </span>
+            <span className="text-xs text-primary font-semibold">
+              Currently viewing: {sectionMeta.label} ({sectionMeta.room})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+            {SECTION_OPTIONS.map((sec) => {
+              const isSelected = selectedSection === sec.id;
+              const isUserSec =
+                userSection.toUpperCase().includes(sec.id) ||
+                (sec.id === "CSE-DA_A8" && userSection.toUpperCase().includes("A8"));
+
+              return (
+                <button
+                  key={sec.id}
+                  onClick={() => setSelectedSection(sec.id)}
+                  className={`px-4 py-2.5 rounded-2xl font-bold text-xs whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 border ${
+                    isSelected
+                      ? "bg-primary text-[#002114] border-primary shadow-lg scale-105"
+                      : "bg-surface-container/70 text-on-surface-variant border-outline-variant/40 hover:bg-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  <span>{sec.label}</span>
+                  {isUserSec && (
+                    <span
+                      className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                        isSelected
+                          ? "bg-[#002114]/20 text-[#002114]"
+                          : "bg-primary/20 text-primary"
+                      }`}
+                    >
+                      YOUR SEC
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* View Mode Toggle & Search */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          {/* Day / Week View Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
+            <button
+              onClick={() => setViewMode("week")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                viewMode === "week"
+                  ? "bg-primary text-[#002114] shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              Full Week
+            </button>
+            <button
+              onClick={() => setViewMode("day")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                viewMode === "day"
+                  ? "bg-primary text-[#002114] shadow-sm"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              Day-by-Day
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-on-surface-variant absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search subject, faculty, code (e.g. CS205, DAA, Katarya)..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-surface-container border border-outline-variant/40 text-xs text-on-surface focus:outline-none focus:border-primary transition-all placeholder:text-on-surface-variant/50"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-on-surface-variant hover:text-on-surface cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Day Selector (Shown when viewMode === 'day') */}
+        {viewMode === "day" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            {DAYS_OF_WEEK.map((day) => {
+              const isSelected = activeDay === day.id;
+              const isToday = defaultDayId === day.id;
+
+              return (
+                <button
+                  key={day.id}
+                  onClick={() => setActiveDay(day.id)}
+                  className={`px-5 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border ${
+                    isSelected
+                      ? "bg-primary/20 text-primary border-primary"
+                      : "bg-surface-container/50 text-on-surface-variant border-outline-variant/30 hover:bg-surface-variant"
+                  }`}
+                >
+                  <span>{day.label}</span>
+                  {isToday && (
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── TIMETABLE SCHEDULE CONTENT ── */}
+
+      {/* 1. DAY VIEW MODE */}
+      {viewMode === "day" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span>
+                {DAYS_OF_WEEK.find((d) => d.id === activeDay)?.label}'s Schedule
+              </span>
+            </h3>
+            <span className="text-xs text-on-surface-variant font-mono">
+              Room: {sectionData.room}
+            </span>
+          </div>
+
+          {(() => {
+            const dayTimetable = sectionData.timetable[activeDay] || {};
+            const slots = Object.entries(dayTimetable);
+
+            const filteredSlots = slots.filter(([_, raw]) => {
+              if (!searchQuery) return true;
+              return raw.toLowerCase().includes(searchQuery.toLowerCase());
+            });
+
+            if (filteredSlots.length === 0) {
+              return (
+                <div className="glass-card p-8 rounded-2xl text-center space-y-3 border border-outline-variant/30">
+                  <p className="text-sm font-bold text-on-surface-variant">
+                    {searchQuery
+                      ? `No classes matching "${searchQuery}" on ${activeDay}`
+                      : "No classes scheduled for this day!"}
+                  </p>
+                  <p className="text-xs text-on-surface-variant/70">
+                    Enjoy your free day or prepare for upcoming lab submissions.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSlots.map(([timeSlot, rawText]) => {
+                  const matchedSubject = findMatchingSubject(rawText);
+
+                  return (
+                    <div
+                      key={timeSlot}
+                      className="glass-card p-4 sm:p-5 rounded-2xl border border-outline-variant/40 hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 group relative"
+                    >
+                      {/* Slot Header */}
+                      <div className="flex items-center justify-between border-b border-outline-variant/30 pb-2.5">
+                        <span className="text-xs font-mono font-bold text-primary flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {timeSlot}
+                        </span>
+                        <span className="text-[10px] text-on-surface-variant font-mono">
+                          {sectionMeta.label}
+                        </span>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1">{renderSlotContent(rawText)}</div>
+
+                      {/* Quick Attendance Buttons */}
+                      <div className="pt-2 border-t border-outline-variant/30 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-on-surface-variant uppercase">
+                          Quick Mark
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleQuickMark(rawText, true)}
+                            className="py-1.5 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                            title="Mark Present (+1)"
+                          >
+                            <span>Present</span>
+                          </button>
+                          <button
+                            onClick={() => handleQuickMark(rawText, false)}
+                            className="py-1.5 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                            title="Mark Absent (+1)"
+                          >
+                            <span>Absent</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* 2. WEEK VIEW MODE */}
+      {viewMode === "week" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {DAYS_OF_WEEK.map((day) => {
+              const daySlots = sectionData.timetable[day.id] || {};
+              const slotsArray = Object.entries(daySlots);
+              const isToday = defaultDayId === day.id;
+
+              const filtered = slotsArray.filter(([_, raw]) => {
+                if (!searchQuery) return true;
+                return raw.toLowerCase().includes(searchQuery.toLowerCase());
+              });
+
+              return (
+                <div
+                  key={day.id}
+                  className={`glass-card rounded-2xl border transition-all flex flex-col justify-between overflow-hidden ${
+                    isToday
+                      ? "border-primary/50 ring-1 ring-primary/30"
+                      : "border-outline-variant/40"
+                  }`}
+                >
+                  {/* Day Header */}
+                  <div
+                    className={`p-3.5 border-b flex items-center justify-between ${
+                      isToday
+                        ? "bg-primary/10 border-primary/30"
+                        : "bg-surface-container/60 border-outline-variant/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-on-surface">
+                        {day.label}
+                      </span>
+                      {isToday && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-primary text-[#002114]">
+                          TODAY
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-on-surface-variant font-mono font-bold">
+                      {filtered.length} Classes
+                    </span>
+                  </div>
+
+                  {/* Day Classes */}
+                  <div className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[650px] custom-scrollbar">
+                    {filtered.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-on-surface-variant/60 font-medium">
+                        No classes scheduled
+                      </div>
+                    ) : (
+                      filtered.map(([timeSlot, rawText]) => (
+                        <div
+                          key={timeSlot}
+                          className="p-3 rounded-xl bg-surface-container/80 border border-outline-variant/30 hover:border-primary/40 transition-all space-y-2 group"
+                        >
+                          <div className="flex items-center justify-between text-[11px] font-mono font-bold text-primary border-b border-outline-variant/20 pb-1">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {timeSlot}
+                            </span>
+                          </div>
+
+                          <div>{renderSlotContent(rawText)}</div>
+
+                          {/* Quick Attendance */}
+                          <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-outline-variant/20">
+                            <button
+                              onClick={() => handleQuickMark(rawText, true)}
+                              className="px-2.5 py-1 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm"
+                            >
+                              Present
+                            </button>
+                            <button
+                              onClick={() => handleQuickMark(rawText, false)}
+                              className="px-2.5 py-1 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm"
+                            >
+                              Absent
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
