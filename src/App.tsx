@@ -837,6 +837,14 @@ export default function App() {
     { id: "analytics",   label: "Analytics",   icon: "leaderboard" },
   ];
 
+  const getTimeOrder = (timeSlot: string): number => {
+    const match = timeSlot.match(/^(\d+)/);
+    if (!match) return 99;
+    let h = parseInt(match[1], 10);
+    if (h >= 1 && h <= 7) h += 12;
+    return h;
+  };
+
   const getTodayScheduledSubjects = (): Subject[] => {
     const currentDayIndex = new Date().getDay();
     const daysMap = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
@@ -850,30 +858,40 @@ export default function App() {
     const daySchedule = secData?.timetable[todayId];
     if (!daySchedule) return subjects;
 
-    const matchedSubjects: Subject[] = [];
-    const seenSubjectIds = new Set<string>();
+    const todayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
-    Object.entries(daySchedule).forEach(([timeSlot, rawText]) => {
-      const parsed = parseTimetableEntry(rawText, secData.room);
-      const splitName = parsed.splitSubjectName.toLowerCase().trim();
+    Object.entries(daySchedule).forEach(([timeSlotKey, rawText]) => {
+      const cleanSlot = timeSlotKey.replace("_lab", "");
+      const timeOrder = getTimeOrder(cleanSlot);
 
-      const matched = subjects.find(s =>
-        s.name.toLowerCase().trim() === splitName ||
-        s.name.toLowerCase().trim().includes(parsed.baseSubjectName.toLowerCase().trim())
-      );
+      const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
 
-      if (matched && !seenSubjectIds.has(matched.id)) {
-        seenSubjectIds.add(matched.id);
-        matchedSubjects.push({
-          ...matched,
-          time: `${timeSlot} (${parsed.room || secData.room})`,
-          prof: parsed.faculty || matched.prof,
-          type: parsed.isLab ? "LAB" : "LEC",
-        });
-      }
+      parts.forEach((partText) => {
+        const parsed = parseTimetableEntry(partText, secData.room);
+        const targetName = parsed.splitSubjectName.toLowerCase().trim();
+
+        const matched = subjects.find(s =>
+          s.name.toLowerCase().trim() === targetName ||
+          s.name.toLowerCase().trim().includes(parsed.baseSubjectName.toLowerCase().trim())
+        );
+
+        if (matched) {
+          todayList.push({
+            ...matched,
+            rawSubjectId: matched.id,
+            time: `${cleanSlot} (${parsed.room || secData.room})`,
+            prof: parsed.faculty || matched.prof,
+            type: parsed.isLab ? "LAB" : "LEC",
+            timeOrder,
+          });
+        }
+      });
     });
 
-    return matchedSubjects.length > 0 ? matchedSubjects : subjects;
+    if (todayList.length === 0) return subjects;
+
+    todayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
+    return todayList;
   };
 
   // ── Google avatar URL ─────────────────────────────────────────────────────

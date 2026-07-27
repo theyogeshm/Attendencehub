@@ -239,13 +239,23 @@ export default function DashboardPage({
             </div>
           ) : (
             <div className="space-y-3">
-              {todayTimetable.map((sub) => {
-                const isLab = sub.type === "LAB";
-                const attPct = sub.totalClasses > 0
-                  ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0)
-                  : null;
-                const currentStatus = todayAttendance[sub.id] as AttendanceStatus | undefined;
-                const icon = getSubjectIcon(sub.name);
+              {(() => {
+                const sorted = [...todayTimetable].sort((a, b) => {
+                  const aMarked = !!todayAttendance[a.id];
+                  const bMarked = !!todayAttendance[b.id];
+                  if (aMarked !== bMarked) {
+                    return aMarked ? 1 : -1;
+                  }
+                  return ((a as any).timeOrder ?? 0) - ((b as any).timeOrder ?? 0);
+                });
+
+                return sorted.map((sub) => {
+                  const isLab = sub.type === "LAB";
+                  const attPct = sub.totalClasses > 0
+                    ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0)
+                    : null;
+                  const currentStatus = todayAttendance[sub.id] as AttendanceStatus | undefined;
+                  const icon = getSubjectIcon(sub.name);
 
                 const statusBadge: Record<string, { label: string; cls: string }> = {
                   present: { label: "✅ Present",  cls: "bg-primary/10 text-primary" },
@@ -366,8 +376,9 @@ export default function DashboardPage({
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              });
+            })()}
+          </div>
           )}
 
           {/* Quick Access Strip */}

@@ -144,23 +144,20 @@ export default function TimetablePage({
   const getTypeBadge = (entry: TimetableEntry) => {
     if (entry.isLab) {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
           LAB SESSION
         </span>
       );
     }
     if (entry.isTutorial) {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30">
           TUTORIAL (THEORY)
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/15 text-primary border border-primary/30">
         THEORY LECTURE
       </span>
     );
@@ -176,8 +173,8 @@ export default function TimetablePage({
       return (
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              ⚡ Combined Lab Session ({parts.length} Groups)
+            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              Combined Lab Session ({parts.length} Groups)
             </span>
           </div>
           <div className="space-y-1.5">
