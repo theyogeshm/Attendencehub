@@ -252,7 +252,7 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "10-11": "TH-CS207 OS [Dr Gunjan Chugh]",
           "11-12": "TH-CS205 DAA [Dr Aditi Zear]",
           "12-1": "TH-Digital Logic Design [TBD]",
-          "2-4": "Lab-CS207 OS Lab-A6/G3 [TBD - VERIFY][IPM Lab] / Lab-CS203 OOP Lab-A6/G1 [Ms Anjali Bansal][IOT Lab] / Lab-CS205 DAA Lab-G1 [Dr Aditi Zear][IS & CI Lab]"
+          "2-4": "Lab-CS207 OS Lab-A6/G3 [TBD - VERIFY][IPM Lab] / Lab-CS203 OOP Lab-A6/G2 [Ms Anjali Bansal][IOT Lab] / Lab-CS205 DAA Lab-G1 [Dr Aditi Zear][IS & CI Lab]"
         },
         "WED": {
           "9-10": "TH-Digital Logic Design [TBD]",
