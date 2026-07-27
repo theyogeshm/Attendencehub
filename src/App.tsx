@@ -820,16 +820,47 @@ export default function App() {
   const initials  = profile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Loading screen
+  // Initial Auth Loading Screen — Sleek Skeleton UI while session resolves
+  // Preserves current URL without prematurely redirecting to /login or /dashboard
   // ═══════════════════════════════════════════════════════════════════════════
-  if (authLoading) {
+  if (!initialAuthDone || authLoading) {
     return (
-      <div className="min-h-screen bg-[#0b1326] flex flex-col items-center justify-center gap-5">
-        <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[#1AE7A6] to-[#00C896] flex items-center justify-center shadow-2xl shadow-[#1AE7A6]/30">
-          <span className="material-symbols-outlined text-[#002114] text-3xl">school</span>
+      <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#F8F9FA] text-[#111827]"}`}>
+        {/* Sidebar Skeleton */}
+        <aside className={`fixed left-0 top-0 h-full w-[260px] border-r flex flex-col py-6 z-40 ${
+          isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"
+        } hidden lg:flex`}>
+          <div className="px-6 mb-8 space-y-2">
+            <div className="w-40 h-6 bg-surface-variant/70 rounded-lg animate-pulse" />
+            <div className="w-24 h-3 bg-surface-variant/40 rounded animate-pulse" />
+          </div>
+          <div className="flex-1 space-y-3 px-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="w-full h-11 bg-surface-variant/30 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </aside>
+
+        {/* Content Skeleton */}
+        <div className="flex-1 lg:ml-[260px] flex flex-col min-h-screen">
+          <header className={`h-16 border-b px-6 flex items-center justify-between ${
+            isDarkMode ? "border-[#3b4a42]/30 bg-[#0b1326]" : "border-[#E5E7EB] bg-white"
+          }`}>
+            <div className="w-36 h-5 bg-surface-variant/60 rounded-lg animate-pulse" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-surface-variant/60 animate-pulse" />
+              <div className="w-8 h-8 rounded-full bg-surface-variant/60 animate-pulse" />
+            </div>
+          </header>
+          <main className="flex-1 p-6 space-y-6">
+            <div className="w-64 h-8 bg-surface-variant/80 rounded-xl animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-44 bg-surface-container border border-outline-variant/40 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          </main>
         </div>
-        <div className="w-7 h-7 border-2 border-[#1AE7A6] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[#bacbbf] text-sm font-mono">Loading your workspace...</p>
       </div>
     );
   }
@@ -839,15 +870,6 @@ export default function App() {
   // Unauthenticated or non-admin users are silently redirected to /404
   // ═══════════════════════════════════════════════════════════════════════════
   if (location.pathname === "/admin") {
-    // Still checking auth session — show spinner, don't flash 404 prematurely
-    if (!initialAuthDone || authLoading) {
-      return (
-        <div className="min-h-screen bg-[#060e20] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#82ffc8]" />
-        </div>
-      );
-    }
-    // Auth resolved: verify user login & admin email
     if (!user || !isAdminEmail(user.email)) {
       return <Navigate to="/404" replace />;
     }

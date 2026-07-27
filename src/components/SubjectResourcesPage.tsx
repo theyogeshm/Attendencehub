@@ -380,11 +380,35 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <div className="flex-1 p-4 sm:p-8">
 
-        {/* Loading */}
+        {/* Skeleton Loading */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 text-on-surface-variant">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Loading resources...</p>
+          <div className="space-y-4 animate-pulse">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-24 h-5 bg-surface-variant/60 rounded-lg" />
+              <div className="flex-1 h-px bg-outline-variant/30" />
+              <div className="w-12 h-4 bg-surface-variant/40 rounded-lg" />
+            </div>
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="p-4 sm:p-5 rounded-2xl bg-surface-container border border-outline-variant/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+              >
+                <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-surface-variant/80 flex-shrink-0" />
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="w-48 sm:w-64 h-4 bg-surface-variant/90 rounded-md" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-3 bg-surface-variant/60 rounded" />
+                      <div className="w-12 h-3 bg-surface-variant/40 rounded" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 self-end sm:self-center">
+                  <div className="w-20 h-9 rounded-xl bg-surface-variant/60" />
+                  <div className="w-24 h-9 rounded-xl bg-primary/20" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
