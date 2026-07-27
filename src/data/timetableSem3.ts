@@ -313,45 +313,6 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "4-5": "Tutorial-CS209 Software Engineering G3 [AB4-106][Mr Vivek]"
         }
       }
-    },
-    "CSE-DA_A8": {
-      "room": "AB4-315",
-      "timetable": {
-        "MON": {
-          "12-1": "DA205 Linear Algebra [Mr. Sarthak Yash Sethi]",
-          "1-2": "DA207 Machine Learning [Prof Aruna Bhat]",
-          "2-4": "DA201 DAA Lab CSE-DA/G1 [Dr Rahul Kumar][DBMS Lab] / Lab-DA203 Foundation to Data Science G2 [Dr Anshika Arora][IPM Lab] / Lab-DA207 Machine Learning G3 [Prof Aruna Bhat][IOT Lab]"
-        },
-        "TUE": {
-          "10-11": "Tutorial DA205 Linear Algebra G2 [Vijay Patidar][AB4-204]",
-          "10-12_lab": "Lab-DA209 OS & CA G1 [Ms. Ila Kaushik][IS & CI Lab]",
-          "12-1": "DA203 Foundation to Data Science [Dr Anshika Arora]",
-          "1-2": "DA201 Design & Analysis of Algorithm [Dr Rahul Kumar]",
-          "2-3": "DA205 Linear Algebra [Mr. Sarthak Yash Sethi]",
-          "3-4": "DA205 Linear Algebra [Mr. Sarthak Yash Sethi]"
-        },
-        "WED": {
-          "9-10": "DA209 Computer Organization & OS Design [Ms. Ila Kaushik]",
-          "10-11": "DA203 Foundation to Data Science [Dr Anshika Arora]",
-          "11-12": "DA201 Design & Analysis of Algorithm [Dr Rahul Kumar]",
-          "12-1": "DA207 Foundation in Machine Learning [Prof Aruna Bhat]",
-          "2-4": "DA201 DAA Lab CSE-DA/G3 [Dr Rahul Kumar][Computer Network Lab] / Lab-DA207 Foundation in Machine Learning G2 [Prof Aruna Bhat][IOT Lab]"
-        },
-        "THUR": {
-          "10-1": "DA201 DAA Lab CSE-DA/G2 [Dr Rahul Kumar][Data Mining Lab] / Lab-DA203 Foundation to Data Science G3 [Ms Anushree Awasthi][IPM Lab] / Lab-DA207 Machine Learning G1 [Prof Aruna Bhat][AI Lab]",
-          "12-1": "DA201 Design & Analysis of Algorithm [Dr Rahul Kumar]",
-          "2-3": "DA203 Foundation to Data Science [Dr Anshika Arora]",
-          "3-4": "DA209 Computer Organization & OS Design [Ms. Ila Kaushik]"
-        },
-        "FRI": {
-          "9-10": "Tutorial DA205 Linear Algebra G1 [Vijay Patidar][AB4-205]",
-          "11-12": "Tutorial DA205 Linear Algebra G3 [Vijay Patidar][AB4-303]",
-          "10-12_lab": "Lab-DA203 Foundation to Data Science G1 [Dr Anshika Arora][IPM Lab] / Lab-DA209 OS & CA G2 [Ms. Ila Kaushik][IOT Lab]",
-          "1-2": "Lab-DA209 OS & CA G3 [Dr Nipun Bansal][IOT Lab]",
-          "2-3": "DA207 Foundation in Machine Learning [Prof Aruna Bhat]",
-          "3-4": "DA209 Computer Organization & OS Design [Ms. Ila Kaushik]"
-        }
-      }
     }
   }
 };
@@ -367,7 +328,6 @@ export const SECTION_OPTIONS = [
   { id: "A5", label: "Section A5", room: "AB4-303" },
   { id: "A6", label: "Section A6", room: "AB4-303" },
   { id: "A7", label: "Section A7", room: "AB4-315" },
-  { id: "CSE-DA_A8", label: "CSE-DA (A8)", room: "AB4-315" },
 ];
 
 /**

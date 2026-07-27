@@ -21,7 +21,7 @@ interface Props {
 }
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
-const SECTIONS  = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const SECTIONS  = ["A1", "A2", "A3", "A4", "A5", "A6", "A7"];
 
 // ── Shared input style (forces dark bg even against browser defaults) ───────
 const inputCls =
@@ -39,7 +39,7 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
   // ── Step 1 fields ──────────────────────────────────────────────────────
   const [branch, setBranch]   = useState<"CSE" | "Other">("CSE");
   const [semester, setSemester] = useState<number>(1);
-  const [section, setSection] = useState<number>(1);
+  const [section, setSection] = useState<string>("A3");
   const [rollNo, setRollNo]   = useState("");
 
   // ── Step 2 fields ──────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ export default function OnboardingModal({ userName, onComplete }: Props) {
                 {/* Section */}
                 <div>
                   <p className="text-[10px] font-bold text-[#1AE7A6] uppercase tracking-widest mb-2">Section</p>
-                  <div className="grid grid-cols-9 gap-1.5">
+                  <div className="grid grid-cols-7 gap-1.5">
                     {SECTIONS.map(s => (
                       <button key={s} onClick={() => setSection(s)} className={chipBtn(section === s)}>{s}</button>
                     ))}

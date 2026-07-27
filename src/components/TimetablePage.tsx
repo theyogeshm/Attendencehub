@@ -56,17 +56,16 @@ export default function TimetablePage({
       ? DAYS_OF_WEEK[currentDayIndex - 1].id
       : "MON";
 
-  // Section selection
+  // Section selection - defaults to user's section (e.g. A3)
   const [selectedSection, setSelectedSection] = useState<string>(() => {
     const saved = localStorage.getItem("dtu_timetable_section");
     if (saved && TIMETABLE_SEM_3_DATA.sections[saved]) return saved;
-    // Map profile section if available
     const normalizedUserSection = userSection.toUpperCase().trim();
-    if (normalizedUserSection.includes("DA") || normalizedUserSection.includes("A8") || normalizedUserSection === "8") {
-      return "CSE-DA_A8";
-    }
-    const match = SECTION_OPTIONS.find((s) => s.id === normalizedUserSection || s.id === `A${normalizedUserSection}`);
-    return match ? match.id : "A1";
+    const formattedSec = normalizedUserSection.startsWith("A")
+      ? normalizedUserSection
+      : `A${normalizedUserSection}`;
+    const match = SECTION_OPTIONS.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
+    return match ? match.id : "A3";
   });
 
   const [activeDay, setActiveDay] = useState<string>(defaultDayId);
@@ -491,30 +490,6 @@ export default function TimetablePage({
 
                       {/* Content */}
                       <div className="flex-1">{renderSlotContent(rawText)}</div>
-
-                      {/* Quick Attendance Buttons */}
-                      <div className="pt-2 border-t border-outline-variant/30 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase">
-                          Quick Mark
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleQuickMark(rawText, true)}
-                            className="py-1.5 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                            title="Mark Present (+1)"
-                          >
-                            <span>Present</span>
-                          </button>
-                          <button
-                            onClick={() => handleQuickMark(rawText, false)}
-                            className="py-1.5 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                            title="Mark Absent (+1)"
-                          >
-                            <span>Absent</span>
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   );
                 })}
@@ -590,22 +565,6 @@ export default function TimetablePage({
                           </div>
 
                           <div>{renderSlotContent(rawText)}</div>
-
-                          {/* Quick Attendance */}
-                          <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-outline-variant/20">
-                            <button
-                              onClick={() => handleQuickMark(rawText, true)}
-                              className="px-2.5 py-1 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm"
-                            >
-                              Present
-                            </button>
-                            <button
-                              onClick={() => handleQuickMark(rawText, false)}
-                              className="px-2.5 py-1 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm"
-                            >
-                              Absent
-                            </button>
-                          </div>
                         </div>
                       ))
                     )}

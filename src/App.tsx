@@ -26,6 +26,7 @@ import LoginPage from "./components/LoginPage";
 import ConfirmDialog from "./components/ConfirmDialog";
 import AdminPanel from "./components/AdminPanel";
 import NotFoundPage from "./components/NotFoundPage";
+import { TIMETABLE_SEM_3_DATA, parseTimetableEntry } from "./data/timetableSem3";
 
 import {
   Sun,
@@ -97,10 +98,10 @@ export default function App() {
   const [profile, setProfile] = useState<StudentProfile>(() =>
     safeLocalStorageGet<StudentProfile>("ATTENDANCE_HUB_PROFILE", {
       name: "Student",
-      rollNo: "2K24/---/---",
+      rollNo: "2K24/CSE/01",
       branch: "Computer Science & Engineering",
-      semester: "2nd Semester",
-      section: "A",
+      semester: "3rd Semester",
+      section: "A3",
     })
   );
 
@@ -836,6 +837,45 @@ export default function App() {
     { id: "analytics",   label: "Analytics",   icon: "leaderboard" },
   ];
 
+  const getTodayScheduledSubjects = (): Subject[] => {
+    const currentDayIndex = new Date().getDay();
+    const daysMap = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
+    const todayId = daysMap[currentDayIndex];
+    if (todayId === "SUN" || todayId === "SAT") return subjects;
+
+    const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
+      ? profile.section.toUpperCase().trim()
+      : `A${profile.section.toUpperCase().trim()}`;
+    const secData = TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"];
+    const daySchedule = secData?.timetable[todayId];
+    if (!daySchedule) return subjects;
+
+    const matchedSubjects: Subject[] = [];
+    const seenSubjectIds = new Set<string>();
+
+    Object.entries(daySchedule).forEach(([timeSlot, rawText]) => {
+      const parsed = parseTimetableEntry(rawText, secData.room);
+      const splitName = parsed.splitSubjectName.toLowerCase().trim();
+
+      const matched = subjects.find(s =>
+        s.name.toLowerCase().trim() === splitName ||
+        s.name.toLowerCase().trim().includes(parsed.baseSubjectName.toLowerCase().trim())
+      );
+
+      if (matched && !seenSubjectIds.has(matched.id)) {
+        seenSubjectIds.add(matched.id);
+        matchedSubjects.push({
+          ...matched,
+          time: `${timeSlot} (${parsed.room || secData.room})`,
+          prof: parsed.faculty || matched.prof,
+          type: parsed.isLab ? "LAB" : "LEC",
+        });
+      }
+    });
+
+    return matchedSubjects.length > 0 ? matchedSubjects : subjects;
+  };
+
   // ── Google avatar URL ─────────────────────────────────────────────────────
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
   const initials  = profile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -1065,7 +1105,7 @@ export default function App() {
                   isDarkMode={isDarkMode}
                   todayAttendance={todayAttendance}
                   isLoadingTimetable={false}
-                  todayTimetable={[]}
+                  todayTimetable={getTodayScheduledSubjects()}
                 />
               } />
               <Route path="/attendance" element={
