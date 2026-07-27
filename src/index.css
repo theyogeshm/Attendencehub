@@ -199,6 +199,7 @@ html.light .text-\[\#47ffbc\] { color: #065F46; }
 html.light .bg-\[\#1ae7a6\]\/10 { background-color: #D1FAE5; }
 html.light .bg-\[rgba\(26\,231\,166\,0\.1\)\] { background-color: #D1FAE5; }
 html.light .text-\[\#1AE7A6\] { color: #00C896; }
+html.light .bg-\[\#00C896\] { color: #FFFFFF !important; }
 
 /* ── TIMETABLE RESPONSIVE STYLES ─────────────────────────────────────────── */
 
