@@ -78,6 +78,18 @@ export default function TimetablePage({
     dayLabel: string;
   } | null>(null);
 
+  // Sync section whenever profile userSection prop updates
+  useEffect(() => {
+    if (userSection) {
+      const normalized = userSection.toUpperCase().trim();
+      const formatted = normalized.startsWith("A") ? normalized : `A${normalized}`;
+      const match = SECTION_OPTIONS.find((s) => s.id === formatted || s.id === normalized);
+      if (match) {
+        setSelectedSection(match.id);
+      }
+    }
+  }, [userSection]);
+
   // Save section selection to localStorage
   useEffect(() => {
     localStorage.setItem("dtu_timetable_section", selectedSection);

@@ -1252,13 +1252,13 @@ export default function App() {
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">Section</label>
-                    <div className="grid grid-cols-9 gap-1.5">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(s => {
-                        const isActive = editProfile.section === String(s);
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {["A1", "A2", "A3", "A4", "A5", "A6", "A7"].map(s => {
+                        const isActive = editProfile.section === s || editProfile.section === s.replace("A", "");
                         return (
                           <button
                             key={s}
-                            onClick={() => setEditProfile(prev => ({ ...prev, section: String(s) }))}
+                            onClick={() => setEditProfile(prev => ({ ...prev, section: s }))}
                             className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer select-none ${
                               isActive
                                 ? "bg-gradient-to-br from-[#1AE7A6] to-[#00C896] border-transparent text-[#002114] shadow-md shadow-[#1AE7A6]/25"
