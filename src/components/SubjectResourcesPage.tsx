@@ -133,7 +133,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         if (!error && data && data.length > 0) {
           const rows = data as DbResource[];
           setResources(rows);
-          setActiveTab(rows[0]?.tab_type ?? "");
+          const nonSyllabus = rows.filter(r => !r.tab_type.toLowerCase().includes("syllabus"));
+          const defaultTab = (nonSyllabus.length > 0 ? nonSyllabus[0] : rows[0])?.tab_type ?? "";
+          setActiveTab(defaultTab);
           break;
         }
       }
@@ -142,9 +144,14 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   }, [decodedName]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  // Ordered unique tab list — first appearance wins
+  const syllabusResource = resources.find((r) =>
+    r.tab_type.toLowerCase().trim().includes("syllabus")
+  );
+
+  // Ordered unique tab list — exclude Syllabus (elevated to top-right hero header button)
   const tabList: string[] = [];
   for (const r of resources) {
+    if (r.tab_type.toLowerCase().trim().includes("syllabus")) continue;
     if (!tabList.includes(r.tab_type)) tabList.push(r.tab_type);
   }
 
@@ -289,30 +296,47 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         </div>
 
         {/* Subject hero */}
-        <div className="flex items-center gap-3.5 mb-3.5">
-          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-            <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-bold text-on-surface leading-tight">
-                {decodedName}
-              </h1>
-              {subject?.code && (
-                <span className="text-[10px] font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">{subject.code}</span>
-              )}
+        <div className="flex items-center justify-between gap-3.5 mb-3.5 flex-wrap">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
+              <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
             </div>
-            {subject?.description && (
-              <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{subject.description}</p>
-            )}
-            <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
-              {loading
-                ? "Fetching resources..."
-                : resources.length === 0
-                  ? "No resources uploaded yet"
-                  : `${resources.length} file${resources.length !== 1 ? "s" : ""} · ${tabList.length} section${tabList.length !== 1 ? "s" : ""}`}
-            </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-bold text-on-surface leading-tight">
+                  {decodedName}
+                </h1>
+                {subject?.code && (
+                  <span className="text-[10px] font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">{subject.code}</span>
+                )}
+              </div>
+              {subject?.description && (
+                <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{subject.description}</p>
+              )}
+              <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
+                {loading
+                  ? "Fetching resources..."
+                  : resources.length === 0
+                    ? "No resources uploaded yet"
+                    : `${resources.length} file${resources.length !== 1 ? "s" : ""} · ${tabList.length} section${tabList.length !== 1 ? "s" : ""}`}
+              </p>
+            </div>
           </div>
+
+          {/* Top-Right Syllabus Button (rendered ONLY when syllabus is posted) */}
+          {syllabusResource && (
+            <a
+              href={syllabusResource.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary font-bold text-xs hover:bg-primary/20 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-sm"
+              title={`View Syllabus — ${syllabusResource.file_name}`}
+            >
+              <span className="material-symbols-outlined text-[16px]">list_alt</span>
+              <span>Syllabus</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+            </a>
+          )}
         </div>
 
         {/* Tab bar — scrolls horizontally on mobile */}
