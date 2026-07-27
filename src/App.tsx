@@ -1183,6 +1183,8 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 custom-scrollbar pb-24 lg:pb-6">
           <div className="max-w-7xl mx-auto">
             <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={
                 <DashboardPage
                   subjects={subjects}
@@ -1206,7 +1208,7 @@ export default function App() {
                 <SubjectResourcesPage subjects={subjects} />
               } />
               <Route path="/assignments" element={
-              <AssignmentsPage
+                <AssignmentsPage
                   assignments={assignments}
                   subjects={subjects}
                   onAddAssignment={handleAddAssignment}
@@ -1228,8 +1230,14 @@ export default function App() {
               <Route path="/analytics" element={
                 <AnalyticsPage subjects={subjects} isDarkMode={isDarkMode} />
               } />
+              <Route path="/login" element={
+                <LoginPage onToast={showToast} isDarkMode={isDarkMode} />
+              } />
+              <Route path="/admin" element={
+                <AdminPanel onToast={showToast} isDarkMode={isDarkMode} />
+              } />
               <Route path="/404" element={<NotFoundPage />} />
-              <Route path="*" element={<NotFoundPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>
         </div>
