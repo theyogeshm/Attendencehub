@@ -215,22 +215,20 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                         </div>
                       </div>
 
-                      {/* 1-Tap Attendance Marker Buttons */}
-                      <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      {/* 1-Tap Attendance Marker Buttons (Pill Capsule Style) */}
+                      <div className="grid grid-cols-3 gap-2 pt-1">
                         <button 
                           onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount + 1, sub.totalClasses + 1)}
-                          className="py-1.5 px-2 rounded-xl bg-primary/10 border border-primary/30 text-primary font-bold text-xs hover:bg-primary/20 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                          className="py-2 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
                           title="Mark Present (+1 Attended, +1 Total)"
                         >
-                          <span>🟢</span>
                           <span>Present</span>
                         </button>
                         <button 
                           onClick={() => onUpdateSubjectHours(sub.id, sub.attendanceCount, sub.totalClasses + 1)}
-                          className="py-1.5 px-2 rounded-xl bg-error/10 border border-error/30 text-error font-bold text-xs hover:bg-error/20 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                          className="py-2 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
                           title="Mark Absent (+1 Missed, +1 Total)"
                         >
-                          <span>🔴</span>
                           <span>Absent</span>
                         </button>
                         <button 
@@ -240,10 +238,9 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                               onUpdateSubjectHours(sub.id, Math.max(0, sub.attendanceCount - 1), Math.max(0, sub.totalClasses - 1));
                             }
                           }}
-                          className="py-1.5 px-2 rounded-xl bg-surface-variant/50 border border-outline-variant/40 text-on-surface-variant font-bold text-xs hover:text-on-surface disabled:opacity-40 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          className="py-2 px-2.5 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs disabled:opacity-40 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
                           title="Undo last class entry"
                         >
-                          <span>🔄</span>
                           <span>Undo</span>
                         </button>
                       </div>

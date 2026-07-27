@@ -313,24 +313,24 @@ export default function DashboardPage({
                     <div className="flex flex-wrap gap-1.5 shrink-0">
                       <button
                         onClick={() => onMarkAttendance(sub.id, "present")}
-                        className={`px-3 py-1.5 rounded-lg font-bold text-[10px] active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                        className={`px-3.5 py-1.5 rounded-full font-bold text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
                           currentStatus === "present"
-                            ? "bg-primary text-[#002114] ring-2 ring-primary/40 scale-105"
-                            : "bg-primary-container text-[#002114] hover:brightness-110"
+                            ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 scale-105"
+                            : "bg-[#22c55e] text-white hover:bg-[#16a34a]"
                         }`}
                       >
-                        <CheckCircle className="w-3 h-3" />
+                        <CheckCircle className="w-3.5 h-3.5" />
                         Present
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, "absent")}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
                           currentStatus === "absent"
-                            ? "bg-error-container text-on-error-container ring-2 ring-error/40 scale-105"
-                            : "border border-outline-variant text-[#bacbbf] hover:bg-error-container hover:text-on-error-container hover:border-transparent"
+                            ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 scale-105"
+                            : "bg-[#ef4444] text-white hover:bg-[#dc2626]"
                         }`}
                       >
-                        <XCircle className="w-3 h-3" />
+                        <XCircle className="w-3.5 h-3.5" />
                         Absent
                       </button>
                       <button
