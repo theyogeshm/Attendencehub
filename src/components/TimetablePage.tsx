@@ -28,6 +28,11 @@ import {
   parseTimetableEntry,
   TimetableEntry,
 } from "../data/timetableSem3";
+import {
+  TIMETABLE_SEM_5_DATA,
+  SECTION_OPTIONS_SEM_5,
+  convertSem5SlotToString,
+} from "../data/timetableSem5";
 import CustomSelect from "./CustomSelect";
 
 interface TimetablePageProps {
@@ -60,47 +65,86 @@ export default function TimetablePage({
       ? DAYS_OF_WEEK[currentDayIndex - 1].id
       : "MON";
 
-  // Section selection - defaults to user's section (e.g. A3)
+  // Semester Selection - default based on enrolled subjects or saved setting
+  const [selectedSemester, setSelectedSemester] = useState<number>(() => {
+    const saved = localStorage.getItem("dtu_timetable_semester");
+    if (saved) return parseInt(saved, 10);
+    return subjects.some(s => s.name.includes("Compiler") || s.name.includes("Machine Learning")) ? 5 : 3;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dtu_timetable_semester", String(selectedSemester));
+  }, [selectedSemester]);
+
+  const currentSectionOptions = selectedSemester === 5 ? SECTION_OPTIONS_SEM_5 : SECTION_OPTIONS;
+  const currentTimetableData = selectedSemester === 5 ? TIMETABLE_SEM_5_DATA : TIMETABLE_SEM_3_DATA;
+
+  // Section selection - defaults to user's section
   const [selectedSection, setSelectedSection] = useState<string>(() => {
-    const saved = localStorage.getItem("dtu_timetable_section");
-    if (saved && TIMETABLE_SEM_3_DATA.sections[saved]) return saved;
+    const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
+    if (saved && (currentTimetableData.sections as any)[saved]) return saved;
     const normalizedUserSection = userSection.toUpperCase().trim();
     const formattedSec = normalizedUserSection.startsWith("A")
       ? normalizedUserSection
       : `A${normalizedUserSection}`;
-    const match = SECTION_OPTIONS.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
-    return match ? match.id : "A3";
+    const match = currentSectionOptions.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
+    return match ? match.id : "A1";
   });
 
   const [activeDay, setActiveDay] = useState<string>(defaultDayId);
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "lecture" | "lab" | "tutorial">("all");
-  const [selectedSlotModal, setSelectedSlotModal] = useState<{
-    timeSlot: string;
-    rawText: string;
-    dayLabel: string;
-  } | null>(null);
+  const [showElectivePanel, setShowElectivePanel] = useState(false);
+
+  // Elective Overrides for Sem 5 (E1 - E6)
+  const [electiveOverrides, setElectiveOverrides] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("dtu_sem5_elective_overrides");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const updateElectiveOverride = (slotKey: string, decSubject: string) => {
+    const next = { ...electiveOverrides, [slotKey]: decSubject };
+    setElectiveOverrides(next);
+    localStorage.setItem("dtu_sem5_elective_overrides", JSON.stringify(next));
+  };
 
   // Sync section whenever profile userSection prop updates
   useEffect(() => {
     if (userSection) {
       const normalized = userSection.toUpperCase().trim();
       const formatted = normalized.startsWith("A") ? normalized : `A${normalized}`;
-      const match = SECTION_OPTIONS.find((s) => s.id === formatted || s.id === normalized);
+      const match = currentSectionOptions.find((s) => s.id === formatted || s.id === normalized);
       if (match) {
         setSelectedSection(match.id);
       }
     }
-  }, [userSection]);
+  }, [userSection, selectedSemester]);
 
   // Save section selection to localStorage
   useEffect(() => {
-    localStorage.setItem("dtu_timetable_section", selectedSection);
-  }, [selectedSection]);
+    localStorage.setItem(`dtu_timetable_section_sem${selectedSemester}`, selectedSection);
+  }, [selectedSection, selectedSemester]);
 
-  const sectionData = TIMETABLE_SEM_3_DATA.sections[selectedSection] || TIMETABLE_SEM_3_DATA.sections["A1"];
-  const sectionMeta = SECTION_OPTIONS.find((s) => s.id === selectedSection) || SECTION_OPTIONS[0];
+  const sectionData = (currentTimetableData.sections as any)[selectedSection] || (currentTimetableData.sections as any)["A1"];
+  const sectionMeta = currentSectionOptions.find((s) => s.id === selectedSection) || currentSectionOptions[0];
+
+  // Helper to extract slot raw text format from string/object
+  const getSlotRawText = (rawVal: any) => {
+    if (!rawVal) return "";
+    let str = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
+    if (selectedSemester === 5 && str.includes("Elective - unresolved")) {
+      const elecMatch = str.match(/(E[1-6])/);
+      if (elecMatch && electiveOverrides[elecMatch[1]]) {
+        str = str.replace("(Elective - unresolved)", `[${electiveOverrides[elecMatch[1]]}]`);
+      }
+    }
+    return str;
+  };
 
   // Helper to match subject in user's enrolled subjects (Theory vs Lab split aware)
   const findMatchingSubject = (entryText: string): Subject | undefined => {
@@ -244,9 +288,15 @@ export default function TimetablePage({
 
                   <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1.5 gap-2 flex-wrap">
                     {parsed.faculty && (
-                      <span className={`flex items-center gap-1 font-medium ${isFacultyTbd ? "text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded" : "text-primary"}`}>
+                      <span className={`flex items-center gap-1 font-medium ${
+                        parsed.faculty.includes("VERIFY")
+                          ? "text-amber-400 font-bold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 text-[10px]"
+                          : isFacultyTbd
+                            ? "text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded"
+                            : "text-primary"
+                      }`}>
                         <UserIcon className="w-3 h-3" />
-                        {parsed.faculty}
+                        {parsed.faculty.includes("VERIFY") ? `⚠️ ${parsed.faculty}` : parsed.faculty}
                       </span>
                     )}
                     {parsed.room && (
@@ -299,9 +349,15 @@ export default function TimetablePage({
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant pt-0.5">
           {parsed.faculty && (
-            <span className={`flex items-center gap-1 font-medium ${isFacultyTbd ? "text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded" : "text-primary"}`}>
+            <span className={`flex items-center gap-1 font-medium ${
+              parsed.faculty.includes("VERIFY")
+                ? "text-amber-400 font-bold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 text-[10px]"
+                : isFacultyTbd
+                  ? "text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded"
+                  : "text-primary"
+            }`}>
               <UserIcon className="w-3.5 h-3.5" />
-              {parsed.faculty}
+              {parsed.faculty.includes("VERIFY") ? `⚠️ ${parsed.faculty}` : parsed.faculty}
             </span>
           )}
           {parsed.room && (
@@ -344,8 +400,31 @@ export default function TimetablePage({
         <div className="relative z-10 space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="px-3 py-1 rounded-full text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
-              {TIMETABLE_SEM_3_DATA.semester}
+              {currentTimetableData.semester}
             </span>
+            {/* Semester Switcher Tabs */}
+            <div className="flex items-center gap-1 bg-surface-container/80 p-1 rounded-xl border border-outline-variant/40">
+              <button
+                onClick={() => setSelectedSemester(3)}
+                className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  selectedSemester === 3
+                    ? "bg-[#00C896] text-white dark:bg-primary dark:text-[#002114] shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                3rd Sem (CSE)
+              </button>
+              <button
+                onClick={() => setSelectedSemester(5)}
+                className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                  selectedSemester === 5
+                    ? "bg-[#00C896] text-white dark:bg-primary dark:text-[#002114] shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                5th Sem (CSE-V)
+              </button>
+            </div>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
@@ -354,12 +433,12 @@ export default function TimetablePage({
           </h1>
 
           <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
-            Official Semester 3 schedule for {sectionMeta.label} ({sectionMeta.room}).
+            Official {selectedSemester === 5 ? "Semester 5 (CSE-V)" : "Semester 3"} schedule for {sectionMeta.label} ({sectionMeta.room}).
           </p>
         </div>
 
         {/* Section Quick Stats & Section Switcher */}
-        <div className="relative z-10 flex items-center gap-3 self-start md:self-auto">
+        <div className="relative z-10 flex items-center gap-3 self-start md:self-auto flex-wrap">
           <div className="p-3.5 rounded-2xl bg-surface-container/90 border border-outline-variant/40 text-center min-w-[120px]">
             <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Default Room</p>
             <p className="text-lg font-black text-primary mt-0.5 flex items-center justify-center gap-1">
@@ -374,7 +453,7 @@ export default function TimetablePage({
             </label>
             <CustomSelect
               value={selectedSection}
-              options={SECTION_OPTIONS.map((sec) => ({
+              options={currentSectionOptions.map((sec) => ({
                 value: sec.id,
                 label: sec.label,
                 badge: sec.room,
@@ -386,9 +465,70 @@ export default function TimetablePage({
         </div>
       </div>
 
+      {/* ── SECTION WARNING NOTE BANNER ── */}
+      {sectionData?.note && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-amber-300 text-xs shadow-sm">
+          <span className="material-symbols-outlined text-xl text-amber-400 shrink-0">warning</span>
+          <div>
+            <span className="font-extrabold text-amber-200 text-sm block">Section Notice ({selectedSection})</span>
+            <p className="mt-0.5 opacity-90 leading-relaxed">{sectionData.note}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── ELECTIVE OVERRIDES PANEL (SEM 5 ONLY) ── */}
+      {selectedSemester === 5 && (
+        <div className="glass-card rounded-2xl p-4 border border-outline-variant/40 space-y-3">
+          <div
+            onClick={() => setShowElectivePanel(!showElectivePanel)}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-extrabold text-on-surface uppercase tracking-wider">
+                ⚡ Custom Elective Allotment Overrides (E1 - E6)
+              </span>
+            </div>
+            <span className="text-xs font-bold text-primary flex items-center gap-1">
+              {showElectivePanel ? "Hide Overrides ▲" : "Configure Electives ▼"}
+            </span>
+          </div>
+
+          {showElectivePanel && (
+            <div className="pt-2 border-t border-outline-variant/30 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { slot: "E1", label: "Elective E1", def: "CS313: Quantum Computing" },
+                { slot: "E2", label: "Elective E2", def: "CS309: Distributed Systems" },
+                { slot: "E3", label: "Elective E3", def: "CS311: Information Theory" },
+                { slot: "E4", label: "Elective E4", def: "Unresolved" },
+                { slot: "E5", label: "Elective E5", def: "CS315: Advance Data Structure" },
+                { slot: "E6", label: "Elective E6", def: "Unresolved" },
+              ].map((item) => (
+                <div key={item.slot} className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/30 space-y-1.5">
+                  <div className="flex justify-between items-center text-[11px] font-bold">
+                    <span className="text-primary font-mono">{item.slot} Slot</span>
+                    <span className="text-on-surface-variant text-[10px]">Default: {item.def}</span>
+                  </div>
+                  <select
+                    value={electiveOverrides[item.slot] || ""}
+                    onChange={(e) => updateElectiveOverride(item.slot, e.target.value)}
+                    className="w-full p-2 rounded-lg bg-surface-variant text-on-surface text-xs font-medium border border-outline-variant/40 focus:outline-none focus:border-primary"
+                  >
+                    <option value="">-- Use Default / Unresolved --</option>
+                    <option value="CS309 Distributed Systems">CS309: Distributed Systems</option>
+                    <option value="CS311 Information Theory and Coding">CS311: Information Theory & Coding</option>
+                    <option value="CS313 Quantum Computing">CS313: Quantum Computing</option>
+                    <option value="CS315 Advance Data Structure">CS315: Advance Data Structure</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── CONTROLS: VIEW MODES & SEARCH ── */}
       <div className="space-y-4">
-
         {/* View Mode Toggle & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -420,7 +560,7 @@ export default function TimetablePage({
 
             {/* Lab Group Filter Tabs */}
             <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
-              <span className="text-[10px] font-bold text-on-surface-variant uppercase px-2">Lab Group:</span>
+              <span className="text-[10px] font-bold text-on-surface-variant uppercase px-2">Group:</span>
               {(["All", "G1", "G2", "G3"] as const).map((grp) => (
                 <button
                   key={grp}
@@ -445,7 +585,7 @@ export default function TimetablePage({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search subject, faculty, code (e.g. CS205, DAA, Katarya)..."
+              placeholder="Search subject, faculty, code (e.g. CS301, ML, Yadav)..."
               className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-surface-container border border-outline-variant/40 text-xs text-on-surface focus:outline-none focus:border-primary transition-all placeholder:text-on-surface-variant/50"
             />
             {searchQuery && (
@@ -508,9 +648,10 @@ export default function TimetablePage({
             const dayTimetable = sectionData.timetable[activeDay] || {};
             const slots = Object.entries(dayTimetable);
 
-            const filteredSlots = slots.filter(([_, raw]) => {
+            const filteredSlots = slots.filter(([_, rawVal]) => {
+              const rawText = getSlotRawText(rawVal);
               if (!searchQuery) return true;
-              return raw.toLowerCase().includes(searchQuery.toLowerCase());
+              return rawText.toLowerCase().includes(searchQuery.toLowerCase());
             });
 
             if (filteredSlots.length === 0) {
@@ -530,8 +671,8 @@ export default function TimetablePage({
 
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSlots.map(([timeSlot, rawText]) => {
-                  const matchedSubject = findMatchingSubject(rawText);
+                {filteredSlots.map(([timeSlot, rawVal]) => {
+                  const rawText = getSlotRawText(rawVal);
 
                   return (
                     <div
@@ -569,9 +710,10 @@ export default function TimetablePage({
               const slotsArray = Object.entries(daySlots);
               const isToday = defaultDayId === day.id;
 
-              const filtered = slotsArray.filter(([_, raw]) => {
+              const filtered = slotsArray.filter(([_, rawVal]) => {
+                const rawText = getSlotRawText(rawVal);
                 if (!searchQuery) return true;
-                return raw.toLowerCase().includes(searchQuery.toLowerCase());
+                return rawText.toLowerCase().includes(searchQuery.toLowerCase());
               });
 
               return (
@@ -616,21 +758,24 @@ export default function TimetablePage({
                         No classes scheduled
                       </div>
                     ) : (
-                      filtered.map(([timeSlot, rawText]) => (
-                        <div
-                          key={timeSlot}
-                          className="p-3 rounded-xl bg-surface-container/80 border border-outline-variant/30 hover:border-primary/40 transition-all space-y-2 group"
-                        >
-                          <div className="flex items-center justify-between text-[11px] font-mono font-bold text-primary border-b border-outline-variant/20 pb-1">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {timeSlot}
-                            </span>
-                          </div>
+                      filtered.map(([timeSlot, rawVal]) => {
+                        const rawText = getSlotRawText(rawVal);
+                        return (
+                          <div
+                            key={timeSlot}
+                            className="p-3 rounded-xl bg-surface-container/80 border border-outline-variant/30 hover:border-primary/40 transition-all space-y-2 group"
+                          >
+                            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-primary border-b border-outline-variant/20 pb-1">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {timeSlot}
+                              </span>
+                            </div>
 
-                          <div>{renderSlotContent(rawText)}</div>
-                        </div>
-                      ))
+                            <div>{renderSlotContent(rawText)}</div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>

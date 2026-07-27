@@ -423,7 +423,7 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   }
 
   // Extract subject code
-  const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|DA\d{3})\b/i);
+  const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|DA\d{3}|HU301|EE HU301)\b/i);
   const subjectCode = codeMatch ? codeMatch[1].toUpperCase() : "";
 
   // Map to standardized full subject name
@@ -434,6 +434,14 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
     else if (code.startsWith("CS205")) baseSubjectName = "Design & Analysis of Algorithm";
     else if (code.startsWith("CS207")) baseSubjectName = "Operating System Design";
     else if (code.startsWith("CS209")) baseSubjectName = "Software Engineering";
+    else if (code.startsWith("CS301")) baseSubjectName = "Compiler Design";
+    else if (code.startsWith("CS303")) baseSubjectName = "Machine Learning";
+    else if (code.startsWith("CS305")) baseSubjectName = "Information and Network Security";
+    else if (code.startsWith("CS309")) baseSubjectName = "Distributed Systems";
+    else if (code.startsWith("CS311")) baseSubjectName = "Information Theory and Coding";
+    else if (code.startsWith("CS313")) baseSubjectName = "Quantum Computing";
+    else if (code.startsWith("CS315")) baseSubjectName = "Advance Data Structure";
+    else if (code.includes("HU301")) baseSubjectName = "Humanities Elective (EE HU301)";
     else if (code.startsWith("DA201")) baseSubjectName = "Design & Analysis of Algorithm";
     else if (code.startsWith("DA203")) baseSubjectName = "Foundation to Data Science";
     else if (code.startsWith("DA205")) baseSubjectName = "Linear Algebra";
@@ -442,7 +450,23 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   }
 
   if (!baseSubjectName) {
-    if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("ece")) {
+    if (lower.includes("compiler design") || lower.includes("cd")) {
+      baseSubjectName = "Compiler Design";
+    } else if (lower.includes("machine learning") || lower.includes("ml")) {
+      baseSubjectName = "Machine Learning";
+    } else if (lower.includes("information and network security") || lower.includes("ins")) {
+      baseSubjectName = "Information and Network Security";
+    } else if (lower.includes("distributed system") || lower.includes("dis")) {
+      baseSubjectName = "Distributed Systems";
+    } else if (lower.includes("information theory") || lower.includes("itc")) {
+      baseSubjectName = "Information Theory and Coding";
+    } else if (lower.includes("quantum computing") || lower.includes("qc")) {
+      baseSubjectName = "Quantum Computing";
+    } else if (lower.includes("advance data structure") || lower.includes("ads")) {
+      baseSubjectName = "Advance Data Structure";
+    } else if (lower.includes("humanities") || lower.includes("hu301")) {
+      baseSubjectName = "Humanities Elective (EE HU301)";
+    } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("ece")) {
       baseSubjectName = "Digital Logic Design";
     } else if (lower.includes("operating system") || lower.includes("os")) {
       baseSubjectName = "Operating System Design";

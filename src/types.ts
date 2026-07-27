@@ -14,7 +14,7 @@ export interface Subject {
   totalClasses: number;
   category: "Core" | "Applied" | "Theoretical" | "Core CS" | "Common" | "Advanced";
   description: string;
-  type?: "LEC" | "LAB"; // LEC = lecture, LAB = lab
+  type?: "LEC" | "LAB" | "TUT"; // LEC = lecture, LAB = lab, TUT = tutorial
 }
 
 export interface Assignment {
@@ -34,7 +34,7 @@ export interface TimetableSlot {
   colSpan?: number;
   specialColor?: string; // "primary", "secondary", "error" etc.
   isLunch?: boolean;
-  type?: "LEC" | "LAB";
+  type?: "LEC" | "LAB" | "TUT";
 }
 
 export type AttendanceStatus = "present" | "absent" | "miss" | "leave" | "clear";

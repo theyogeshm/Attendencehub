@@ -5,6 +5,8 @@
 
 import { Subject, Assignment, TimetableSlot } from "./types";
 
+import { DTU_CSE_SEM5_SUBJECTS } from "./data/timetableSem5";
+
 // ── DTU CSE Subjects by Semester ─────────────────────────────────────────────
 // NOTE: Add the real subject names for each semester below.
 // These are used during onboarding and profile semester changes.
@@ -22,7 +24,7 @@ export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
     "Digital Logic Design - Lab",
   ],
   4: [],
-  5: [],
+  5: DTU_CSE_SEM5_SUBJECTS,
   6: [],
   7: [],
   8: [],

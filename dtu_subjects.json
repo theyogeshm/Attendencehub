@@ -52,11 +52,21 @@
         {
           "sem": 5,
           "subjects": [
-            "Engineering Economics",
-            "Machine Learning",
-            "Information Theory and Coding",
-            "Computer Graphics",
-            "Computer Networks"
+            "Compiler Design - Theory",
+            "Compiler Design - Lab",
+            "Machine Learning - Theory",
+            "Machine Learning - Lab",
+            "Information and Network Security - Theory",
+            "Information and Network Security - Lab",
+            "Distributed Systems - Theory",
+            "Distributed Systems - Tutorial",
+            "Information Theory and Coding - Theory",
+            "Information Theory and Coding - Tutorial",
+            "Quantum Computing - Theory",
+            "Quantum Computing - Tutorial",
+            "Advance Data Structure - Theory",
+            "Advance Data Structure - Tutorial",
+            "Humanities Elective (EE HU301)"
           ]
         }
       ]

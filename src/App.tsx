@@ -27,6 +27,7 @@ import ConfirmDialog from "./components/ConfirmDialog";
 import AdminPanel from "./components/AdminPanel";
 import NotFoundPage from "./components/NotFoundPage";
 import { TIMETABLE_SEM_3_DATA, parseTimetableEntry } from "./data/timetableSem3";
+import { TIMETABLE_SEM_5_DATA, convertSem5SlotToString } from "./data/timetableSem5";
 
 import {
   Sun,
@@ -906,15 +907,20 @@ export default function App() {
     const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
       ? profile.section.toUpperCase().trim()
       : `A${profile.section.toUpperCase().trim()}`;
-    const secData = TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"];
+    const isSem5 = profile.semester.includes("5");
+    const secData = isSem5
+      ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
+      : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
     const daySchedule = secData?.timetable[todayId];
     if (!daySchedule) return subjects;
 
     const todayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
-    Object.entries(daySchedule).forEach(([timeSlotKey, rawText]) => {
-      const cleanSlot = timeSlotKey.replace("_lab", "");
+    Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
+      const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
       const timeOrder = getTimeOrder(cleanSlot);
+      const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
+      if (!rawText) return;
 
       const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
 
@@ -934,12 +940,20 @@ export default function App() {
                 s.name.toLowerCase().trim().includes(baseLower) &&
                 (s.type === "LAB" || s.name.toLowerCase().includes("lab"))
             );
+          } else if (parsed.isTutorial) {
+            matched = subjects.find(
+              s =>
+                s.name.toLowerCase().trim().includes(baseLower) &&
+                (s.type === "TUT" || s.name.toLowerCase().includes("tutorial"))
+            );
           } else {
             matched = subjects.find(
               s =>
                 s.name.toLowerCase().trim().includes(baseLower) &&
                 s.type !== "LAB" &&
-                !s.name.toLowerCase().includes("lab")
+                s.type !== "TUT" &&
+                !s.name.toLowerCase().includes("lab") &&
+                !s.name.toLowerCase().includes("tutorial")
             );
           }
         }
@@ -955,7 +969,7 @@ export default function App() {
             rawSubjectId: matched.id,
             time: `${cleanSlot} (${parsed.room || secData.room})`,
             prof: parsed.faculty || matched.prof,
-            type: parsed.isLab ? "LAB" : "LEC",
+            type: parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC"),
             timeOrder,
           });
         } else {
