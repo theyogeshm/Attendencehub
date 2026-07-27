@@ -164,7 +164,10 @@ export default function TimetablePage({
       );
     }
     return (
-      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-800 dark:text-primary border border-emerald-500/30 dark:bg-primary/15">
+      <span
+        style={isDarkMode ? undefined : { color: "#ffffff" }}
+        className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#00C896] shadow-sm dark:bg-primary/15 dark:text-primary dark:border dark:border-primary/30"
+      >
         THEORY LECTURE
       </span>
     );
