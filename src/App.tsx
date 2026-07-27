@@ -334,15 +334,15 @@ export default function App() {
           if (lower.includes("theory") || lower.includes("lab")) {
             expandedSubjectsList.push(name);
           } else if (lower.includes("operating system") || lower === "os") {
-            expandedSubjectsList.push("Operating System Design (OS) - Theory", "Operating System Design (OS) - Lab");
+            expandedSubjectsList.push("Operating System Design - Theory", "Operating System Design - Lab");
           } else if (lower.includes("algorithm") || lower.includes("daa")) {
-            expandedSubjectsList.push("Algorithm Design and Analysis (DAA) - Theory", "Algorithm Design and Analysis (DAA) - Lab");
-          } else if (lower.includes("object oriented") || lower.includes("oop")) {
-            expandedSubjectsList.push("Object Oriented Programming (OOP) - Theory", "Object Oriented Programming (OOP) - Lab");
+            expandedSubjectsList.push("Design & Analysis of Algorithm - Theory", "Design & Analysis of Algorithm - Lab");
+          } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
+            expandedSubjectsList.push("Object Oriented Design - Theory", "Object Oriented Design - Lab");
           } else if (lower.includes("software engineering") || lower.includes("se")) {
-            expandedSubjectsList.push("Software Engineering (SE) - Theory", "Software Engineering (SE) - Lab");
-          } else if (lower.includes("digital logic") || lower.includes("digital electronics")) {
-            expandedSubjectsList.push("Digital Electronics - Theory", "Digital Electronics - Lab");
+            expandedSubjectsList.push("Software Engineering - Theory", "Software Engineering - Lab");
+          } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
+            expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
           } else {
             expandedSubjectsList.push(name);
           }

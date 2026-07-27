@@ -173,7 +173,7 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
         "TUE": {
           "10-12": "Lab-CS205 DAA Lab-G1 [Dr N Anand][Computer Network Lab]",
           "1-2": "TH-Digital Logic Design [ECE Department]",
-          "2-4": "Lab-CS207 OS Lab-A4/G1 [Faculty TBD][Data Mining Lab] / Lab-Digital Logic Design-G2 [ECE Dept] / Lab-CS205 DAA Lab-G3 [Ms Monika][CA Lab]"
+          "2-4": "Lab-CS207 OS Lab-A4/G1 [Dr Nipun Bansal][Data Mining Lab] / Lab-Digital Logic Design-G2 [ECE Dept] / Lab-CS205 DAA Lab-G3 [Ms Monika][CA Lab]"
         },
         "WED": {
           "9-10": "TH-CS207 SE [Dr Ravin Ahuja]",
@@ -398,11 +398,11 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   let baseSubjectName = "";
   if (codeMatch) {
     const code = codeMatch[1].toUpperCase();
-    if (code.startsWith("CS203")) baseSubjectName = "Object Oriented Programming (OOP)";
-    else if (code.startsWith("CS205")) baseSubjectName = "Algorithm Design and Analysis (DAA)";
-    else if (code.startsWith("CS207")) baseSubjectName = "Operating System Design (OS)";
-    else if (code.startsWith("CS209")) baseSubjectName = "Software Engineering (SE)";
-    else if (code.startsWith("DA201")) baseSubjectName = "Design & Analysis of Algorithm (DAA)";
+    if (code.startsWith("CS203")) baseSubjectName = "Object Oriented Design";
+    else if (code.startsWith("CS205")) baseSubjectName = "Design & Analysis of Algorithm";
+    else if (code.startsWith("CS207")) baseSubjectName = "Operating System Design";
+    else if (code.startsWith("CS209")) baseSubjectName = "Software Engineering";
+    else if (code.startsWith("DA201")) baseSubjectName = "Design & Analysis of Algorithm";
     else if (code.startsWith("DA203")) baseSubjectName = "Foundation to Data Science";
     else if (code.startsWith("DA205")) baseSubjectName = "Linear Algebra";
     else if (code.startsWith("DA207")) baseSubjectName = "Machine Learning";
@@ -411,15 +411,15 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
 
   if (!baseSubjectName) {
     if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("ece")) {
-      baseSubjectName = "Digital Electronics";
+      baseSubjectName = "Digital Logic Design";
     } else if (lower.includes("operating system") || lower.includes("os")) {
-      baseSubjectName = "Operating System Design (OS)";
+      baseSubjectName = "Operating System Design";
     } else if (lower.includes("algorithm") || lower.includes("daa")) {
-      baseSubjectName = "Algorithm Design and Analysis (DAA)";
+      baseSubjectName = "Design & Analysis of Algorithm";
     } else if (lower.includes("software engineering") || lower.includes("se")) {
-      baseSubjectName = "Software Engineering (SE)";
-    } else if (lower.includes("object oriented") || lower.includes("oop")) {
-      baseSubjectName = "Object Oriented Programming (OOP)";
+      baseSubjectName = "Software Engineering";
+    } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
+      baseSubjectName = "Object Oriented Design";
     } else {
       baseSubjectName = raw.replace(/\[[^\]]+\]/g, "").replace(/^(TH-|Lab-|Tutorial-)/i, "").trim();
     }
