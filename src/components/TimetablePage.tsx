@@ -149,8 +149,8 @@ export default function TimetablePage({
     if (entry.isLab) {
       return (
         <span
-          style={isDarkMode ? undefined : { color: "#ffffff" }}
-          className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#00C896] shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30"
+          style={isDarkMode ? undefined : { backgroundColor: "#00C896", color: "#ffffff" }}
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/30"
         >
           LAB SESSION
         </span>
@@ -158,15 +158,18 @@ export default function TimetablePage({
     }
     if (entry.isTutorial) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+        <span
+          style={isDarkMode ? undefined : { backgroundColor: "#f59e0b", color: "#ffffff" }}
+          className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-500/30"
+        >
           TUTORIAL (THEORY)
         </span>
       );
     }
     return (
       <span
-        style={isDarkMode ? undefined : { color: "#ffffff" }}
-        className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#00C896] shadow-sm dark:bg-primary/15 dark:text-primary dark:border dark:border-primary/30"
+        style={isDarkMode ? undefined : { backgroundColor: "#00C896", color: "#ffffff" }}
+        className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm dark:bg-primary/15 dark:text-primary dark:border dark:border-primary/30"
       >
         THEORY LECTURE
       </span>
