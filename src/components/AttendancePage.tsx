@@ -29,22 +29,6 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   const totalClassesAttended = subjects.reduce((sum, s) => sum + s.attendanceCount, 0);
   const totalClassesHeld = subjects.reduce((sum, s) => sum + s.totalClasses, 0);
 
-  // Safe and danger counts
-  const safeCount = subjects.filter((s) => {
-    const rate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
-    return rate >= 75;
-  }).length;
-
-  const dangerCount = subjects.filter((s) => {
-    const rate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
-    return rate < 75;
-  }).length;
-
-  const subjectsAtRiskCount = dangerCount;
-
-  // Selected subject config logic inside calculator
-  const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
-
   // Helper: check if a subject has a lab component
   const isLabSubject = (name: string) => {
     const lower = name.toLowerCase();
@@ -114,7 +98,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
   const groupedCards = Array.from(groupedCardsMap.values());
 
-  const filteredCards = groupedCards.filter(card => {
+  // Helper to determine if a grouped base card is Safe (>= 75%)
+  const isCardSafe = (card: UnifiedCardData) => {
     const tRate = card.theorySub && card.theorySub.totalClasses > 0 ? (card.theorySub.attendanceCount / card.theorySub.totalClasses) * 100 : 100;
     const lRate = card.labSub && card.labSub.totalClasses > 0 ? (card.labSub.attendanceCount / card.labSub.totalClasses) * 100 : 100;
     const sRate = card.singleSub && card.singleSub.totalClasses > 0 ? (card.singleSub.attendanceCount / card.singleSub.totalClasses) * 100 : 100;
@@ -125,8 +110,20 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
       card.singleSub ? sRate : 100
     );
 
-    if (statusFilter === "safe") return minRate >= 75;
-    if (statusFilter === "danger") return minRate < 75;
+    return minRate >= 75;
+  };
+
+  // Synchronized counts matching the grouped cards!
+  const safeCount = groupedCards.filter(isCardSafe).length;
+  const dangerCount = groupedCards.filter(card => !isCardSafe(card)).length;
+  const subjectsAtRiskCount = dangerCount;
+
+  // Selected subject config logic inside calculator
+  const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
+
+  const filteredCards = groupedCards.filter(card => {
+    if (statusFilter === "safe") return isCardSafe(card);
+    if (statusFilter === "danger") return !isCardSafe(card);
     return true;
   });
 
