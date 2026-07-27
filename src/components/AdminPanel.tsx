@@ -28,6 +28,7 @@ import {
   X,
   Sun,
   Moon,
+  Pencil,
 } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [year,           setYear]           = useState("");
   const [fileSize,       setFileSize]       = useState("");
   const [adding,         setAdding]         = useState(false);
+  const [editingResource, setEditingResource] = useState<DbResource | null>(null);
 
   // Filter subject options based on selected semester
   const availableSubjects = (() => {
@@ -269,6 +271,93 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     fetchAll();
   };
 
+  const handleStartEdit = (r: DbResource) => {
+    setEditingResource(r);
+    setSemester(r.semester || "");
+    if (availableSubjects.includes(r.subject)) {
+      setSubjectSelect(r.subject);
+      setCustomSubject("");
+    } else {
+      setSubjectSelect("__CUSTOM__");
+      setCustomSubject(r.subject);
+    }
+    if (availableTabs.includes(r.tab_type)) {
+      setTabSelect(r.tab_type);
+      setCustomTab("");
+    } else {
+      setTabSelect("__CUSTOM__");
+      setCustomTab(r.tab_type);
+    }
+    setFileName(r.file_name);
+    setFileUrl(r.file_url);
+    setYear(r.year || "");
+    setFileSize(r.file_size || "");
+    window.scrollTo({ top: 100, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingResource(null);
+    setSubjectSelect("");
+    setCustomSubject("");
+    setTabSelect("");
+    setCustomTab("");
+    setFileName("");
+    setFileUrl("");
+    setYear("");
+    setFileSize("");
+  };
+
+  const handleUpdate = async () => {
+    if (!editingResource) return;
+    const finalSubject = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
+    const finalTabType = tabSelect === "__CUSTOM__" ? customTab.trim() : tabSelect.trim();
+    if (!finalSubject || !fileName.trim() || !fileUrl.trim() || !finalTabType) {
+      show("Subject, Tab Type, File Name and URL are required", false);
+      return;
+    }
+    const safeUrl = sanitizeUrl(fileUrl.trim());
+    if (!safeUrl) {
+      show("File URL must start with https:// or http://", false);
+      return;
+    }
+
+    setAdding(true);
+    setDbError(null);
+
+    const payload = {
+      subject:   sanitizeText(finalSubject, 200),
+      semester:  semester || null,
+      tab_type:  sanitizeText(finalTabType, 50),
+      file_name: sanitizeText(fileName.trim(), 300),
+      file_url:  safeUrl,
+      year:      sanitizeText(year.trim(), 10) || null,
+      file_size: sanitizeText(fileSize.trim(), 20) || null,
+    };
+
+    let updated = false;
+    let lastError: any = null;
+
+    for (const tableName of RESOURCE_TABLE_NAMES) {
+      const { error } = await supabase.from(tableName).update(payload).eq("id", editingResource.id);
+      if (!error) {
+        updated = true;
+        break;
+      }
+      lastError = error;
+    }
+
+    setAdding(false);
+
+    if (!updated && lastError) {
+      show("Update failed: " + lastError.message, false);
+      return;
+    }
+
+    show("Resource updated ✓");
+    handleCancelEdit();
+    fetchAll();
+  };
+
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     let deleted = false;
@@ -360,11 +449,19 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
         </div>
       )}
 
-      {/* ── Add Form Card ── */}
+      {/* ── Add / Edit Form Card ── */}
       <div className={getCardStyle(isDarkMode)}>
-        <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
-          <Plus className="w-4 h-4" /> Add New Resource
-        </h3>
+        <div className="flex items-center justify-between gap-3 mb-4 pb-2 border-b border-slate-200/20">
+          <h3 className={`text-sm font-bold flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
+            {editingResource ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {editingResource ? `Edit Resource: ${editingResource.file_name}` : "Add New Resource"}
+          </h3>
+          {editingResource && (
+            <button onClick={handleCancelEdit} className="text-xs font-bold text-slate-400 hover:text-red-400 cursor-pointer">
+              ✕ Cancel Editing
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div>
             <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
@@ -436,19 +533,31 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
             <input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://drive.google.com/..." className={INP} />
           </div>
           <div>
-            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Year (optional)</label>
-            <input value={year} onChange={e => setYear(e.target.value)} placeholder="2023" className={INP} />
+            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Sub-Heading / Group (e.g. Assignment 1, Unit 1, 2026)</label>
+            <input value={year} onChange={e => setYear(e.target.value)} placeholder="e.g. Assignment 1, Unit 1, 2026" className={INP} />
           </div>
           <div>
             <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>File Size (optional)</label>
             <input value={fileSize} onChange={e => setFileSize(e.target.value)} placeholder="1.4 MB" className={INP} />
           </div>
         </div>
-        <div className="mt-4">
-          <button onClick={handleAdd} disabled={adding} className={BTN_PRIMARY}>
-            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Add Resource
-          </button>
+        <div className="mt-4 flex items-center gap-3">
+          {editingResource ? (
+            <>
+              <button onClick={handleUpdate} disabled={adding} className={BTN_PRIMARY}>
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Changes
+              </button>
+              <button onClick={handleCancelEdit} className={BTN_SECONDARY}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button onClick={handleAdd} disabled={adding} className={BTN_PRIMARY}>
+              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Add Resource
+            </button>
+          )}
         </div>
       </div>
 
@@ -500,15 +609,25 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
                     <td className={`px-4 py-3 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.year ?? "—"}</td>
                     <td className={`px-4 py-3 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.file_size ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDelete(r.id)}
-                        disabled={deletingId === r.id}
-                        className={getBtnDanger()}
-                        title="Delete resource"
-                      >
-                        {deletingId === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                        Delete
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleStartEdit(r)}
+                          className={BTN_SECONDARY}
+                          title="Edit resource"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(r.id)}
+                          disabled={deletingId === r.id}
+                          className={getBtnDanger()}
+                          title="Delete resource"
+                        >
+                          {deletingId === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

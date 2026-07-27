@@ -161,13 +161,14 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     activeTab.toLowerCase().includes("previous year");
   const isVideoTab   = activeTab.toLowerCase().includes("video");
 
-  // PYQ year groups
-  const pyqGroups: Record<string, DbResource[]> = {};
-  if (isPyqTab) {
+  // Group resources by sub-heading / year if sub-headings exist for this tab
+  const hasSubHeadings = tabResources.some((r) => Boolean(r.year?.trim()));
+  const subHeadingGroups: Record<string, DbResource[]> = {};
+  if (hasSubHeadings) {
     for (const res of tabResources) {
-      const key = res.year?.toString() ?? "Other";
-      if (!pyqGroups[key]) pyqGroups[key] = [];
-      pyqGroups[key].push(res);
+      const key = res.year?.trim() || "General";
+      if (!subHeadingGroups[key]) subHeadingGroups[key] = [];
+      subHeadingGroups[key].push(res);
     }
   }
 
@@ -413,20 +414,23 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         {/* Tab content */}
         {!loading && resources.length > 0 && (
           <div>
-            {/* PYQ — year grouped */}
-            {isPyqTab ? (
+            {/* Sub-heading / year grouped list */}
+            {hasSubHeadings ? (
               <div className="space-y-8">
-                {Object.entries(pyqGroups)
+                {Object.entries(subHeadingGroups)
                   .sort(([a], [b]) => {
-                    if (a === "Other") return 1;
-                    if (b === "Other") return -1;
-                    return Number(b) - Number(a);
+                    if (a === "General" || a === "Other") return 1;
+                    if (b === "General" || b === "Other") return -1;
+                    const numA = Number(a);
+                    const numB = Number(b);
+                    if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
+                    return a.localeCompare(b);
                   })
-                  .map(([year, files]) => (
-                    <div key={year}>
+                  .map(([groupName, files]) => (
+                    <div key={groupName}>
                       <div className="flex items-center gap-3 mb-4">
-                        <span className="text-sm font-black text-primary">
-                          {year}
+                        <span className="text-sm font-bold text-primary">
+                          {groupName}
                         </span>
                         <div className="flex-1 h-px bg-outline-variant/50" />
                         <span className="text-[10px] text-on-surface-variant/50">
@@ -442,7 +446,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   ))}
               </div>
             ) : (
-              /* Flat list for all other tabs */
+              /* Flat list for tabs without sub-headings */
               <div className={isVideoTab ? "space-y-5" : "space-y-3"}>
                 {tabResources.map((res) => (
                   <div key={res.id}><FileCard res={res} /></div>
