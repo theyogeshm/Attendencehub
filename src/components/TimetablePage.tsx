@@ -148,20 +148,20 @@ export default function TimetablePage({
   const getTypeBadge = (entry: TimetableEntry) => {
     if (entry.isLab) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-600 text-white shadow-sm">
           LAB SESSION
         </span>
       );
     }
     if (entry.isTutorial) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shadow-sm border border-amber-600/30">
           TUTORIAL (THEORY)
         </span>
       );
     }
     return (
-      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/15 text-primary border border-primary/30">
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-700 dark:bg-primary/15 dark:text-primary border border-emerald-500/30">
         THEORY LECTURE
       </span>
     );
@@ -373,9 +373,9 @@ export default function TimetablePage({
             <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
               <button
                 onClick={() => setViewMode("week")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   viewMode === "week"
-                    ? "bg-primary text-[#002114] shadow-sm"
+                    ? "bg-[#00C896] dark:bg-primary text-white dark:text-[#002114] shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
@@ -383,9 +383,9 @@ export default function TimetablePage({
               </button>
               <button
                 onClick={() => setViewMode("day")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   viewMode === "day"
-                    ? "bg-primary text-[#002114] shadow-sm"
+                    ? "bg-[#00C896] dark:bg-primary text-white dark:text-[#002114] shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
@@ -400,9 +400,9 @@ export default function TimetablePage({
                 <button
                   key={grp}
                   onClick={() => setSelectedLabGroup(grp)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                     selectedLabGroup === grp
-                      ? "bg-emerald-400 text-[#002114] shadow-sm scale-105"
+                      ? "bg-[#00C896] dark:bg-emerald-400 text-white dark:text-[#002114] shadow-sm scale-105"
                       : "text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
@@ -570,7 +570,7 @@ export default function TimetablePage({
                         {day.label}
                       </span>
                       {isToday && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-primary text-[#002114]">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-[#00C896] dark:bg-primary text-white dark:text-[#002114]">
                           TODAY
                         </span>
                       )}
