@@ -417,7 +417,7 @@ export default function App() {
           rollNo:   pData.roll_no    || "2K24/---/---",
           branch:   pData.branch     || "Computer Science & Engineering",
           semester: pData.semester   || "2nd Semester",
-          section:  pData.section    || "1",
+          section:  pData.section ? (pData.section.toUpperCase().startsWith("A") ? pData.section.toUpperCase() : `A${pData.section}`) : "A3",
         };
         localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
           userId:         u.id,
@@ -941,7 +941,7 @@ export default function App() {
             <span className="material-symbols-outlined text-[24px]">terminal</span>
             <span>Attendance Hub</span>
           </h1>
-          <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • Section {profile.section}</p>
+          <p className="text-on-surface-variant text-[10px] uppercase tracking-widest font-bold mt-0.5">CSE • SECTION {profile.section.toUpperCase().startsWith("A") ? profile.section.toUpperCase() : `A${profile.section}`}</p>
         </div>
 
         <nav className="flex-1 space-y-1 select-none">

@@ -286,11 +286,11 @@ export default function TimetablePage({
 
           <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
             <BookOpen className="w-7 h-7 text-primary" />
-            <span>Class Timetable</span>
+            <span>Class Timetable — {sectionMeta.label}</span>
           </h1>
 
           <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
-            Official Semester 3 timetable for DTU Computer Science & Engineering. Select your section below to view schedule details.
+            Official Semester 3 schedule for {sectionMeta.label} ({sectionMeta.room}).
           </p>
         </div>
 
@@ -314,54 +314,8 @@ export default function TimetablePage({
         </div>
       </div>
 
-      {/* ── CONTROLS: SECTION SELECTOR & VIEW MODES ── */}
+      {/* ── CONTROLS: VIEW MODES & SEARCH ── */}
       <div className="space-y-4">
-        {/* Section Selector Pills */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-primary" />
-              Select Section
-            </span>
-            <span className="text-xs text-primary font-semibold">
-              Currently viewing: {sectionMeta.label} ({sectionMeta.room})
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
-            {SECTION_OPTIONS.map((sec) => {
-              const isSelected = selectedSection === sec.id;
-              const isUserSec =
-                userSection.toUpperCase().includes(sec.id) ||
-                (sec.id === "CSE-DA_A8" && userSection.toUpperCase().includes("A8"));
-
-              return (
-                <button
-                  key={sec.id}
-                  onClick={() => setSelectedSection(sec.id)}
-                  className={`px-4 py-2.5 rounded-2xl font-bold text-xs whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 border ${
-                    isSelected
-                      ? "bg-primary text-[#002114] border-primary shadow-lg scale-105"
-                      : "bg-surface-container/70 text-on-surface-variant border-outline-variant/40 hover:bg-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <span>{sec.label}</span>
-                  {isUserSec && (
-                    <span
-                      className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
-                        isSelected
-                          ? "bg-[#002114]/20 text-[#002114]"
-                          : "bg-primary/20 text-primary"
-                      }`}
-                    >
-                      YOUR SEC
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* View Mode Toggle & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
