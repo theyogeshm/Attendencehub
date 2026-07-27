@@ -240,21 +240,12 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 flex-wrap">
-            <span className="text-[9px] font-bold font-mono uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-              {res.tab_type}
-            </span>
-            {res.year && (
-              <span className="text-[10px] font-mono font-bold text-on-surface-variant bg-surface-variant px-1.5 py-0.5 rounded">
-                {res.year}
-              </span>
-            )}
-            {res.file_size && (
-              <span className="text-[10px] text-on-surface-variant">{res.file_size}</span>
-            )}
-            {!res.year && !res.file_size && (
-              <span className="text-[10px] text-on-surface-variant/60 flex items-center gap-1">
+            {res.file_size ? (
+              <span className="text-[10px] text-on-surface-variant font-medium">{res.file_size}</span>
+            ) : (
+              <span className="text-[10px] text-on-surface-variant/60 flex items-center gap-1 font-medium">
                 <FileText className="w-3 h-3" />
-                File
+                Document
               </span>
             )}
           </div>
