@@ -64,7 +64,11 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
         if (!error && data) {
           const map: Record<string, number> = {};
           data.forEach((row: { subject: string }) => {
-            const key = row.subject.toLowerCase().trim();
+            const key = row.subject
+              .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+              .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+              .toLowerCase()
+              .trim();
             map[key] = (map[key] ?? 0) + 1;
           });
           setCountMap(map);
@@ -75,11 +79,14 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
     })();
   }, [subjects]);
 
-  // Deduplicate resources subjects by base subject name so Theory and Lab are unified
+  // Deduplicate resources subjects by base subject name so Theory, Lab and Tutorial are unified
   const displaySubjects = Array.from(
     new Map(
       subjects.map((s) => {
-        const baseName = s.name.replace(/ - (Theory|Lab)$/i, "").trim();
+        const baseName = s.name
+          .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+          .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+          .trim();
         return [baseName, { ...s, name: baseName }];
       })
     ).values()

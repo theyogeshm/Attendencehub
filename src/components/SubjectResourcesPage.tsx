@@ -105,10 +105,19 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   const navigate = useNavigate();
 
   const rawDecoded = decodeURIComponent(subjectName ?? "");
-  const decodedName = rawDecoded.replace(/ - (Theory|Lab)$/i, "").trim();
+  const decodedName = rawDecoded
+    .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+    .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+    .trim();
 
   const subject =
-    subjects.find((s) => s.name.replace(/ - (Theory|Lab)$/i, "").trim().toLowerCase() === decodedName.toLowerCase()) ?? {
+    subjects.find((s) =>
+      s.name
+        .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+        .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+        .trim()
+        .toLowerCase() === decodedName.toLowerCase()
+    ) ?? {
       id: "res-" + decodedName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
       name: decodedName,
       code: "CS200",
