@@ -21,21 +21,26 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(subjects[0]?.id || "");
   const [classesToMiss, setClassesToMiss] = useState<number>(1);
 
-  // Interactive UI Filter & Options States
+  // Interactive UI Filter & Modal States
   const [statusFilter, setStatusFilter] = useState<"all" | "safe" | "danger">("all");
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [detailSubject, setDetailSubject] = useState<Subject | null>(null);
 
   // Calculate stats based on actual live subjects array!
   const totalClassesAttended = subjects.reduce((sum, s) => sum + s.attendanceCount, 0);
   const totalClassesHeld = subjects.reduce((sum, s) => sum + s.totalClasses, 0);
 
-  // Find classes at risk (< 75%)
-  const subjectsAtRiskCount = subjects.filter((s) => {
+  // Safe and danger counts
+  const safeCount = subjects.filter((s) => {
+    const rate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
+    return rate >= 75;
+  }).length;
+
+  const dangerCount = subjects.filter((s) => {
     const rate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
     return rate < 75;
   }).length;
+
+  const subjectsAtRiskCount = dangerCount;
 
   // Selected subject config logic inside calculator
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
@@ -109,106 +114,46 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         
         {/* Subject Breakdown Cards Grid (8 of 12) */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="flex justify-between items-center relative">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <h3 className="text-xl font-bold text-on-surface">Subject Breakdown</h3>
-              {statusFilter !== "all" && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  {statusFilter}
-                </span>
-              )}
+              <span className="text-xs text-on-surface-variant font-mono">({filteredSubjects.length})</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Filter Button */}
-              <div className="relative">
-                <button
-                  onClick={() => { setShowFilterMenu(!showFilterMenu); setShowOptionsMenu(false); }}
-                  className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                    showFilterMenu || statusFilter !== "all"
-                      ? "bg-primary/10 border-primary/30 text-primary"
-                      : "border-outline-variant/40 text-on-surface-variant hover:text-primary hover:border-primary/30"
-                  }`}
-                  title="Filter subjects by attendance status"
-                >
-                  <Filter className="w-4 h-4" />
-                </button>
-
-                {showFilterMenu && (
-                  <div className="absolute right-0 top-10 z-40 w-44 p-2 rounded-2xl glass-card border border-outline-variant shadow-xl space-y-1">
-                    <p className="text-[9px] font-bold uppercase text-on-surface-variant px-2 py-1">Filter By</p>
-                    <button
-                      onClick={() => { setStatusFilter("all"); setShowFilterMenu(false); }}
-                      className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                        statusFilter === "all" ? "bg-primary/10 text-primary" : "text-on-surface-variant hover:bg-surface-variant"
-                      }`}
-                    >
-                      <span>All Subjects</span>
-                      {statusFilter === "all" && <span>✓</span>}
-                    </button>
-                    <button
-                      onClick={() => { setStatusFilter("safe"); setShowFilterMenu(false); }}
-                      className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                        statusFilter === "safe" ? "bg-primary/10 text-primary" : "text-on-surface-variant hover:bg-surface-variant"
-                      }`}
-                    >
-                      <span>Safe (75%+)</span>
-                      {statusFilter === "safe" && <span>✓</span>}
-                    </button>
-                    <button
-                      onClick={() => { setStatusFilter("danger"); setShowFilterMenu(false); }}
-                      className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                        statusFilter === "danger" ? "bg-error/10 text-error" : "text-on-surface-variant hover:bg-surface-variant"
-                      }`}
-                    >
-                      <span>At Risk (&lt;75%)</span>
-                      {statusFilter === "danger" && <span>✓</span>}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Options Menu Button */}
-              <div className="relative">
-                <button
-                  onClick={() => { setShowOptionsMenu(!showOptionsMenu); setShowFilterMenu(false); }}
-                  className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                    showOptionsMenu
-                      ? "bg-primary/10 border-primary/30 text-primary"
-                      : "border-outline-variant/40 text-on-surface-variant hover:text-primary hover:border-primary/30"
-                  }`}
-                  title="Quick actions menu"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-
-                {showOptionsMenu && (
-                  <div className="absolute right-0 top-10 z-40 w-48 p-2 rounded-2xl glass-card border border-outline-variant shadow-xl space-y-1">
-                    <p className="text-[9px] font-bold uppercase text-on-surface-variant px-2 py-1">Quick Links</p>
-                    <button
-                      onClick={() => { navigate("/resources"); setShowOptionsMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer flex items-center gap-2"
-                    >
-                      <BookOpen className="w-3.5 h-3.5 text-primary" />
-                      <span>Academic Resources</span>
-                    </button>
-                    <button
-                      onClick={() => { navigate("/assignments"); setShowOptionsMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer flex items-center gap-2"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-[#7bd0ff]" />
-                      <span>Assignments</span>
-                    </button>
-                    <button
-                      onClick={() => { navigate("/timetable"); setShowOptionsMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer flex items-center gap-2"
-                    >
-                      <Calendar className="w-3.5 h-3.5 text-secondary" />
-                      <span>Timetable</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+            {/* Filter Pills Bar */}
+            <div className="flex items-center gap-1 bg-surface-container p-1 rounded-xl border border-outline-variant/50 self-start sm:self-auto">
+              <button
+                onClick={() => setStatusFilter("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  statusFilter === "all"
+                    ? "bg-primary text-[#002114] shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                All ({subjects.length})
+              </button>
+              <button
+                onClick={() => setStatusFilter("safe")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  statusFilter === "safe"
+                    ? isDarkMode ? "bg-primary/20 text-[#47ffbc] border border-primary/40" : "bg-[#D1FAE5] text-[#065F46] border border-[#065F46]/30"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-[#47ffbc]" />
+                <span>Safe ({safeCount})</span>
+              </button>
+              <button
+                onClick={() => setStatusFilter("danger")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  statusFilter === "danger"
+                    ? isDarkMode ? "bg-error/20 text-error border border-error/40" : "bg-[#FEE2E2] text-[#991B1B] border border-[#991B1B]/30"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-error" />
+                <span>At Risk ({dangerCount})</span>
+              </button>
             </div>
           </div>
 
