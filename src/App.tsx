@@ -514,18 +514,34 @@ export default function App() {
     }
   };
 
-  // ── Attendance handler (5 statuses) ──────────────────────────────────────
+  // ── Attendance handler (5 statuses) ────────────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
-    // Resolve the subject — try id, then name, then construct fallback
+    // Strategy 1: exact ID match
     let currentSub = subjects.find(s => s.id === subjectId);
+    // Strategy 2: name equals subjectId (rare, but kept for compatibility)
     if (!currentSub) {
       currentSub = subjects.find(s =>
         s.name.toLowerCase().trim() === subjectId.toLowerCase().trim()
       );
     }
+    // Strategy 3: slug match — for fallback timetable IDs like "sub-digital-logic-design---theory"
+    if (!currentSub && subjectId.startsWith("sub-")) {
+      const slug = subjectId.replace(/^sub-/, "");
+      currentSub = subjects.find(s =>
+        s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug
+      );
+    }
+    // Strategy 4: cleaned-up name contains the slug words
+    if (!currentSub && subjectId.startsWith("sub-")) {
+      const words = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
+      currentSub = subjects.find(s =>
+        s.name.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim() === words
+      );
+    }
+
     const subjectName = currentSub
       ? currentSub.name
-      : subjectId.replace(/^sub-/, "").replace(/-/g, " ");
+      : subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
     if (!currentSub) {
       currentSub = { id: subjectId, name: subjectName, prof: "Faculty", attendanceCount: 0, totalClasses: 0 };
     }
@@ -560,9 +576,13 @@ export default function App() {
       return;
     }
 
-    // ── 1. Instant button highlight (runs synchronously before any await) ──
+    // ── 1. Instant button highlight — store by BOTH id AND name so all lookups hit ─
     if (isToday) {
-      setTodayAttendance(prev => ({ ...prev, [subjectId]: status }));
+      setTodayAttendance(prev => ({
+        ...prev,
+        [subjectId]: status,
+        [currentSub!.name.toLowerCase().trim()]: status,
+      }));
     }
 
     // ── 2. Optimistic count update — match by id OR by subject name ────────
@@ -595,7 +615,12 @@ export default function App() {
     if (attErr) {
       showToast("Failed to save attendance. Please try again.", "error");
       // Roll back optimistic updates
-      if (isToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
+      if (isToday) setTodayAttendance(prev => {
+        const n = { ...prev };
+        delete n[subjectId];
+        delete n[currentSub!.name.toLowerCase().trim()];
+        return n;
+      });
       if (!alreadyMarked && status !== "leave") {
         const subNameLower = subjectName.toLowerCase().trim();
         setSubjects(prev => prev.map(sub => {
@@ -611,6 +636,8 @@ export default function App() {
       }
     } else {
       showToast(labels[status]);
+      // Re-sync from Supabase so the mark persists correctly after page refresh
+      fetchTodayAttendance(user, subjects);
     }
   };
 
