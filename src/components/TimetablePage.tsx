@@ -52,7 +52,97 @@ const DAYS_OF_WEEK = [
   { id: "FRI", label: "Friday", short: "Fri" },
 ];
 
+// ── Elective Override Form ─────────────────────────────────────────────────
+const ELECTIVE_PRESETS = [
+  { value: "", label: "-- Keep as E slot (unresolved) --" },
+  { value: "CS309 Distributed Systems",         label: "CS309: Distributed Systems" },
+  { value: "CS311 Information Theory and Coding", label: "CS311: Information Theory & Coding" },
+  { value: "CS313 Quantum Computing",            label: "CS313: Quantum Computing" },
+  { value: "CS315 Advance Data Structure",       label: "CS315: Advance Data Structure" },
+];
+
+function ElectiveOverrideForm({
+  electiveOverrides,
+  onSave,
+}: {
+  electiveOverrides: Record<string, string>;
+  onSave: (overrides: Record<string, string>) => void;
+}) {
+  const [draft, setDraft] = useState<Record<string, string>>({ ...electiveOverrides });
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    onSave(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="pt-2 border-t border-outline-variant/30 space-y-3">
+      <p className="text-[10px] text-on-surface-variant/60 leading-relaxed">
+        Type your elective subject name or pick from the list. Click <strong>Save</strong> to apply — E1/E2/E3 etc. in the timetable will be replaced by your chosen subject.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {(["E1", "E2", "E3", "E4", "E5", "E6"] as const).map((slot) => (
+          <div key={slot} className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/30 space-y-1.5">
+            <span className="text-[11px] font-black text-primary font-mono">{slot} Slot</span>
+            {/* Preset dropdown */}
+            <select
+              value={ELECTIVE_PRESETS.some(p => p.value === draft[slot]) ? draft[slot] || "" : "__custom__"}
+              onChange={(e) => {
+                if (e.target.value !== "__custom__") setDraft(d => ({ ...d, [slot]: e.target.value }));
+              }}
+              className="w-full p-2 rounded-lg bg-surface-variant text-on-surface text-xs font-medium border border-outline-variant/40 focus:outline-none focus:border-primary"
+            >
+              {ELECTIVE_PRESETS.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+              {draft[slot] && !ELECTIVE_PRESETS.some(p => p.value === draft[slot]) && (
+                <option value="__custom__">{draft[slot]} (custom)</option>
+              )}
+            </select>
+            {/* Custom text input */}
+            <input
+              type="text"
+              placeholder="Or type custom subject name…"
+              value={draft[slot] || ""}
+              onChange={(e) => setDraft(d => ({ ...d, [slot]: e.target.value }))}
+              className="w-full p-2 rounded-lg bg-surface-container text-on-surface text-xs border border-outline-variant/40 focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-end gap-3 pt-1">
+        <button
+          onClick={() => { setDraft({}); onSave({}); }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant border border-outline-variant/40 hover:border-primary/50 transition-all cursor-pointer"
+        >
+          Reset All
+        </button>
+        <button
+          onClick={handleSave}
+          className={`px-5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shadow-sm ${
+            saved
+              ? "bg-emerald-500 text-white"
+              : "bg-primary text-on-primary hover:brightness-110 active:scale-95"
+          }`}
+        >
+          {saved ? (
+            <>
+              <CheckCircle2 className="w-4 h-4" />
+              Saved!
+            </>
+          ) : (
+            "Save Electives"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TimetablePage({
+
   subjects = [],
   userSection = "A1",
   userSemester = "3rd Semester",
@@ -497,6 +587,7 @@ export default function TimetablePage({
               onChange={(val) => setSelectedSection(val)}
               isDarkMode={isDarkMode}
             />
+
           </div>
         </div>
       </div>
@@ -511,46 +602,31 @@ export default function TimetablePage({
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span className="text-xs font-extrabold text-on-surface uppercase tracking-wider">
-                ⚡ Custom Elective Allotment Overrides (E1 - E6)
+                ⚡ Configure Your Electives (E1 – E6)
               </span>
+              {Object.keys(electiveOverrides).filter(k => electiveOverrides[k]).length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  {Object.keys(electiveOverrides).filter(k => electiveOverrides[k]).length} saved
+                </span>
+              )}
             </div>
             <span className="text-xs font-bold text-primary flex items-center gap-1">
-              {showElectivePanel ? "Hide Overrides ▲" : "Configure Electives ▼"}
+              {showElectivePanel ? "Hide ▲" : "Configure ▼"}
             </span>
           </div>
 
           {showElectivePanel && (
-            <div className="pt-2 border-t border-outline-variant/30 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[
-                { slot: "E1", label: "Elective E1", def: "CS313: Quantum Computing" },
-                { slot: "E2", label: "Elective E2", def: "CS309: Distributed Systems" },
-                { slot: "E3", label: "Elective E3", def: "CS311: Information Theory" },
-                { slot: "E4", label: "Elective E4", def: "Unresolved" },
-                { slot: "E5", label: "Elective E5", def: "CS315: Advance Data Structure" },
-                { slot: "E6", label: "Elective E6", def: "Unresolved" },
-              ].map((item) => (
-                <div key={item.slot} className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/30 space-y-1.5">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
-                    <span className="text-primary font-mono">{item.slot} Slot</span>
-                    <span className="text-on-surface-variant text-[10px]">Default: {item.def}</span>
-                  </div>
-                  <select
-                    value={electiveOverrides[item.slot] || ""}
-                    onChange={(e) => updateElectiveOverride(item.slot, e.target.value)}
-                    className="w-full p-2 rounded-lg bg-surface-variant text-on-surface text-xs font-medium border border-outline-variant/40 focus:outline-none focus:border-primary"
-                  >
-                    <option value="">-- Use Default / Unresolved --</option>
-                    <option value="CS309 Distributed Systems">CS309: Distributed Systems</option>
-                    <option value="CS311 Information Theory and Coding">CS311: Information Theory & Coding</option>
-                    <option value="CS313 Quantum Computing">CS313: Quantum Computing</option>
-                    <option value="CS315 Advance Data Structure">CS315: Advance Data Structure</option>
-                  </select>
-                </div>
-              ))}
-            </div>
+            <ElectiveOverrideForm
+              electiveOverrides={electiveOverrides}
+              onSave={(overrides) => {
+                setElectiveOverrides(overrides);
+                localStorage.setItem("dtu_sem5_elective_overrides", JSON.stringify(overrides));
+              }}
+            />
           )}
         </div>
       )}
+
 
       {/* ── CONTROLS: VIEW MODES & SEARCH ── */}
       <div className="space-y-4">
