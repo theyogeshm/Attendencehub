@@ -313,39 +313,6 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
         }
       }
     },
-    "CSE-DA_A8": {
-      "room": "AB4-315",
-      "timetable": {
-        "MON": {
-          "12-1": "TH-DA205 Linear Algebra [Mr Sarthak Yash Sethi]",
-          "1-2": "TH-DA207 Machine Learning [Prof Aruna Bhat]"
-        },
-        "TUE": {
-          "10-11": "Tutorial-DA205 Linear Algebra G2 [Vijay Patidar] [AB4-204]",
-          "12-1": "TH-DA203 Foundation to Data Science [Dr Anshika Arora]",
-          "1-2": "TH-DA201 Design & Analysis of Algorithm [Dr Rahul Kumar]",
-          "2-3": "TH-DA205 Linear Algebra [Mr Sarthak Yash Sethi]",
-          "3-4": "TH-DA205 Linear Algebra [Mr Sarthak Yash Sethi]"
-        },
-        "WED": {
-          "9-10": "TH-DA209 Computer Organization & OS Design [Ms Ila Kaushik]",
-          "10-11": "TH-DA203 Foundation to Data Science [Dr Anshika Arora]",
-          "11-12": "TH-DA201 Design & Analysis of Algorithm [Dr Rahul Kumar]",
-          "12-1": "TH-DA207 Foundation in Machine Learning [Prof Aruna Bhat]"
-        },
-        "THUR": {
-          "12-1": "TH-DA201 Design & Analysis of Algorithm [Dr Rahul Kumar]",
-          "2-3": "TH-DA203 Foundation to Data Science [Dr Anshika Arora]",
-          "3-4": "TH-DA209 Computer Organization & OS Design [Ms Ila Kaushik]"
-        },
-        "FRI": {
-          "9-10": "Tutorial-DA205 Linear Algebra G1 [Vijay Patidar] [AB4-205]",
-          "11-12": "Tutorial-DA205 Linear Algebra G3 [Vijay Patidar] [AB4-303]",
-          "2-3": "TH-DA207 Foundation in Machine Learning [Prof Aruna Bhat]",
-          "3-4": "TH-DA209 Computer Organization & OS Design [Ms Ila Kaushik]"
-        }
-      }
-    }
   }
 };
 
@@ -360,7 +327,7 @@ export const SECTION_OPTIONS = [
   { id: "A5", label: "Section A5", room: "AB4-303" },
   { id: "A6", label: "Section A6", room: "AB4-303" },
   { id: "A7", label: "Section A7", room: "AB4-315" },
-  { id: "CSE-DA_A8", label: "Section A8 (CSE-DA)", room: "AB4-315" },
+
 ];
 
 /**
