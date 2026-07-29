@@ -344,9 +344,9 @@ export default function App() {
         } else if (lower.includes("algorithm") || lower.includes("daa")) {
           expandedSubjectsList.push("Design & Analysis of Algorithm - Theory", "Design & Analysis of Algorithm - Lab");
         } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
-          expandedSubjectsList.push("Object Oriented Design");
+          expandedSubjectsList.push("Object Oriented Design - Theory", "Object Oriented Design - Lab");
         } else if (lower.includes("software engineering") || lower.includes("se")) {
-          expandedSubjectsList.push("Software Engineering");
+          expandedSubjectsList.push("Software Engineering - Theory");
         } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
           expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
         } else {
