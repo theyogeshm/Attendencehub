@@ -560,25 +560,12 @@ export default function App() {
       return;
     }
 
-    // ── Optimistic today-status update (instant button highlight) ─────────────
+    // ── Instant optimistic highlight (button turns green/red immediately) ───────
     if (isMarkingToday) {
       setTodayAttendance(prev => ({ ...prev, [subjectId]: status }));
     }
 
-    // ── Optimistic count update (only for first-time marking of today) ────────
-    const alreadyMarkedToday = isMarkingToday && !!todayAttendance[subjectId];
-    if (!alreadyMarkedToday && status !== "leave") {
-      setSubjects(prev => prev.map(sub => {
-        if (sub.id !== subjectId) return sub;
-        return {
-          ...sub,
-          attendanceCount: sub.attendanceCount + (status === "present" ? 1 : 0),
-          totalClasses:    sub.totalClasses + 1,
-        };
-      }));
-    }
-
-    // ── Save to Supabase — all statuses (leave included), upsert prevents dups ─
+    // ── Save to Supabase ──────────────────────────────────────────────────────
     if (user) {
       const { error: attErr } = await supabase.from("attendance").upsert({
         user_id: user.id,
@@ -589,24 +576,12 @@ export default function App() {
 
       if (attErr) {
         showToast("Failed to save attendance. Please try again.", "error");
-        // Roll back optimistic updates on failure
+        // Roll back the optimistic highlight on failure
         if (isMarkingToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
-        if (!alreadyMarkedToday && status !== "leave") {
-          setSubjects(prev => prev.map(sub => {
-            if (sub.id !== subjectId) return sub;
-            return {
-              ...sub,
-              attendanceCount: sub.attendanceCount - (status === "present" ? 1 : 0),
-              totalClasses:    sub.totalClasses - 1,
-            };
-          }));
-        }
       } else {
-        // ✅ Success — optimistic state is already correct, just show toast.
-        // Do NOT call loadUserData here — it overwrites todayAttendance with
-        // stale Supabase data before the upsert propagates, causing the
-        // "need 3-4 clicks" bug and the "disappears on refresh" bug.
         showToast(labels[status]);
+        // Refresh accurate aggregate counts from Supabase (does NOT touch todayAttendance)
+        refreshAttendanceCounts(user);
       }
     }
   };
@@ -819,6 +794,32 @@ export default function App() {
     setFeedbackText(""); setFeedbackEmail("");
     setShowFeedbackModal(false);
     showToast("Thank you for your feedback! 🙏");
+  };
+
+  // ── Lightweight count refresh — re-fetches ALL attendance, updates only subject
+  //    aggregate counts WITHOUT touching todayAttendance (so button highlights stay) ─
+  const refreshAttendanceCounts = async (u: User) => {
+    if (!u) return;
+    const { data: attData } = await supabase
+      .from("attendance")
+      .select("subject, status")
+      .eq("user_id", u.id);
+    if (!attData) return;
+    const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
+    for (const row of attData) {
+      const key = (row.subject ?? "").toLowerCase().trim();
+      if (!key) continue;
+      if (!agg[key]) agg[key] = { attendance_count: 0, total_classes: 0 };
+      const s = (row.status ?? "").toLowerCase();
+      if (s !== "leave") agg[key].total_classes += 1;
+      if (s === "present") agg[key].attendance_count += 1;
+    }
+    setSubjects(prev => prev.map(sub => {
+      const key = sub.name.toLowerCase().trim();
+      const saved = agg[key];
+      if (!saved) return sub;
+      return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
+    }));
   };
 
   // ── Fetch today's attendance for dashboard status highlights ─────────────
