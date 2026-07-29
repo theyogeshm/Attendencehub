@@ -114,7 +114,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
   // Ensure theory and lab components exist for subjects that have labs
   groupedCardsMap.forEach((entry, baseName) => {
-    if (entry.labSub || isLabSubject(baseName)) {
+    if (isLabSubject(baseName)) {
       if (!entry.theorySub && entry.labSub) {
         entry.theorySub = {
           ...entry.labSub,
@@ -131,6 +131,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
           type: "LAB",
         };
       }
+    } else {
+      entry.labSub = undefined;
     }
   });
 
