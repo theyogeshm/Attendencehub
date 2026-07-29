@@ -589,12 +589,24 @@ export default function App() {
 
       if (attErr) {
         showToast("Failed to save attendance. Please try again.", "error");
-        // Roll back optimistic updates
+        // Roll back optimistic updates on failure
         if (isMarkingToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
-        loadUserData(user);
+        if (!alreadyMarkedToday && status !== "leave") {
+          setSubjects(prev => prev.map(sub => {
+            if (sub.id !== subjectId) return sub;
+            return {
+              ...sub,
+              attendanceCount: sub.attendanceCount - (status === "present" ? 1 : 0),
+              totalClasses:    sub.totalClasses - 1,
+            };
+          }));
+        }
       } else {
+        // ✅ Success — optimistic state is already correct, just show toast.
+        // Do NOT call loadUserData here — it overwrites todayAttendance with
+        // stale Supabase data before the upsert propagates, causing the
+        // "need 3-4 clicks" bug and the "disappears on refresh" bug.
         showToast(labels[status]);
-        loadUserData(user); // refresh accurate aggregate counts
       }
     }
   };
@@ -811,7 +823,7 @@ export default function App() {
 
   // ── Fetch today's attendance for dashboard status highlights ─────────────
   const fetchTodayAttendance = async (u: User, subjectsList: Subject[]) => {
-    if (!u || subjectsList.length === 0) return;
+    if (!u) return;
     const today = new Date().toISOString().split("T")[0];
     const { data } = await supabase
       .from("attendance")
@@ -821,12 +833,18 @@ export default function App() {
     if (data) {
       const map: Record<string, AttendanceStatus> = {};
       data.forEach(row => {
+        const rowSubName = (row.subject ?? "").toLowerCase().trim();
+        if (!rowSubName || !row.status) return;
+        // Key 1: by subject ID (fast lookup in dashboard)
         const sub = subjectsList.find(s =>
-          s.name.toLowerCase().trim() === (row.subject ?? "").toLowerCase().trim()
+          s.name.toLowerCase().trim() === rowSubName
         );
-        if (sub && row.status) {
+        if (sub) {
           map[sub.id] = row.status as AttendanceStatus;
         }
+        // Key 2: by subject name itself — survives page refresh even if
+        // subject objects are recreated with different generated IDs
+        map[rowSubName] = row.status as AttendanceStatus;
       });
       setTodayAttendance(map);
     }

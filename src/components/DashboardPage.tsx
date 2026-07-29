@@ -113,7 +113,7 @@ export default function DashboardPage({
 
 
   // Next class calculation (first unmarked class today)
-  const unmarkedClasses = todayTimetable.filter((sub) => !todayAttendance[sub.id]);
+  const unmarkedClasses = todayTimetable.filter((sub) => !todayAttendance[sub.id] && !todayAttendance[sub.name.toLowerCase().trim()]);
   const nextClass = unmarkedClasses.length > 0 ? unmarkedClasses[0] : null;
   const allMarkedToday = todayTimetable.length > 0 && unmarkedClasses.length === 0;
 
@@ -277,7 +277,8 @@ export default function DashboardPage({
                   const attPct = sub.totalClasses > 0
                     ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0)
                     : null;
-                  const currentStatus = todayAttendance[sub.id] as AttendanceStatus | undefined;
+                  const currentStatus = (todayAttendance[sub.id] ||
+                    todayAttendance[sub.name.toLowerCase().trim()]) as AttendanceStatus | undefined;
                   const icon = getSubjectIcon(sub.name);
 
                 const statusBadge: Record<string, { label: string; cls: string }> = {
@@ -539,7 +540,8 @@ export default function DashboardPage({
             ) : (
               <div className="space-y-2">
                 {todayTimetable.map((sub) => {
-                  const cs = todayAttendance[sub.id] as AttendanceStatus | undefined;
+                  const cs = (todayAttendance[sub.id] ||
+                    todayAttendance[sub.name.toLowerCase().trim()]) as AttendanceStatus | undefined;
                   const dotColor = cs === "present" ? "bg-primary" : cs === "absent" ? "bg-error" :
                     cs === "leave" ? "bg-secondary" : cs === "miss" ? "bg-outline" :
                     sub.type === "LAB" ? "bg-secondary" : "bg-primary";
