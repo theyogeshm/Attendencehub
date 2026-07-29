@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Calendar,
   Clock,
@@ -20,6 +20,7 @@ import {
   Info,
   Layers,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import { Subject } from "../types";
 import {
@@ -54,12 +55,105 @@ const DAYS_OF_WEEK = [
 
 // ── Elective Override Form ─────────────────────────────────────────────────
 const ELECTIVE_PRESETS = [
-  { value: "", label: "-- Keep as E slot (unresolved) --" },
-  { value: "CS309 Distributed Systems",         label: "CS309: Distributed Systems" },
-  { value: "CS311 Information Theory and Coding", label: "CS311: Information Theory & Coding" },
-  { value: "CS313 Quantum Computing",            label: "CS313: Quantum Computing" },
-  { value: "CS315 Advance Data Structure",       label: "CS315: Advance Data Structure" },
+  { value: "",                                   label: "Keep as E slot (unresolved)", code: "" },
+  { value: "CS309 Distributed Systems",          label: "Distributed Systems",          code: "CS309" },
+  { value: "CS311 Information Theory and Coding", label: "Information Theory & Coding", code: "CS311" },
+  { value: "CS313 Quantum Computing",            label: "Quantum Computing",             code: "CS313" },
+  { value: "CS315 Advance Data Structure",       label: "Advance Data Structure",        code: "CS315" },
 ];
+
+function ElectiveSlotCard({
+  slot,
+  value,
+  onChange,
+}: {
+  slot: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const preset = ELECTIVE_PRESETS.find(p => p.value === value);
+  const isCustom = value && !preset;
+  const displayLabel = isCustom ? value : (preset?.value ? preset.label : null);
+
+  return (
+    <div className="rounded-2xl bg-[#0d1729] border border-slate-700/50 p-3.5 space-y-2.5 hover:border-emerald-500/30 transition-all duration-200">
+      {/* Slot badge */}
+      <div className="flex items-center gap-2">
+        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-black font-mono border border-emerald-500/25">
+          {slot}
+        </span>
+        {displayLabel && (
+          <span className="text-[10px] text-slate-400 truncate font-medium">{displayLabel}</span>
+        )}
+      </div>
+
+      {/* Custom dropdown */}
+      <div ref={ref} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-full py-2.5 px-4 rounded-2xl font-bold text-xs border transition-all cursor-pointer shadow-sm flex items-center justify-between gap-2 text-left outline-none bg-[#131b2e] border-slate-700/60 text-slate-100 hover:border-emerald-500/50 hover:bg-[#1a243b]"
+        >
+          <span className="truncate font-bold">
+            {displayLabel ?? (
+              <span className="text-slate-500 font-medium italic">-- Keep as E slot (unresolved) --</span>
+            )}
+          </span>
+          <ChevronDown className={`w-4 h-4 text-emerald-500 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </button>
+
+        {open && (
+          <div className="absolute left-0 right-0 z-[200] mt-1.5 rounded-2xl p-1.5 shadow-2xl border bg-[#0b1326] border-slate-700 text-slate-100 shadow-black/90">
+            {ELECTIVE_PRESETS.map(p => {
+              const isSel = (value === p.value) || (!value && p.value === "");
+              return (
+                <div
+                  key={p.value || "__none__"}
+                  onClick={() => { onChange(p.value); setOpen(false); }}
+                  className={`px-3.5 py-2.5 rounded-xl font-semibold text-xs cursor-pointer transition-all flex items-center justify-between gap-2 mb-0.5 ${
+                    isSel
+                      ? "bg-emerald-500/20 text-[#47ffbc] font-extrabold"
+                      : "hover:bg-slate-800/80 text-slate-200 hover:text-white"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    {p.code && (
+                      <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${isSel ? "bg-emerald-500/30 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
+                        {p.code}
+                      </span>
+                    )}
+                    {p.label}
+                  </span>
+                  {isSel && <Check className="w-4 h-4 text-emerald-500 shrink-0" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Custom text input */}
+      <input
+        type="text"
+        placeholder="Or type custom subject…"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full py-2.5 px-4 rounded-2xl text-xs font-medium bg-[#131b2e] border border-slate-700/60 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:bg-[#1a243b] transition-all"
+      />
+    </div>
+  );
+}
 
 function ElectiveOverrideForm({
   electiveOverrides,
@@ -77,65 +171,57 @@ function ElectiveOverrideForm({
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const configuredCount = Object.values(draft).filter(Boolean).length;
+
   return (
-    <div className="pt-2 border-t border-outline-variant/30 space-y-3">
-      <p className="text-[10px] text-on-surface-variant/60 leading-relaxed">
-        Type your elective subject name or pick from the list. Click <strong>Save</strong> to apply — E1/E2/E3 etc. in the timetable will be replaced by your chosen subject.
+    <div className="pt-3 border-t border-slate-700/40 space-y-4">
+      <p className="text-[10px] text-slate-500 leading-relaxed">
+        Pick a preset or type a custom name for each elective slot. Hit <strong className="text-emerald-400">Save</strong> — E1/E2… labels in your timetable will be replaced instantly.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {(["E1", "E2", "E3", "E4", "E5", "E6"] as const).map((slot) => (
-          <div key={slot} className="p-3 rounded-xl bg-surface-container/70 border border-outline-variant/30 space-y-1.5">
-            <span className="text-[11px] font-black text-primary font-mono">{slot} Slot</span>
-            {/* Preset dropdown */}
-            <select
-              value={ELECTIVE_PRESETS.some(p => p.value === draft[slot]) ? draft[slot] || "" : "__custom__"}
-              onChange={(e) => {
-                if (e.target.value !== "__custom__") setDraft(d => ({ ...d, [slot]: e.target.value }));
-              }}
-              className="w-full p-2 rounded-lg bg-surface-variant text-on-surface text-xs font-medium border border-outline-variant/40 focus:outline-none focus:border-primary"
-            >
-              {ELECTIVE_PRESETS.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-              {draft[slot] && !ELECTIVE_PRESETS.some(p => p.value === draft[slot]) && (
-                <option value="__custom__">{draft[slot]} (custom)</option>
-              )}
-            </select>
-            {/* Custom text input */}
-            <input
-              type="text"
-              placeholder="Or type custom subject name…"
-              value={draft[slot] || ""}
-              onChange={(e) => setDraft(d => ({ ...d, [slot]: e.target.value }))}
-              className="w-full p-2 rounded-lg bg-surface-container text-on-surface text-xs border border-outline-variant/40 focus:outline-none focus:border-primary placeholder-on-surface-variant/40"
-            />
-          </div>
+        {(["E1", "E2", "E3", "E4", "E5", "E6"] as const).map(slot => (
+          <ElectiveSlotCard
+            key={slot}
+            slot={slot}
+            value={draft[slot] || ""}
+            onChange={v => setDraft(d => ({ ...d, [slot]: v }))}
+          />
         ))}
       </div>
-      <div className="flex items-center justify-end gap-3 pt-1">
-        <button
-          onClick={() => { setDraft({}); onSave({}); }}
-          className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant border border-outline-variant/40 hover:border-primary/50 transition-all cursor-pointer"
-        >
-          Reset All
-        </button>
-        <button
-          onClick={handleSave}
-          className={`px-5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shadow-sm ${
-            saved
-              ? "bg-emerald-500 text-white"
-              : "bg-primary text-on-primary hover:brightness-110 active:scale-95"
-          }`}
-        >
-          {saved ? (
-            <>
-              <CheckCircle2 className="w-4 h-4" />
-              Saved!
-            </>
-          ) : (
-            "Save Electives"
-          )}
-        </button>
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <span className="text-[10px] text-slate-500">
+          {configuredCount > 0 ? (
+            <span className="text-emerald-400 font-bold">{configuredCount} of 6 electives configured</span>
+          ) : "No electives configured yet"}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setDraft({}); onSave({}); }}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 border border-slate-700/50 hover:border-slate-500 hover:text-slate-200 transition-all cursor-pointer"
+          >
+            Reset All
+          </button>
+          <button
+            onClick={handleSave}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shadow-lg ${
+              saved
+                ? "bg-emerald-500 text-white shadow-emerald-500/30"
+                : "bg-emerald-500/90 text-white hover:bg-emerald-500 hover:shadow-emerald-500/40 active:scale-95"
+            }`}
+          >
+            {saved ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                Saved!
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                Save Electives
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
