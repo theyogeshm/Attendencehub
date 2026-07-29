@@ -147,6 +147,15 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
 
+  // ── Selected Lab Group (G1 / G2 / G3 / All) ──────────────────────────────
+  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">(() => {
+    return (localStorage.getItem("dtu_selected_lab_group") as any) || "All";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dtu_selected_lab_group", selectedLabGroup);
+  }, [selectedLabGroup]);
+
   // ── Feedback form ─────────────────────────────────────────────────────────
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackEmail, setFeedbackEmail] = useState("");
@@ -1072,6 +1081,12 @@ export default function App() {
 
       parts.forEach((partText) => {
         const parsed = parseTimetableEntry(partText, secData.room);
+
+        // Group filter check: if user selected G1, G2, or G3, skip lab/tutorial entries for other groups
+        if (selectedLabGroup !== "All" && parsed.group && parsed.group !== selectedLabGroup) {
+          return;
+        }
+
         const targetName = parsed.splitSubjectName.toLowerCase().trim();
         const baseLower = parsed.baseSubjectName.toLowerCase().trim();
 
@@ -1418,6 +1433,8 @@ export default function App() {
                   userSection={profile.section}
                   userSemester={profile.semester}
                   isDarkMode={isDarkMode}
+                  selectedLabGroup={selectedLabGroup}
+                  onSelectLabGroup={setSelectedLabGroup}
                   onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")}
                   onUpdateSubjectHours={handleUpdateSubjectHours}
                 />

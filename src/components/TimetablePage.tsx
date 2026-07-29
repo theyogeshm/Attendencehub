@@ -41,6 +41,8 @@ interface TimetablePageProps {
   userSection?: string;
   userSemester?: string;
   isDarkMode?: boolean;
+  selectedLabGroup?: "All" | "G1" | "G2" | "G3";
+  onSelectLabGroup?: (grp: "All" | "G1" | "G2" | "G3") => void;
   onMarkAttendance?: (subjectId: string, isPresent: boolean) => void;
   onUpdateSubjectHours?: (subjectId: string, attendanceCount: number, totalClasses: number) => void;
 }
@@ -249,14 +251,24 @@ function ElectiveOverrideForm({
 }
 
 export default function TimetablePage({
-
   subjects = [],
   userSection = "A1",
   userSemester = "3rd Semester",
   isDarkMode = true,
+  selectedLabGroup: propSelectedLabGroup,
+  onSelectLabGroup,
   onMarkAttendance,
   onUpdateSubjectHours,
 }: TimetablePageProps) {
+  const [internalLabGroup, setInternalLabGroup] = useState<"All" | "G1" | "G2" | "G3">("All");
+  const selectedLabGroup = propSelectedLabGroup ?? internalLabGroup;
+
+  const handleSetSelectedLabGroup = (grp: "All" | "G1" | "G2" | "G3") => {
+    setInternalLabGroup(grp);
+    if (onSelectLabGroup) {
+      onSelectLabGroup(grp);
+    }
+  };
   // Determine current day of week to highlight automatically
   const currentDayIndex = new Date().getDay(); // 0 = Sun, 1 = Mon, ...
   const defaultDayId =
@@ -430,14 +442,6 @@ export default function TimetablePage({
       </span>
     );
   };
-
-  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">(
-    () => (localStorage.getItem("dtu_lab_group") as any) || "All"
-  );
-
-  useEffect(() => {
-    localStorage.setItem("dtu_lab_group", selectedLabGroup);
-  }, [selectedLabGroup]);
 
   // Render combined lab session formatting
   const renderSlotContent = (rawText: string) => {
@@ -773,7 +777,7 @@ export default function TimetablePage({
               {(["All", "G1", "G2", "G3"] as const).map((grp) => (
                 <button
                   key={grp}
-                  onClick={() => setSelectedLabGroup(grp)}
+                  onClick={() => handleSetSelectedLabGroup(grp)}
                   style={selectedLabGroup === grp ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
                   className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                     selectedLabGroup === grp
