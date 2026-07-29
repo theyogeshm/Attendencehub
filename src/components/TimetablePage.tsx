@@ -648,7 +648,7 @@ export default function TimetablePage({
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0">
       {/* ── HEADER & TITLE ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card p-5 sm:p-6 rounded-3xl border border-outline-variant/40 shadow-lg relative z-20">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
@@ -680,7 +680,7 @@ export default function TimetablePage({
             </p>
           </div>
 
-          <div className="flex flex-col min-w-[170px]">
+          <div className="flex flex-col min-w-0 w-full max-w-[220px]">
             <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
               Switch Section
             </label>
