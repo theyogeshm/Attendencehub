@@ -514,41 +514,59 @@ export default function App() {
     }
   };
 
+  // ── Date and Subject Name Helpers for Supabase Attendance Persistence ──────
+  const getTodayDateStr = (): string => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getNormalizedSubjectKeys = (name: string): string[] => {
+    const clean = name.toLowerCase().trim();
+    if (!clean) return [];
+    const keys = new Set<string>();
+    keys.add(clean);
+
+    // Remove brackets e.g. "Software Engineering (SE) - Theory" -> "Software Engineering - Theory"
+    const noParens = clean.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+    if (noParens && noParens !== clean) keys.add(noParens);
+
+    // Strip " - theory" or " - lab" if present
+    const baseName = noParens.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
+    if (baseName && baseName !== noParens) keys.add(baseName);
+
+    return Array.from(keys);
+  };
+
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
-    // Strategy 1: exact ID match
-    let currentSub = subjects.find(s => s.id === subjectId);
-    // Strategy 2: name equals subjectId (rare, but kept for compatibility)
-    if (!currentSub) {
-      currentSub = subjects.find(s =>
-        s.name.toLowerCase().trim() === subjectId.toLowerCase().trim()
-      );
-    }
-    // Strategy 3: slug match — for fallback timetable IDs like "sub-digital-logic-design---theory"
-    if (!currentSub && subjectId.startsWith("sub-")) {
-      const slug = subjectId.replace(/^sub-/, "");
-      currentSub = subjects.find(s =>
-        s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug
-      );
-    }
-    // Strategy 4: cleaned-up name contains the slug words
-    if (!currentSub && subjectId.startsWith("sub-")) {
-      const words = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
-      currentSub = subjects.find(s =>
-        s.name.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim() === words
-      );
+    // 1. Resolve exact subject name (name + type)
+    const todaySched = getTodayScheduledSubjects();
+    const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
+    let targetSubjectName = "";
+
+    if (schedMatch) {
+      targetSubjectName = schedMatch.name;
+    } else {
+      let currentSub = subjects.find(s => s.id === subjectId);
+      if (!currentSub) {
+        currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+      }
+      if (!currentSub && subjectId.startsWith("sub-")) {
+        const slug = subjectId.replace(/^sub-/, "");
+        currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
+      }
+      if (currentSub) {
+        targetSubjectName = currentSub.name;
+      } else {
+        targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
+      }
     }
 
-    const subjectName = currentSub
-      ? currentSub.name
-      : subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
-    if (!currentSub) {
-      currentSub = { id: subjectId, name: subjectName, prof: "Faculty", attendanceCount: 0, totalClasses: 0 };
-    }
-
-    const dateStr    = targetDate ?? new Date().toISOString().split("T")[0];
-    const todayStr   = new Date().toISOString().split("T")[0];
-    const isToday    = dateStr === todayStr;
+    const dateStr  = targetDate ?? getTodayDateStr();
+    const isToday  = dateStr === getTodayDateStr();
 
     const labels: Record<AttendanceStatus, string> = {
       present: "✅ Present marked",
@@ -558,47 +576,33 @@ export default function App() {
       clear:   "🗑️ Cleared",
     };
 
-    // ── Clear ──────────────────────────────────────────────────────────────
+    // ── Clear entry from Supabase ─────────────────────────────────────────────
     if (status === "clear") {
       if (!user) return;
       const { error: delErr } = await supabase.from("attendance")
         .delete()
         .eq("user_id", user.id)
-        .eq("subject", currentSub.name)
+        .eq("subject", targetSubjectName)
         .eq("date", dateStr);
       if (delErr) {
         showToast("Failed to clear attendance.", "error");
       } else {
         showToast(labels.clear, "success");
-        if (isToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
-        loadUserData(user);
+        await fetchTodayAttendance(user, subjects);
+        await refreshAttendanceCounts(user);
       }
       return;
     }
 
-    // ── 1. Instant button highlight — store by BOTH id AND name so all lookups hit ─
+    // Optimistic local update for instant UI feedback
     if (isToday) {
-      setTodayAttendance(prev => ({
-        ...prev,
-        [subjectId]: status,
-        [currentSub!.name.toLowerCase().trim()]: status,
-      }));
-    }
-
-    // ── 2. Optimistic count update — match by id OR by subject name ────────
-    const alreadyMarked = isToday && !!todayAttendance[subjectId];
-    if (!alreadyMarked && status !== "leave") {
-      const subNameLower = subjectName.toLowerCase().trim();
-      setSubjects(prev => prev.map(sub => {
-        const byId   = sub.id === subjectId;
-        const byName = sub.name.toLowerCase().trim() === subNameLower;
-        if (!byId && !byName) return sub;
-        return {
-          ...sub,
-          attendanceCount: sub.attendanceCount + (status === "present" ? 1 : 0),
-          totalClasses:    sub.totalClasses + 1,
-        };
-      }));
+      setTodayAttendance(prev => {
+        const next = { ...prev, [subjectId]: status };
+        getNormalizedSubjectKeys(targetSubjectName).forEach(k => {
+          next[k] = status;
+        });
+        return next;
+      });
     }
 
     if (!user) {
@@ -606,36 +610,29 @@ export default function App() {
       return;
     }
 
-    // ── 3. Save to Supabase ────────────────────────────────────────────────
+    // ── Save to Supabase attendance table via Upsert ─────────────────────────
     const { error: attErr } = await supabase.from("attendance").upsert(
-      { user_id: user.id, subject: currentSub.name, date: dateStr, status },
+      {
+        user_id: user.id,
+        subject: targetSubjectName,
+        date:    dateStr,
+        status:  status,
+      },
       { onConflict: "user_id,subject,date" }
     );
 
     if (attErr) {
+      console.error("Supabase attendance save error:", attErr);
       showToast("Failed to save attendance. Please try again.", "error");
-      // Roll back optimistic updates
-      if (isToday) setTodayAttendance(prev => {
-        const n = { ...prev };
-        delete n[subjectId];
-        delete n[currentSub!.name.toLowerCase().trim()];
-        return n;
-      });
-      if (!alreadyMarked && status !== "leave") {
-        const subNameLower = subjectName.toLowerCase().trim();
-        setSubjects(prev => prev.map(sub => {
-          const byId   = sub.id === subjectId;
-          const byName = sub.name.toLowerCase().trim() === subNameLower;
-          if (!byId && !byName) return sub;
-          return {
-            ...sub,
-            attendanceCount: sub.attendanceCount - (status === "present" ? 1 : 0),
-            totalClasses:    sub.totalClasses - 1,
-          };
-        }));
+      // Rollback on failure by re-fetching state from Supabase
+      if (user) {
+        await fetchTodayAttendance(user, subjects);
       }
     } else {
       showToast(labels[status]);
+      // Immediately fetch from Supabase to ensure state is 100% in sync with backend
+      await fetchTodayAttendance(user, subjects);
+      await refreshAttendanceCounts(user);
     }
   };
 
@@ -858,50 +855,70 @@ export default function App() {
       .select("subject, status")
       .eq("user_id", u.id);
     if (!attData) return;
+
     const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
     for (const row of attData) {
-      const key = (row.subject ?? "").toLowerCase().trim();
+      const key = (row.subject ?? "").trim();
       if (!key) continue;
-      if (!agg[key]) agg[key] = { attendance_count: 0, total_classes: 0 };
+      const keys = getNormalizedSubjectKeys(key);
+      const mainKey = keys[0] || key.toLowerCase();
+      if (!agg[mainKey]) agg[mainKey] = { attendance_count: 0, total_classes: 0 };
       const s = (row.status ?? "").toLowerCase();
-      if (s !== "leave") agg[key].total_classes += 1;
-      if (s === "present") agg[key].attendance_count += 1;
+      if (s !== "leave") agg[mainKey].total_classes += 1;
+      if (s === "present") agg[mainKey].attendance_count += 1;
     }
+
     setSubjects(prev => prev.map(sub => {
-      const key = sub.name.toLowerCase().trim();
-      const saved = agg[key];
+      const keys = getNormalizedSubjectKeys(sub.name);
+      let saved: { attendance_count: number; total_classes: number } | undefined = undefined;
+      for (const k of keys) {
+        if (agg[k]) {
+          saved = agg[k];
+          break;
+        }
+      }
       if (!saved) return sub;
       return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
     }));
   };
 
-  // ── Fetch today's attendance for dashboard status highlights ─────────────
-  const fetchTodayAttendance = async (u: User, subjectsList: Subject[]) => {
+  // ── Fetch today's attendance for dashboard status highlights directly from Supabase ─────────────
+  const fetchTodayAttendance = async (u: User, subjectsList: Subject[] = subjects) => {
     if (!u) return;
-    const today = new Date().toISOString().split("T")[0];
-    const { data } = await supabase
+    const todayStr = getTodayDateStr();
+    const { data, error } = await supabase
       .from("attendance")
       .select("subject, status")
       .eq("user_id", u.id)
-      .eq("date", today);
-    if (data) {
-      const map: Record<string, AttendanceStatus> = {};
-      data.forEach(row => {
-        const rowSubName = (row.subject ?? "").toLowerCase().trim();
-        if (!rowSubName || !row.status) return;
-        // Key 1: by subject ID (fast lookup in dashboard)
-        const sub = subjectsList.find(s =>
-          s.name.toLowerCase().trim() === rowSubName
-        );
-        if (sub) {
-          map[sub.id] = row.status as AttendanceStatus;
-        }
-        // Key 2: by subject name itself — survives page refresh even if
-        // subject objects are recreated with different generated IDs
-        map[rowSubName] = row.status as AttendanceStatus;
-      });
-      setTodayAttendance(map);
+      .eq("date", todayStr);
+
+    if (error) {
+      console.error("Error fetching today attendance from Supabase:", error);
+      return;
     }
+
+    const map: Record<string, AttendanceStatus> = {};
+    if (data) {
+      data.forEach(row => {
+        const rowSubName = (row.subject ?? "").trim();
+        if (!rowSubName || !row.status) return;
+
+        const keys = getNormalizedSubjectKeys(rowSubName);
+        keys.forEach(k => {
+          map[k] = row.status as AttendanceStatus;
+        });
+
+        // Also map to any subject IDs in subjectsList or scheduled timetable
+        const listToSearch = subjectsList && subjectsList.length > 0 ? subjectsList : subjects;
+        listToSearch.forEach(s => {
+          const sKeys = getNormalizedSubjectKeys(s.name);
+          if (keys.some(k => sKeys.includes(k))) {
+            map[s.id] = row.status as AttendanceStatus;
+          }
+        });
+      });
+    }
+    setTodayAttendance(map);
   };
 
   // ── Fetch attendance for a specific date from Supabase ───────────────────
