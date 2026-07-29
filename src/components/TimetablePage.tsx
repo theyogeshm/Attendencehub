@@ -55,21 +55,17 @@ const DAYS_OF_WEEK = [
 
 // ── Elective Override Form ─────────────────────────────────────────────────
 const ELECTIVE_PRESETS = [
-  { value: "",                                   label: "Keep as E slot (unresolved)", code: "" },
-  { value: "CS309 Distributed Systems",          label: "Distributed Systems",          code: "CS309" },
-  { value: "CS311 Information Theory and Coding", label: "Information Theory & Coding", code: "CS311" },
-  { value: "CS313 Quantum Computing",            label: "Quantum Computing",             code: "CS313" },
-  { value: "CS315 Advance Data Structure",       label: "Advance Data Structure",        code: "CS315" },
+  { value: "",                                    label: "Keep as E slot (unresolved)", code: "" },
+  { value: "CS309 Distributed Systems",           label: "Distributed Systems",          code: "CS309" },
+  { value: "CS311 Information Theory and Coding", label: "Information Theory & Coding",  code: "CS311" },
+  { value: "CS313 Quantum Computing",             label: "Quantum Computing",             code: "CS313" },
+  { value: "CS315 Advance Data Structure",        label: "Advance Data Structure",        code: "CS315" },
 ];
 
 function ElectiveSlotCard({
-  slot,
-  value,
-  onChange,
+  slot, value, onChange, isDarkMode = true,
 }: {
-  slot: string;
-  value: string;
-  onChange: (v: string) => void;
+  slot: string; value: string; onChange: (v: string) => void; isDarkMode?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -86,15 +82,21 @@ function ElectiveSlotCard({
   const isCustom = value && !preset;
   const displayLabel = isCustom ? value : (preset?.value ? preset.label : null);
 
+  const dk = isDarkMode;
+
   return (
-    <div className="rounded-2xl bg-[#0d1729] border border-slate-700/50 p-3.5 space-y-2.5 hover:border-emerald-500/30 transition-all duration-200">
+    <div className={`rounded-2xl border p-3.5 space-y-2.5 hover:border-emerald-500/40 transition-all duration-200 ${
+      dk ? "bg-[#0d1729] border-slate-700/50" : "bg-white border-slate-200 shadow-sm"
+    }`}>
       {/* Slot badge */}
       <div className="flex items-center gap-2">
-        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-black font-mono border border-emerald-500/25">
+        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[10px] font-black font-mono border border-emerald-500/25">
           {slot}
         </span>
         {displayLabel && (
-          <span className="text-[10px] text-slate-400 truncate font-medium">{displayLabel}</span>
+          <span className={`text-[10px] truncate font-medium ${dk ? "text-slate-400" : "text-slate-500"}`}>
+            {displayLabel}
+          </span>
         )}
       </div>
 
@@ -103,18 +105,28 @@ function ElectiveSlotCard({
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className="w-full py-2.5 px-4 rounded-2xl font-bold text-xs border transition-all cursor-pointer shadow-sm flex items-center justify-between gap-2 text-left outline-none bg-[#131b2e] border-slate-700/60 text-slate-100 hover:border-emerald-500/50 hover:bg-[#1a243b]"
+          className={`w-full py-2.5 px-4 rounded-2xl font-bold text-xs border transition-all cursor-pointer shadow-sm flex items-center justify-between gap-2 text-left outline-none ${
+            dk
+              ? "bg-[#131b2e] border-slate-700/60 text-slate-100 hover:border-emerald-500/50 hover:bg-[#1a243b]"
+              : "bg-white border-slate-200 text-slate-800 hover:border-emerald-500/50 hover:bg-slate-50"
+          }`}
         >
           <span className="truncate font-bold">
             {displayLabel ?? (
-              <span className="text-slate-500 font-medium italic">-- Keep as E slot (unresolved) --</span>
+              <span className={`font-medium italic ${dk ? "text-slate-500" : "text-slate-400"}`}>
+                -- Keep as E slot (unresolved) --
+              </span>
             )}
           </span>
           <ChevronDown className={`w-4 h-4 text-emerald-500 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && (
-          <div className="absolute left-0 right-0 z-[200] mt-1.5 rounded-2xl p-1.5 shadow-2xl border bg-[#0b1326] border-slate-700 text-slate-100 shadow-black/90">
+          <div className={`absolute left-0 right-0 z-[200] mt-1.5 rounded-2xl p-1.5 shadow-2xl border ${
+            dk
+              ? "bg-[#0b1326] border-slate-700 text-slate-100 shadow-black/90"
+              : "bg-white border-slate-200 text-slate-800 shadow-slate-400/30"
+          }`}>
             {ELECTIVE_PRESETS.map(p => {
               const isSel = (value === p.value) || (!value && p.value === "");
               return (
@@ -123,13 +135,17 @@ function ElectiveSlotCard({
                   onClick={() => { onChange(p.value); setOpen(false); }}
                   className={`px-3.5 py-2.5 rounded-xl font-semibold text-xs cursor-pointer transition-all flex items-center justify-between gap-2 mb-0.5 ${
                     isSel
-                      ? "bg-emerald-500/20 text-[#47ffbc] font-extrabold"
-                      : "hover:bg-slate-800/80 text-slate-200 hover:text-white"
+                      ? dk ? "bg-emerald-500/20 text-[#47ffbc] font-extrabold" : "bg-emerald-500/15 text-emerald-700 font-extrabold"
+                      : dk ? "hover:bg-slate-800/80 text-slate-200 hover:text-white" : "hover:bg-slate-100 text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   <span className="flex items-center gap-2 truncate">
                     {p.code && (
-                      <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${isSel ? "bg-emerald-500/30 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
+                      <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
+                        isSel
+                          ? "bg-emerald-500/30 text-emerald-600"
+                          : dk ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"
+                      }`}>
                         {p.code}
                       </span>
                     )}
@@ -149,18 +165,22 @@ function ElectiveSlotCard({
         placeholder="Or type custom subject…"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full py-2.5 px-4 rounded-2xl text-xs font-medium bg-[#131b2e] border border-slate-700/60 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:bg-[#1a243b] transition-all"
+        className={`w-full py-2.5 px-4 rounded-2xl text-xs font-medium border focus:outline-none focus:border-emerald-500/60 transition-all ${
+          dk
+            ? "bg-[#131b2e] border-slate-700/60 text-slate-100 placeholder-slate-600 focus:bg-[#1a243b]"
+            : "bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:bg-white"
+        }`}
       />
     </div>
   );
 }
 
 function ElectiveOverrideForm({
-  electiveOverrides,
-  onSave,
+  electiveOverrides, onSave, isDarkMode = true,
 }: {
   electiveOverrides: Record<string, string>;
   onSave: (overrides: Record<string, string>) => void;
+  isDarkMode?: boolean;
 }) {
   const [draft, setDraft] = useState<Record<string, string>>({ ...electiveOverrides });
   const [saved, setSaved] = useState(false);
@@ -172,11 +192,13 @@ function ElectiveOverrideForm({
   };
 
   const configuredCount = Object.values(draft).filter(Boolean).length;
+  const dk = isDarkMode;
 
   return (
-    <div className="pt-3 border-t border-slate-700/40 space-y-4">
-      <p className="text-[10px] text-slate-500 leading-relaxed">
-        Pick a preset or type a custom name for each elective slot. Hit <strong className="text-emerald-400">Save</strong> — E1/E2… labels in your timetable will be replaced instantly.
+    <div className={`pt-3 border-t space-y-4 ${dk ? "border-slate-700/40" : "border-slate-200"}`}>
+      <p className={`text-[10px] leading-relaxed ${dk ? "text-slate-500" : "text-slate-500"}`}>
+        Pick a preset or type a custom name for each elective slot. Hit{" "}
+        <strong className="text-emerald-500">Save</strong> — E1/E2… labels in your timetable will be replaced instantly.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {(["E1", "E2", "E3", "E4", "E5", "E6"] as const).map(slot => (
@@ -185,19 +207,24 @@ function ElectiveOverrideForm({
             slot={slot}
             value={draft[slot] || ""}
             onChange={v => setDraft(d => ({ ...d, [slot]: v }))}
+            isDarkMode={isDarkMode}
           />
         ))}
       </div>
       <div className="flex items-center justify-between gap-3 pt-1">
-        <span className="text-[10px] text-slate-500">
+        <span className={`text-[10px] ${dk ? "text-slate-500" : "text-slate-400"}`}>
           {configuredCount > 0 ? (
-            <span className="text-emerald-400 font-bold">{configuredCount} of 6 electives configured</span>
+            <span className="text-emerald-500 font-bold">{configuredCount} of 6 electives configured</span>
           ) : "No electives configured yet"}
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setDraft({}); onSave({}); }}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 border border-slate-700/50 hover:border-slate-500 hover:text-slate-200 transition-all cursor-pointer"
+            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              dk
+                ? "text-slate-400 border-slate-700/50 hover:border-slate-500 hover:text-slate-200"
+                : "text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-700"
+            }`}
           >
             Reset All
           </button>
@@ -206,19 +233,13 @@ function ElectiveOverrideForm({
             className={`px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 shadow-lg ${
               saved
                 ? "bg-emerald-500 text-white shadow-emerald-500/30"
-                : "bg-emerald-500/90 text-white hover:bg-emerald-500 hover:shadow-emerald-500/40 active:scale-95"
+                : "bg-emerald-500 text-white hover:brightness-110 hover:shadow-emerald-500/40 active:scale-95"
             }`}
           >
             {saved ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                Saved!
-              </>
+              <><CheckCircle2 className="w-4 h-4" />Saved!</>
             ) : (
-              <>
-                <Sparkles className="w-3.5 h-3.5" />
-                Save Electives
-              </>
+              <><Sparkles className="w-3.5 h-3.5" />Save Electives</>
             )}
           </button>
         </div>
@@ -704,6 +725,7 @@ export default function TimetablePage({
           {showElectivePanel && (
             <ElectiveOverrideForm
               electiveOverrides={electiveOverrides}
+              isDarkMode={isDarkMode}
               onSave={(overrides) => {
                 setElectiveOverrides(overrides);
                 localStorage.setItem("dtu_sem5_elective_overrides", JSON.stringify(overrides));
