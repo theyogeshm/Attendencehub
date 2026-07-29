@@ -78,7 +78,7 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* Subject Attendance Bar Chart */}
-        <div className="lg:col-span-8 glass-card rounded-2xl p-6 flex flex-col gap-4">
+        <div className="lg:col-span-8 glass-card rounded-2xl p-6 flex flex-col gap-4 min-w-0 w-full overflow-hidden">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-base flex items-center gap-1.5 text-on-surface">
               <span className="material-symbols-outlined text-primary text-xl">monitoring</span>
@@ -89,31 +89,44 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
 
           {hasAttendanceData ? (
             <>
-              {/* Y-axis labels + bars */}
-              <div className="relative flex items-end h-56 gap-2 pt-4">
-                {/* 75% threshold line */}
-                <div className="absolute left-0 right-0 border-t border-dashed border-error/40" style={{ bottom: `${75}%` }}>
-                  <span className="absolute -top-4 left-0 text-[9px] text-error font-mono font-bold">75% threshold</span>
+              {/* Y-axis labels + bars + X-axis container */}
+              <div className="w-full min-w-0 flex flex-col gap-2">
+                {/* Plot Area */}
+                <div className="relative flex items-end h-48 gap-1.5 pt-4 w-full min-w-0">
+                  {/* 75% threshold line */}
+                  <div className="absolute left-0 right-0 border-t border-dashed border-error/40 z-0 pointer-events-none" style={{ bottom: "75%" }}>
+                    <span className="absolute -top-3.5 left-0 text-[9px] text-error font-mono font-bold bg-surface-container/90 px-1 rounded">75% threshold</span>
+                  </div>
+
+                  {subjectBars.map((bar, i) => {
+                    const isBelowThreshold = bar.pct < 75;
+                    return (
+                      <div key={i} className="flex-1 min-w-0 group relative flex flex-col items-center justify-end h-full z-10">
+                        {/* Tooltip */}
+                        <div className="absolute -top-8 bg-surface-container-high border border-outline px-2 py-1 rounded-xl text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none shadow-lg">
+                          {bar.fullName}: {bar.pct}%
+                        </div>
+
+                        {/* Bar */}
+                        <div
+                          className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? (isDarkMode ? "bg-error" : "bg-[#FF6B6B]") : (isDarkMode ? "bg-primary" : "bg-[#00C896]")}`}
+                          style={{ height: `${Math.max(bar.pct, 3)}%` }}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {subjectBars.map((bar, i) => {
-                  const isBelowThreshold = bar.pct < 75;
-                  return (
-                    <div key={i} className="flex-1 group relative flex flex-col items-center justify-end h-full">
-                      {/* Tooltip */}
-                      <div className="absolute -top-8 bg-surface-container-high border border-outline px-2 py-1 rounded-xl text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
-                        {bar.fullName}: {bar.pct}%
-                      </div>
-
-                      {/* Bar */}
-                      <div
-                        className={`w-full rounded-t-lg transition-all duration-700 progress-glow ${isBelowThreshold ? (isDarkMode ? "bg-error" : "bg-[#FF6B6B]") : (isDarkMode ? "bg-primary" : "bg-[#00C896]")}`}
-                        style={{ height: `${bar.pct}%` }}
-                      />
-                      <span className="mt-2 text-[10px] text-on-surface-variant font-bold font-mono truncate w-full text-center">{bar.name}</span>
+                {/* X-axis subject name labels (Exact 1:1 equal width columns matching bars) */}
+                <div className="flex items-center gap-1.5 w-full min-w-0 pt-1">
+                  {subjectBars.map((bar, i) => (
+                    <div key={i} className="flex-1 min-w-0 text-center" title={bar.fullName}>
+                      <span className="block text-[9px] text-on-surface-variant font-bold font-mono truncate w-full">
+                        {bar.fullName}
+                      </span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
 
               {/* Legend */}
