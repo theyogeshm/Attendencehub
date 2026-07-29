@@ -667,7 +667,7 @@ export default function TimetablePage({
       {/* 2. WEEK VIEW MODE */}
       {viewMode === "week" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {DAYS_OF_WEEK.map((day) => {
               const daySlots = sectionData.timetable[day.id] || {};
               const slotsArray = Object.entries(daySlots);
