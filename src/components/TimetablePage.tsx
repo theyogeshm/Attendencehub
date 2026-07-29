@@ -400,39 +400,55 @@ export default function TimetablePage({
     alert("Timetable copied to clipboard! 📋");
   };
 
-  // Show friendly message for semesters without timetable data
+  // Show Coming Soon for semesters without timetable data
   if (!isSemesterSupported) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center p-8">
-        <div className="w-24 h-24 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <BookOpen className="w-12 h-12 text-primary/50" />
-        </div>
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-2xl font-black text-on-surface">
-            Timetable Not Available
-          </h2>
-          <p className="text-sm text-on-surface-variant leading-relaxed">
-            We don't have timetable data for{" "}
-            <span className="font-bold text-primary">Semester {selectedSemester}</span> yet.
-            Currently, timetables are available for{" "}
-            <span className="font-bold text-primary">Semester 3</span> and{" "}
-            <span className="font-bold text-primary">Semester 5</span> only.
-          </p>
-          <p className="text-xs text-on-surface-variant/60 mt-2">
-            If your semester information is incorrect, update it from your profile settings.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 mt-4">
-          <div className="px-4 py-2 rounded-full bg-surface-container border border-outline-variant/40 text-xs font-bold text-on-surface-variant">
-            📅 Sem 3 — Available
+        {/* Pulsing ring animation */}
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-32 h-32 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: "2s" }} />
+          <div className="absolute w-24 h-24 rounded-full bg-primary/15 animate-ping" style={{ animationDuration: "2s", animationDelay: "0.3s" }} />
+          <div className="relative w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center shadow-lg">
+            <BookOpen className="w-9 h-9 text-primary" />
           </div>
-          <div className="px-4 py-2 rounded-full bg-surface-container border border-outline-variant/40 text-xs font-bold text-on-surface-variant">
-            📅 Sem 5 — Available
+        </div>
+
+        <div className="space-y-3 max-w-sm">
+          <div className="flex items-center justify-center gap-2">
+            <span
+              className="text-2xl font-black text-on-surface tracking-tight animate-pulse"
+              style={{ animationDuration: "1.5s" }}
+            >
+              Coming Soon
+            </span>
+            <span className="flex gap-1">
+              {[0, 0.2, 0.4].map((delay, i) => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                  style={{ animationDelay: `${delay}s` }}
+                />
+              ))}
+            </span>
+          </div>
+
+          <p className="text-sm text-on-surface-variant leading-relaxed">
+            Timetable for{" "}
+            <span className="font-bold text-primary">Semester {selectedSemester}</span>{" "}
+            is being prepared and will be available soon!
+          </p>
+
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs text-on-surface-variant/70 font-medium">
+              Currently live: Sem 3 &amp; Sem 5
+            </span>
           </div>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="space-y-6">
