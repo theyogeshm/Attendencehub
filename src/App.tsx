@@ -907,12 +907,19 @@ export default function App() {
     const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
       ? profile.section.toUpperCase().trim()
       : `A${profile.section.toUpperCase().trim()}`;
-    const isSem5 = profile.semester.includes("5");
+    const semMatch = profile.semester.match(/(\d+)/);
+    const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
+
+    // Only show timetable-based subjects for supported semesters
+    if (semNum !== 3 && semNum !== 5) return [];
+
+    const isSem5 = semNum === 5;
     const secData = isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
     const daySchedule = secData?.timetable[todayId];
-    if (!daySchedule) return subjects;
+    if (!daySchedule) return [];
+
 
     const todayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
