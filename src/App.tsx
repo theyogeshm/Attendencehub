@@ -624,6 +624,8 @@ export default function App() {
       }
     }
 
+    targetSubjectName = getStandardizedSubjectName(targetSubjectName);
+
     const dateStr  = targetDate ?? getTodayDateStr();
     const isToday  = dateStr === getTodayDateStr();
 
@@ -643,6 +645,7 @@ export default function App() {
         .eq("user_id", user.id)
         .eq("subject", targetSubjectName)
         .eq("date", dateStr);
+
       if (delErr) {
         showToast("Failed to clear attendance.", "error");
       } else {
@@ -669,29 +672,59 @@ export default function App() {
       return;
     }
 
-    // ── Save to Supabase attendance table via Upsert ─────────────────────────
-    const { error: attErr } = await supabase.from("attendance").upsert(
-      {
-        user_id: user.id,
-        subject: targetSubjectName,
-        date:    dateStr,
-        status:  status,
-      },
-      { onConflict: "user_id,subject,date" }
-    );
+    // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
+    try {
+      const { data: existing } = await supabase
+        .from("attendance")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("subject", targetSubjectName)
+        .eq("date", dateStr);
 
-    if (attErr) {
-      console.error("Supabase attendance save error:", attErr);
-      showToast("Failed to save attendance. Please try again.", "error");
-      // Rollback on failure by re-fetching state from Supabase
-      if (user) {
-        await fetchTodayAttendance(user, subjects);
+      let saveErr = null;
+      if (existing && existing.length > 0) {
+        const { error: updateErr } = await supabase
+          .from("attendance")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .eq("subject", targetSubjectName)
+          .eq("date", dateStr);
+        saveErr = updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from("attendance")
+          .insert({
+            user_id: user.id,
+            subject: targetSubjectName,
+            date: dateStr,
+            status: status,
+          });
+
+        if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
+          const { error: retryUpdateErr } = await supabase
+            .from("attendance")
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq("user_id", user.id)
+            .eq("subject", targetSubjectName)
+            .eq("date", dateStr);
+          saveErr = retryUpdateErr;
+        } else {
+          saveErr = insertErr;
+        }
       }
-    } else {
-      showToast(labels[status]);
-      // Immediately fetch from Supabase to ensure state is 100% in sync with backend
-      await fetchTodayAttendance(user, subjects);
-      await refreshAttendanceCounts(user);
+
+      if (saveErr) {
+        console.error("Supabase attendance save error:", saveErr);
+        showToast("Failed to save attendance. Please try again.", "error");
+        await fetchTodayAttendance(user, subjects);
+      } else {
+        showToast(labels[status]);
+        await fetchTodayAttendance(user, subjects);
+        await refreshAttendanceCounts(user);
+      }
+    } catch (err) {
+      console.error("Attendance save exception:", err);
+      showToast("Failed to save attendance.", "error");
     }
   };
 
@@ -713,7 +746,8 @@ export default function App() {
     if (user && targetSub) {
       const deltaTotal = newTotal - targetSub.totalClasses;
       const deltaAttended = newAttended - targetSub.attendanceCount;
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getTodayDateStr();
+      const stdName = getStandardizedSubjectName(targetSub.name);
 
       if (deltaTotal < 0 || deltaAttended < 0) {
         // UNDO operation: delete latest attendance record for this subject
@@ -721,7 +755,7 @@ export default function App() {
           .from("attendance")
           .select("id")
           .eq("user_id", user.id)
-          .eq("subject", targetSub.name)
+          .eq("subject", stdName)
           .order("created_at", { ascending: false })
           .limit(1);
 
@@ -732,7 +766,7 @@ export default function App() {
         // Manual Present addition
         await supabase.from("attendance").insert({
           user_id: user.id,
-          subject: targetSub.name,
+          subject: stdName,
           status: "present",
           date: todayStr,
         });
@@ -740,11 +774,12 @@ export default function App() {
         // Manual Absent addition
         await supabase.from("attendance").insert({
           user_id: user.id,
-          subject: targetSub.name,
+          subject: stdName,
           status: "absent",
           date: todayStr,
         });
       }
+      await refreshAttendanceCounts(user);
     }
   };
 
