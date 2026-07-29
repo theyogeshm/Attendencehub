@@ -233,7 +233,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
     // Standard file card
     return (
-      <div className="group flex items-start sm:items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
+      <div className="group flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
         {/* Icon */}
         <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center mt-0.5 sm:mt-0">
           <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
@@ -279,13 +279,13 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 self-center">
+        {/* Actions — always in one row */}
+        <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
           <a
             href={res.file_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary transition-all duration-200"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary transition-all duration-200 whitespace-nowrap"
             title="View"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -296,11 +296,12 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             download={res.file_name}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200 whitespace-nowrap"
             title="Download"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Get</span>
+            <span className="sm:hidden text-[11px]">Get</span>
+            <span className="hidden sm:inline text-[11px]">Download</span>
           </a>
         </div>
       </div>
@@ -412,7 +413,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 p-4 sm:p-8">
+      <div className="flex-1 p-4 sm:p-8 max-w-5xl xl:max-w-6xl mx-auto w-full">
 
         {/* Skeleton Loading */}
         {loading && (
