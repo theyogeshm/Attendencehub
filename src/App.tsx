@@ -328,54 +328,50 @@ export default function App() {
 
       // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
-      if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
-        let expandedSubjectsList: string[] = [];
-        for (const name of pData.subjects) {
-          const lower = name.toLowerCase().trim();
-          if (lower.includes("theory") || lower.includes("lab")) {
-            expandedSubjectsList.push(name);
-          } else if (lower.includes("operating system") || lower === "os") {
-            expandedSubjectsList.push("Operating System Design - Theory", "Operating System Design - Lab");
-          } else if (lower.includes("algorithm") || lower.includes("daa")) {
-            expandedSubjectsList.push("Design & Analysis of Algorithm - Theory", "Design & Analysis of Algorithm - Lab");
-          } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
-            expandedSubjectsList.push("Object Oriented Design");
-          } else if (lower.includes("software engineering") || lower.includes("se")) {
-            expandedSubjectsList.push("Software Engineering");
-          } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
-            expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
-          } else {
-            expandedSubjectsList.push(name);
-          }
-        }
-        expandedSubjectsList = Array.from(new Set(expandedSubjectsList));
-        const baseSubjects = subjectNamestoSubjects(expandedSubjectsList);
+      const userSemNum = parseInt((pData.semester ?? "").match(/(\d+)/)?.[1] || "3", 10);
+      const defaultNames = DTU_CSE_SUBJECTS[userSemNum] || DTU_CSE_SUBJECTS[3] || [];
+      const rawSubjectNames = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
+        ? pData.subjects
+        : defaultNames;
 
-        if (attData && attData.length > 0) {
-          const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
-          for (const row of attData) {
-            const key = (row.subject ?? "").toLowerCase().trim();
-            if (!key) continue;
-            if (!agg[key]) agg[key] = { attendance_count: 0, total_classes: 0 };
-            const s = (row.status ?? "").toLowerCase();
-            if (s !== "leave") agg[key].total_classes += 1;
-            if (s === "present") agg[key].attendance_count += 1;
-          }
-          const merged = baseSubjects.map(sub => {
-            const key = sub.name.toLowerCase().trim();
-            const saved = agg[key];
-            return saved
-              ? { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes }
-              : { ...sub, attendanceCount: 0, totalClasses: 0 };
-          });
-          setSubjects(merged);
-          resolvedSubjects = merged;
+      let expandedSubjectsList: string[] = [];
+      for (const name of rawSubjectNames) {
+        const lower = name.toLowerCase().trim();
+        if (lower.includes("theory") || lower.includes("lab")) {
+          expandedSubjectsList.push(name);
+        } else if (lower.includes("operating system") || lower === "os") {
+          expandedSubjectsList.push("Operating System Design - Theory", "Operating System Design - Lab");
+        } else if (lower.includes("algorithm") || lower.includes("daa")) {
+          expandedSubjectsList.push("Design & Analysis of Algorithm - Theory", "Design & Analysis of Algorithm - Lab");
+        } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
+          expandedSubjectsList.push("Object Oriented Design");
+        } else if (lower.includes("software engineering") || lower.includes("se")) {
+          expandedSubjectsList.push("Software Engineering");
+        } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
+          expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
         } else {
-          const withZeros = baseSubjects.map(s => ({ ...s, attendanceCount: 0, totalClasses: 0 }));
-          setSubjects(withZeros);
-          resolvedSubjects = withZeros;
+          expandedSubjectsList.push(name);
         }
       }
+      expandedSubjectsList = Array.from(new Set(expandedSubjectsList));
+      const baseSubjects = subjectNamestoSubjects(expandedSubjectsList);
+
+      const agg = buildAttendanceAggregates(attData || []);
+      const merged = baseSubjects.map(sub => {
+        const keys = getNormalizedSubjectKeys(sub.name);
+        let saved: { attendance_count: number; total_classes: number } | undefined = undefined;
+        for (const k of keys) {
+          if (agg[k]) {
+            saved = agg[k];
+            break;
+          }
+        }
+        return saved
+          ? { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes }
+          : { ...sub, attendanceCount: 0, totalClasses: 0 };
+      });
+      setSubjects(merged);
+      resolvedSubjects = merged;
 
       fetchTodayAttendance(u, resolvedSubjects);
 
@@ -538,6 +534,26 @@ export default function App() {
     if (baseName && baseName !== noParens) keys.add(baseName);
 
     return Array.from(keys);
+  };
+
+  const buildAttendanceAggregates = (attData: any[]): Record<string, { attendance_count: number; total_classes: number }> => {
+    const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
+    if (!attData || attData.length === 0) return agg;
+
+    for (const row of attData) {
+      const rawName = (row.subject ?? "").trim();
+      if (!rawName) continue;
+      const keys = getNormalizedSubjectKeys(rawName);
+      const s = (row.status ?? "").toLowerCase();
+
+      keys.forEach(k => {
+        if (!agg[k]) agg[k] = { attendance_count: 0, total_classes: 0 };
+        if (s !== "leave") agg[k].total_classes += 1;
+        if (s === "present") agg[k].attendance_count += 1;
+      });
+    }
+
+    return agg;
   };
 
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
