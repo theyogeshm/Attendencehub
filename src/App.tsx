@@ -990,17 +990,20 @@ export default function App() {
       .select("*")
       .eq("user_id", user.id)
       .eq("date", dateStr);
+
     if (error) {
 
     } else {
-
       const fetched = data ?? [];
-      // Schema: (user_id, subject, date, status)
-      // Build full subject list; match fetched rows by subject name
-      const entries: LogEntry[] = subjects.map(sub => {
-        const row = fetched.find(r =>
-          (r.subject ?? "").toLowerCase().trim() === sub.name.toLowerCase().trim()
-        );
+      const targetSubjects = getScheduledSubjectsForDate(dateStr);
+
+      const entries: LogEntry[] = targetSubjects.map(sub => {
+        const subKeys = getNormalizedSubjectKeys(sub.name);
+        const row = fetched.find(r => {
+          const rKeys = getNormalizedSubjectKeys(r.subject ?? "");
+          return rKeys.some(rk => subKeys.includes(rk));
+        });
+
         return {
           subjectId:       sub.id,
           subjectName:     sub.name,
@@ -1046,11 +1049,21 @@ export default function App() {
     return h;
   };
 
-  const getTodayScheduledSubjects = (): Subject[] => {
-    const currentDayIndex = new Date().getDay();
+  const getScheduledSubjectsForDate = (dateStr: string): Subject[] => {
+    let targetDayIndex = new Date().getDay();
+    if (dateStr) {
+      const partsDate = dateStr.split("-");
+      if (partsDate.length === 3) {
+        const y = parseInt(partsDate[0], 10);
+        const m = parseInt(partsDate[1], 10) - 1;
+        const d = parseInt(partsDate[2], 10);
+        targetDayIndex = new Date(y, m, d).getDay();
+      }
+    }
+
     const daysMap = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
-    const todayId = daysMap[currentDayIndex];
-    if (todayId === "SUN" || todayId === "SAT") return subjects;
+    const targetDayId = daysMap[targetDayIndex];
+    if (targetDayId === "SUN" || targetDayId === "SAT") return subjects;
 
     const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
       ? profile.section.toUpperCase().trim()
@@ -1058,18 +1071,16 @@ export default function App() {
     const semMatch = profile.semester.match(/(\d+)/);
     const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
 
-    // Only show timetable-based subjects for supported semesters
-    if (semNum !== 3 && semNum !== 5) return [];
+    if (semNum !== 3 && semNum !== 5) return subjects;
 
     const isSem5 = semNum === 5;
     const secData = isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
-    const daySchedule = secData?.timetable[todayId];
-    if (!daySchedule) return [];
+    const daySchedule = secData?.timetable[targetDayId];
+    if (!daySchedule) return subjects;
 
-
-    const todayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
+    const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
     Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
       const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
@@ -1125,7 +1136,7 @@ export default function App() {
         }
 
         if (matched) {
-          todayList.push({
+          dayList.push({
             ...matched,
             rawSubjectId: matched.id,
             time: `${cleanSlot} (${parsed.room || secData.room})`,
@@ -1136,7 +1147,7 @@ export default function App() {
         } else {
           // Construct fallback subject entry so all scheduled classes appear
           const fallbackId = `sub-${parsed.splitSubjectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-          todayList.push({
+          dayList.push({
             id: fallbackId,
             rawSubjectId: fallbackId,
             name: parsed.splitSubjectName,
@@ -1155,10 +1166,14 @@ export default function App() {
       });
     });
 
-    if (todayList.length === 0) return subjects;
+    if (dayList.length === 0) return subjects;
 
-    todayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
-    return todayList;
+    dayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
+    return dayList;
+  };
+
+  const getTodayScheduledSubjects = (): Subject[] => {
+    return getScheduledSubjectsForDate(getTodayDateStr());
   };
 
   // ── Google avatar URL ─────────────────────────────────────────────────────
