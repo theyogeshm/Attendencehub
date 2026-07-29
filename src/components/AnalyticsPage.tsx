@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { Subject } from "../types";
+import { getStandardizedSubjectName, getStandardizedBaseName } from "../data";
 import {
   AlertTriangle,
   ArrowRight,
@@ -19,18 +20,27 @@ interface AnalyticsPageProps {
 export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPageProps) {
   const [simulateCount, setSimulateCount] = useState<number>(2);
 
+  // Clean subject list with standardized names
+  const cleanSubjects = subjects.map(s => ({
+    ...s,
+    name: getStandardizedSubjectName(s.name),
+  }));
+
   // Real per-subject attendance data for the chart
-  const subjectBars = subjects
+  const subjectBars = cleanSubjects
     .filter(s => s.totalClasses > 0)
-    .map(s => ({
-      name: s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name,
-      fullName: s.name,
-      pct: Math.round((s.attendanceCount / s.totalClasses) * 100),
-    }));
+    .map(s => {
+      const displayName = getStandardizedSubjectName(s.name);
+      return {
+        name: displayName.length > 15 ? displayName.slice(0, 14) + "…" : displayName,
+        fullName: displayName,
+        pct: Math.round((s.attendanceCount / s.totalClasses) * 100),
+      };
+    });
 
 
   // Real danger subjects (< 75%) computed from props — exclude subjects with no data
-  const dangerSubjects = subjects.filter((s) => {
+  const dangerSubjects = cleanSubjects.filter((s) => {
     if (s.totalClasses === 0) return false;
     const rate = (s.attendanceCount / s.totalClasses) * 100;
     return rate < 75;
@@ -49,7 +59,7 @@ export default function AnalyticsPage({ subjects, isDarkMode }: AnalyticsPagePro
   };
 
   // What-if simulation per real subject
-  const simulatedSubjects = subjects.map((s) => {
+  const simulatedSubjects = cleanSubjects.map((s) => {
     const currentRate = s.totalClasses > 0 ? (s.attendanceCount / s.totalClasses) * 100 : 0;
     const projectedTotal = s.totalClasses + simulateCount;
     const projectedRate = projectedTotal > 0 ? (s.attendanceCount / projectedTotal) * 100 : 0;

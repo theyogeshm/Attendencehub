@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink, FolderOpen, Loader2, FileText } from "lucide-react";
 import { Subject } from "../types";
+import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
 import type { DbResource } from "../lib/supabase";
 
@@ -105,10 +106,11 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   const navigate = useNavigate();
 
   const rawDecoded = decodeURIComponent(subjectName ?? "");
-  const decodedName = rawDecoded
+  const rawBase = rawDecoded
     .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
     .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
     .trim();
+  const decodedName = getStandardizedBaseName(rawBase);
 
   const subject =
     subjects.find((s) =>

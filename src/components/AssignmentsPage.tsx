@@ -5,6 +5,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Assignment, Subject } from "../types";
+import { getStandardizedBaseName } from "../data";
 import ConfirmDialog from "./ConfirmDialog";
 import { 
   Rocket, 
@@ -151,7 +152,9 @@ export default function AssignmentsPage({
                   {subjects.length === 0 ? (
                     <option value="" disabled>No subjects — set up profile first</option>
                   ) : (
-                    subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)
+                    Array.from(new Set(subjects.map(s => getStandardizedBaseName(s.name)))).map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))
                   )}
                 </select>
               </div>
@@ -278,7 +281,7 @@ export default function AssignmentsPage({
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 pt-3">
                           <div className="flex items-center gap-1.5 text-on-surface-variant">
                             <BookOpen className="w-3.5 h-3.5 text-on-surface-variant" />
-                            <span className="text-xs">{task.subject}</span>
+                            <span className="text-xs">{getStandardizedBaseName(task.subject)}</span>
                           </div>
                           
                           <div className={`flex items-center gap-1.5 font-medium ${

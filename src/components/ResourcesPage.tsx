@@ -10,6 +10,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Subject } from "../types";
+import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
 import { Search, BookOpen, X, ChevronRight } from "lucide-react";
 
@@ -83,10 +84,11 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
   const displaySubjects = Array.from(
     new Map(
       subjects.map((s) => {
-        const baseName = s.name
+        const rawBase = s.name
           .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
           .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
           .trim();
+        const baseName = getStandardizedBaseName(rawBase);
         return [baseName, { ...s, name: baseName }];
       })
     ).values()
