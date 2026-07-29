@@ -636,8 +636,6 @@ export default function App() {
       }
     } else {
       showToast(labels[status]);
-      // Re-sync from Supabase so the mark persists correctly after page refresh
-      fetchTodayAttendance(user, subjects);
     }
   };
 
