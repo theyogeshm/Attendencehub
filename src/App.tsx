@@ -516,23 +516,23 @@ export default function App() {
 
   // ── Attendance handler (5 statuses) ──────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
+    // Resolve the subject — try id, then name, then construct fallback
     let currentSub = subjects.find(s => s.id === subjectId);
     if (!currentSub) {
-      currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+      currentSub = subjects.find(s =>
+        s.name.toLowerCase().trim() === subjectId.toLowerCase().trim()
+      );
     }
+    const subjectName = currentSub
+      ? currentSub.name
+      : subjectId.replace(/^sub-/, "").replace(/-/g, " ");
     if (!currentSub) {
-      // Dynamic fallback subject matching
-      const cleanName = subjectId.replace(/^sub-/, "").replace(/-/g, " ");
-      currentSub = {
-        id: subjectId,
-        name: cleanName,
-        prof: "Faculty",
-        attendanceCount: 0,
-        totalClasses: 0,
-      };
+      currentSub = { id: subjectId, name: subjectName, prof: "Faculty", attendanceCount: 0, totalClasses: 0 };
     }
-    const dateStr = targetDate || new Date().toISOString().split("T")[0];
-    const isMarkingToday = dateStr === new Date().toISOString().split("T")[0];
+
+    const dateStr    = targetDate ?? new Date().toISOString().split("T")[0];
+    const todayStr   = new Date().toISOString().split("T")[0];
+    const isToday    = dateStr === todayStr;
 
     const labels: Record<AttendanceStatus, string> = {
       present: "✅ Present marked",
@@ -542,7 +542,7 @@ export default function App() {
       clear:   "🗑️ Cleared",
     };
 
-    // ── Clear (delete entry) ──────────────────────────────────────────────────
+    // ── Clear ──────────────────────────────────────────────────────────────
     if (status === "clear") {
       if (!user) return;
       const { error: delErr } = await supabase.from("attendance")
@@ -554,35 +554,63 @@ export default function App() {
         showToast("Failed to clear attendance.", "error");
       } else {
         showToast(labels.clear, "success");
-        if (isMarkingToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
+        if (isToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
         loadUserData(user);
       }
       return;
     }
 
-    // ── Instant optimistic highlight (button turns green/red immediately) ───────
-    if (isMarkingToday) {
+    // ── 1. Instant button highlight (runs synchronously before any await) ──
+    if (isToday) {
       setTodayAttendance(prev => ({ ...prev, [subjectId]: status }));
     }
 
-    // ── Save to Supabase ──────────────────────────────────────────────────────
-    if (user) {
-      const { error: attErr } = await supabase.from("attendance").upsert({
-        user_id: user.id,
-        subject: currentSub.name,
-        date:    dateStr,
-        status:  status,
-      }, { onConflict: "user_id,subject,date" });
+    // ── 2. Optimistic count update — match by id OR by subject name ────────
+    const alreadyMarked = isToday && !!todayAttendance[subjectId];
+    if (!alreadyMarked && status !== "leave") {
+      const subNameLower = subjectName.toLowerCase().trim();
+      setSubjects(prev => prev.map(sub => {
+        const byId   = sub.id === subjectId;
+        const byName = sub.name.toLowerCase().trim() === subNameLower;
+        if (!byId && !byName) return sub;
+        return {
+          ...sub,
+          attendanceCount: sub.attendanceCount + (status === "present" ? 1 : 0),
+          totalClasses:    sub.totalClasses + 1,
+        };
+      }));
+    }
 
-      if (attErr) {
-        showToast("Failed to save attendance. Please try again.", "error");
-        // Roll back the optimistic highlight on failure
-        if (isMarkingToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
-      } else {
-        showToast(labels[status]);
-        // Refresh accurate aggregate counts from Supabase (does NOT touch todayAttendance)
-        refreshAttendanceCounts(user);
+    if (!user) {
+      showToast("Please log in to save attendance.", "error");
+      return;
+    }
+
+    // ── 3. Save to Supabase ────────────────────────────────────────────────
+    const { error: attErr } = await supabase.from("attendance").upsert(
+      { user_id: user.id, subject: currentSub.name, date: dateStr, status },
+      { onConflict: "user_id,subject,date" }
+    );
+
+    if (attErr) {
+      showToast("Failed to save attendance. Please try again.", "error");
+      // Roll back optimistic updates
+      if (isToday) setTodayAttendance(prev => { const n = { ...prev }; delete n[subjectId]; return n; });
+      if (!alreadyMarked && status !== "leave") {
+        const subNameLower = subjectName.toLowerCase().trim();
+        setSubjects(prev => prev.map(sub => {
+          const byId   = sub.id === subjectId;
+          const byName = sub.name.toLowerCase().trim() === subNameLower;
+          if (!byId && !byName) return sub;
+          return {
+            ...sub,
+            attendanceCount: sub.attendanceCount - (status === "present" ? 1 : 0),
+            totalClasses:    sub.totalClasses - 1,
+          };
+        }));
       }
+    } else {
+      showToast(labels[status]);
     }
   };
 
