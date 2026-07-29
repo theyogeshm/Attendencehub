@@ -69,10 +69,22 @@ export default function TimetablePage({
 
   // Semester Selection - strictly derived from student's enrolled semester
   const selectedSemester = useMemo(() => {
-    if (userSemester && userSemester.includes("5")) return 5;
-    return subjects.some(s => s.name.includes("Compiler") || s.name.includes("Machine Learning")) ? 5 : 3;
+    // Extract numeric semester from strings like "3rd Semester", "5th Semester", "2", etc.
+    if (userSemester) {
+      const match = userSemester.match(/(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num === 5) return 5;
+        if (num === 3) return 3;
+        return num; // unsupported semester - will show "not available" screen
+      }
+    }
+    // Fallback: detect from subjects
+    if (subjects.some(s => s.name.includes("Compiler") || s.name.includes("Machine Learning"))) return 5;
+    return 3;
   }, [userSemester, subjects]);
 
+  const isSemesterSupported = selectedSemester === 3 || selectedSemester === 5;
   const currentSectionOptions = selectedSemester === 5 ? SECTION_OPTIONS_SEM_5 : SECTION_OPTIONS;
   const currentTimetableData = selectedSemester === 5 ? TIMETABLE_SEM_5_DATA : TIMETABLE_SEM_3_DATA;
 
@@ -387,6 +399,40 @@ export default function TimetablePage({
     navigator.clipboard.writeText(text);
     alert("Timetable copied to clipboard! 📋");
   };
+
+  // Show friendly message for semesters without timetable data
+  if (!isSemesterSupported) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center p-8">
+        <div className="w-24 h-24 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <BookOpen className="w-12 h-12 text-primary/50" />
+        </div>
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-2xl font-black text-on-surface">
+            Timetable Not Available
+          </h2>
+          <p className="text-sm text-on-surface-variant leading-relaxed">
+            We don't have timetable data for{" "}
+            <span className="font-bold text-primary">Semester {selectedSemester}</span> yet.
+            Currently, timetables are available for{" "}
+            <span className="font-bold text-primary">Semester 3</span> and{" "}
+            <span className="font-bold text-primary">Semester 5</span> only.
+          </p>
+          <p className="text-xs text-on-surface-variant/60 mt-2">
+            If your semester information is incorrect, update it from your profile settings.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 mt-4">
+          <div className="px-4 py-2 rounded-full bg-surface-container border border-outline-variant/40 text-xs font-bold text-on-surface-variant">
+            📅 Sem 3 — Available
+          </div>
+          <div className="px-4 py-2 rounded-full bg-surface-container border border-outline-variant/40 text-xs font-bold text-on-surface-variant">
+            📅 Sem 5 — Available
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
