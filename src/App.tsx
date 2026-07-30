@@ -637,7 +637,83 @@ export default function App() {
       clear:   "🗑️ Cleared",
     };
 
-    // ── Clear entry from Supabase ─────────────────────────────────────────────
+    // ── Instant 0ms Local UI Update ─────────────────────────────────────────
+    showToast(labels[status] || "Attendance updated");
+
+    if (isToday) {
+      setTodayAttendance(prev => {
+        const next = { ...prev };
+        const keys = getNormalizedSubjectKeys(targetSubjectName);
+
+        next[subjectId] = status;
+        if (schedMatch) {
+          next[schedMatch.id] = status;
+          if ((schedMatch as any).rawSubjectId) {
+            next[(schedMatch as any).rawSubjectId] = status;
+          }
+        }
+
+        keys.forEach(k => {
+          next[k] = status;
+          next[`sub-${k.replace(/[^a-z0-9]/g, "-")}`] = status;
+        });
+
+        return next;
+      });
+    }
+
+    // Instantly update subjects array count in local state
+    setSubjects(prev => {
+      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+      const updated = prev.map(sub => {
+        const subKeys = getNormalizedSubjectKeys(sub.name);
+        const isMatch = subKeys.some(k => targetKeys.includes(k));
+        if (!isMatch) return sub;
+
+        let newAttended = sub.attendanceCount;
+        let newTotal = sub.totalClasses;
+
+        const prevStatus = todayAttendance[sub.id] || todayAttendance[targetKeys[0]];
+
+        if (status === "clear") {
+          if (prevStatus === "present") {
+            newAttended = Math.max(0, newAttended - 1);
+            newTotal = Math.max(0, newTotal - 1);
+          } else if (prevStatus === "absent" || prevStatus === "miss") {
+            newTotal = Math.max(0, newTotal - 1);
+          }
+        } else if (status === "present") {
+          if (prevStatus === "absent" || prevStatus === "miss") {
+            newAttended += 1;
+          } else if (prevStatus !== "present") {
+            newAttended += 1;
+            newTotal += 1;
+          }
+        } else if (status === "absent" || status === "miss") {
+          if (prevStatus === "present") {
+            newAttended = Math.max(0, newAttended - 1);
+          } else if (prevStatus !== "absent" && prevStatus !== "miss") {
+            newTotal += 1;
+          }
+        } else if (status === "leave") {
+          if (prevStatus === "present") {
+            newAttended = Math.max(0, newAttended - 1);
+            newTotal = Math.max(0, newTotal - 1);
+          } else if (prevStatus === "absent" || prevStatus === "miss") {
+            newTotal = Math.max(0, newTotal - 1);
+          }
+        }
+
+        return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
+      });
+
+      try {
+        localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
+      } catch { /* ignore */ }
+      return updated;
+    });
+
+    // ── Clear entry from Supabase if clear ──────────────────────────────────
     if (status === "clear") {
       if (!user) return;
       const { error: delErr } = await supabase.from("attendance")
@@ -649,28 +725,13 @@ export default function App() {
       if (delErr) {
         showToast("Failed to clear attendance.", "error");
       } else {
-        showToast(labels.clear, "success");
         await fetchTodayAttendance(user, subjects);
         await refreshAttendanceCounts(user);
       }
       return;
     }
 
-    // Optimistic local update for instant UI feedback
-    if (isToday) {
-      setTodayAttendance(prev => {
-        const next = { ...prev, [subjectId]: status };
-        getNormalizedSubjectKeys(targetSubjectName).forEach(k => {
-          next[k] = status;
-        });
-        return next;
-      });
-    }
-
-    if (!user) {
-      showToast("Please log in to save attendance.", "error");
-      return;
-    }
+    if (!user) return;
 
     // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
     try {
@@ -718,7 +779,6 @@ export default function App() {
         showToast("Failed to save attendance. Please try again.", "error");
         await fetchTodayAttendance(user, subjects);
       } else {
-        showToast(labels[status]);
         await fetchTodayAttendance(user, subjects);
         await refreshAttendanceCounts(user);
       }
