@@ -126,9 +126,10 @@ const ADMIN_EMAILS: string[] = (() => {
     .map(e => e.trim())
     .filter(Boolean);
 
-  if (!parsed.includes("yogeshkumarlearner@gmail.com")) {
-    parsed.push("yogeshkumarlearner@gmail.com");
-  }
+  const defaults = ["yogeshkumarlearner@gmail.com", "knowledgespace457@gmail.com"];
+  defaults.forEach(d => {
+    if (!parsed.includes(d)) parsed.push(d);
+  });
   return parsed;
 })();
 
