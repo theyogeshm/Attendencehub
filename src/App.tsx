@@ -625,8 +625,12 @@ export default function App() {
       if (!rawName) continue;
       const keys = getNormalizedSubjectKeys(rawName);
       const s = (row.status ?? "").toLowerCase();
+      const rowHasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(rawName);
 
       keys.forEach(k => {
+        // Skip plain base keys when the row has a type suffix — prevents
+        // "OOD - Theory" attendance polluting the "OOD - Lab" aggregate.
+        if (rowHasTypeSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
         if (!agg[k]) agg[k] = { attendance_count: 0, total_classes: 0 };
         if (s !== "leave") agg[k].total_classes += 1;
         if (s === "present") agg[k].attendance_count += 1;
@@ -1113,20 +1117,35 @@ export default function App() {
       return;
     }
 
+    // Helper: extract the component type (theory/lab/tutorial/null)
+    const getType = (name: string): string | null => {
+      const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
+      if (!m) return null;
+      const t = m[1].toLowerCase();
+      return t === "tut" ? "tutorial" : (t === "lec" ? "theory" : t);
+    };
+
     const map: Record<string, AttendanceStatus> = {};
     if (data) {
       data.forEach(row => {
         const rowSubName = (row.subject ?? "").trim();
         if (!rowSubName || !row.status) return;
+        const rowType = getType(rowSubName);
 
         const keys = getNormalizedSubjectKeys(rowSubName);
         keys.forEach(k => {
+          // Skip plain base-name keys when the row has a type suffix —
+          // prevents "OOD - Theory" status bleeding into Lab card lookups.
+          if (rowType && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
           map[k] = row.status as AttendanceStatus;
         });
 
-        // Also map to any subject IDs in subjectsList or scheduled timetable
+        // Map to subject IDs — only match subjects whose type matches the row's type
         const listToSearch = subjectsList && subjectsList.length > 0 ? subjectsList : subjects;
         listToSearch.forEach(s => {
+          const sType = getType(s.name);
+          // If both have types, they must match (Theory ≠ Lab)
+          if (rowType && sType && rowType !== sType) return;
           const sKeys = getNormalizedSubjectKeys(s.name);
           if (keys.some(k => sKeys.includes(k))) {
             map[s.id] = row.status as AttendanceStatus;
