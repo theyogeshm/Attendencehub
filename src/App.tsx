@@ -1076,13 +1076,16 @@ export default function App() {
     let newSubjectsList: string[] | null = null;
 
     if (isSemesterChanged || isBranchChanged) {
-      const semMatch = editProfile.semester.match(/\d+/);
-      const semNum = semMatch ? parseInt(semMatch[0], 10) : 1;
+      const semNum = parseSemesterNumber(editProfile.semester);
       
       if (editProfile.branch.toLowerCase().includes("computer science") || editProfile.branch.toUpperCase() === "CSE") {
         const cseBranch = dtuData.branches.find((b: any) => b.branch === "CSE");
         const semData = cseBranch?.semesters.find((s: any) => s.sem === semNum);
-        const subNames = semData ? [...semData.subjects] : [];
+        const subNames = (semData && semData.subjects && semData.subjects.length > 0)
+          ? [...semData.subjects]
+          : (DTU_CSE_SUBJECTS[semNum] && DTU_CSE_SUBJECTS[semNum].length > 0)
+          ? [...DTU_CSE_SUBJECTS[semNum]]
+          : [];
 
         if (subNames.length > 0) {
           newSubjectsList = subNames;
