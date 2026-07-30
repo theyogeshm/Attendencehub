@@ -29,15 +29,23 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
           <p className="text-sm text-slate-400 max-w-md">
             The app encountered an unexpected error. Please refresh the page to restore state.
           </p>
+
+          {this.state.error?.message && (
+            <div className="max-w-lg w-full bg-red-950/40 text-red-300 text-xs font-mono p-3 rounded-lg border border-red-500/30 text-left overflow-auto max-h-32">
+              <span className="font-bold block mb-1">Error Details:</span>
+              {this.state.error.message}
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               onClick={() => {
-                localStorage.removeItem("DTU_HUB_SESSION_CACHE");
+                localStorage.clear();
                 window.location.reload();
               }}
               className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20"
             >
-              Reload & Clear Cache
+              Reload & Reset App State
             </button>
           </div>
         </div>
