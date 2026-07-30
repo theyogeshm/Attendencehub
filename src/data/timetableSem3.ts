@@ -379,9 +379,22 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   let faculty = "";
   let room = defaultRoom;
 
+  // A bracket is a "room" if it matches a known room pattern (block code, lab number, etc.)
+  const isRoomBracket = (text: string): boolean => {
+    const t = text.trim();
+    // AB4-xxx, Lab-x, Deptt, digit-only strings (e.g. "204")
+    if (/^AB[0-9][-\s]/i.test(t)) return true;
+    if (/^Lab[-\s]?\d/i.test(t)) return true;
+    if (/^deptt/i.test(t)) return true;
+    if (/^\d+$/.test(t)) return true;
+    // Room patterns like "204", "AB4-204", "CSE Deptt"
+    if (/^[A-Z]{2,3}\d[-\s]\d{3}/i.test(t)) return true;
+    return false;
+  };
+
   if (bracketMatches.length > 0) {
     for (const text of bracketMatches) {
-      if (text.startsWith("AB4") || text.toLowerCase().includes("lab") || text.toLowerCase().includes("deptt")) {
+      if (isRoomBracket(text)) {
         room = text;
       } else if (!faculty) {
         faculty = text;

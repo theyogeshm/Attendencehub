@@ -1250,21 +1250,27 @@ export default function App() {
       let rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
 
       // Check if custom admin timetable entry exists in Supabase
-      const dbMatch = dbTimetableEntries.find(r => 
+      // Use .filter() to capture ALL entries for this slot (handles real multi-group labs)
+      const dbMatches = dbTimetableEntries.filter(r =>
         Number(r.semester) === semNum &&
         isSecMatch(r.section, userSecKey) &&
         isDayMatch(r.day, targetDayId) &&
         isSlotMatch(r.time_slot, cleanSlot)
       );
 
-      if (dbMatch) {
-        const subName = dbMatch.subject_name || dbMatch.subject || "";
-        const code = dbMatch.subject_code || dbMatch.code || "";
-        const prof = dbMatch.teacher_name || dbMatch.faculty || "";
-        const rm = dbMatch.room || secData.room;
-        const grp = dbMatch.group_name || dbMatch.group || "";
-
-        rawText = `${subName}${code ? ' ['+code+']' : ''}${prof ? ' / '+prof : ''}${rm ? ' / '+rm : ''}${grp ? ' / ['+grp+']' : ''}`;
+      if (dbMatches.length > 0) {
+        // Build text using brackets for metadata — avoids false " / " combined-lab detection
+        const buildEntry = (row: any) => {
+          const subName = row.subject_name || row.subject || "";
+          const code    = row.subject_code  || row.code    || "";
+          const prof    = row.teacher_name  || row.faculty  || "";
+          const rm      = row.room || secData.room;
+          const grp     = row.group_name    || row.group    || "";
+          return [subName, code ? `[${code}]` : "", prof ? `[${prof}]` : "", rm ? `[${rm}]` : "", grp ? `[${grp}]` : ""].filter(Boolean).join(" ");
+        };
+        rawText = dbMatches.length === 1
+          ? buildEntry(dbMatches[0])
+          : dbMatches.map(buildEntry).join(" / ");
       }
 
       if (!rawText) return;
@@ -1273,6 +1279,7 @@ export default function App() {
 
       parts.forEach((partText) => {
         const parsed = parseTimetableEntry(partText, secData.room);
+
 
         // Group filter check: if user selected G1, G2, or G3, skip lab/tutorial entries for other groups
         if (selectedLabGroup !== "All" && parsed.group && parsed.group !== selectedLabGroup) {

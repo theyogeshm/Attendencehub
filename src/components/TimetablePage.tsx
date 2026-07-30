@@ -397,24 +397,44 @@ export default function TimetablePage({
     return s1 === s2;
   };
 
+  // Helper to build a properly-formatted raw text string from a single DB row.
+  // Uses bracket notation for metadata so the single entry does NOT contain " / "
+  // (which would falsely trigger "Combined Lab Session" detection in renderSlotContent).
+  const buildDbEntryText = (row: any, fallbackRoom?: string): string => {
+    const subName = row.subject_name || row.subject || "";
+    const code    = row.subject_code  || row.code    || "";
+    const prof    = row.teacher_name  || row.faculty  || "";
+    const rm      = row.room || fallbackRoom || "";
+    const grp     = row.group_name    || row.group    || "";
+    // Use brackets for each metadata piece — parseTimetableEntry already extracts them
+    return [
+      subName,
+      code   ? `[${code}]`   : "",
+      prof   ? `[${prof}]`   : "",
+      rm     ? `[${rm}]`     : "",
+      grp    ? `[${grp}]`    : "",
+    ].filter(Boolean).join(" ");
+  };
+
   // Helper to extract slot raw text format from string/object or Supabase dbTimetableEntries
   const getSlotRawText = (rawVal: any, dayId?: string, timeSlotKey?: string) => {
     if (dbTimetableEntries && dbTimetableEntries.length > 0 && dayId && timeSlotKey) {
       const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
-      const dbMatch = dbTimetableEntries.find(r => 
+      // Use .filter() — a slot can have multiple DB rows (e.g. two lab groups)
+      const dbMatches = dbTimetableEntries.filter(r =>
         Number(r.semester) === selectedSemester &&
         isSecMatch(r.section, selectedSection) &&
         isDayMatch(r.day, dayId) &&
         isSlotMatch(r.time_slot, cleanSlot)
       );
 
-      if (dbMatch) {
-        const subName = dbMatch.subject_name || dbMatch.subject || "";
-        const code = dbMatch.subject_code || dbMatch.code || "";
-        const prof = dbMatch.teacher_name || dbMatch.faculty || "";
-        const rm = dbMatch.room || sectionData?.room || "";
-        const grp = dbMatch.group_name || dbMatch.group || "";
-        return `${subName}${code ? ' ['+code+']' : ''}${prof ? ' / '+prof : ''}${rm ? ' / '+rm : ''}${grp ? ' / ['+grp+']' : ''}`;
+      if (dbMatches.length === 1) {
+        // Single entry: build without " / " so it never triggers isCombinedLab
+        return buildDbEntryText(dbMatches[0], sectionData?.room);
+      }
+      if (dbMatches.length > 1) {
+        // Multiple entries at same slot (real combined lab) — join with " / "
+        return dbMatches.map(r => buildDbEntryText(r, sectionData?.room)).join(" / ");
       }
     }
 
