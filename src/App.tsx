@@ -375,7 +375,8 @@ export default function App() {
       // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
       const userSemNum = parseInt((pData.semester ?? "").match(/(\d+)/)?.[1] || "3", 10);
-      const defaultNames = DTU_CSE_SUBJECTS[userSemNum] || DTU_CSE_SUBJECTS[3] || [];
+      const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
+      const defaultNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
       const rawSubjectNames = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
         ? pData.subjects
         : defaultNames;
@@ -1333,15 +1334,16 @@ export default function App() {
     const semMatch = profile.semester.match(/(\d+)/);
     const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
 
-    if (semNum !== 3 && semNum !== 5) return subjects;
-
     const isSem5 = semNum === 5;
+    const isSem3 = semNum === 3;
     const secData = isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
-    const daySchedule = secData?.timetable[targetDayId] || {};
+    const daySchedule = (isSem3 || isSem5) ? (secData?.timetable[targetDayId] || {}) : {};
 
     const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
+
+    if (isSem3 || isSem5) {
 
     Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
       const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
@@ -1459,9 +1461,9 @@ export default function App() {
             totalClasses: 0,
             timeOrder,
           });
-        }
       });
     });
+    }
 
     // Also include any custom DB timetable entries for this day that weren't in static schedule
     const customDbForDay = dbTimetableEntries.filter(r =>
@@ -1515,7 +1517,7 @@ export default function App() {
       }
     });
 
-    if (dayList.length === 0) return subjects;
+    if (dayList.length === 0) return [];
 
     // ── Final deduplication: remove any plain-name card if a typed card (Theory/Lab) exists for the same base subject + time ──
     const dedupedList = dayList.filter((item, idx) => {
