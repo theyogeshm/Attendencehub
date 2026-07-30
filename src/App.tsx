@@ -1342,12 +1342,22 @@ export default function App() {
         }
 
         if (matched) {
+          // Always show the component-qualified name (Theory/Lab) so there are no ambiguous plain cards
+          const displayType = parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC");
+          const matchedNameLower = matched.name.toLowerCase();
+          const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(matched.name);
+          let displayName = matched.name;
+          if (!hasTypeSuffix && parsed.splitSubjectName) {
+            // Prefer the timetable-derived name that has the Theory/Lab suffix
+            displayName = parsed.splitSubjectName;
+          }
           dayList.push({
             ...matched,
+            name: displayName,
             rawSubjectId: matched.id,
             time: `${cleanSlot} (${parsed.room || secData.room})`,
             prof: parsed.faculty || matched.prof,
-            type: parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC"),
+            type: displayType,
             timeOrder,
           });
         } else {
@@ -1381,7 +1391,11 @@ export default function App() {
 
     customDbForDay.forEach(r => {
       const cleanSlot = (r.time_slot || "").trim();
-      const existsInDayList = dayList.some(item => isSlotMatch(item.time, cleanSlot));
+      // Strip the room suffix from item.time (e.g. "11-12 (AB4-204)" → "11-12") before comparing
+      const existsInDayList = dayList.some(item => {
+        const slotOnly = (item.time || "").split(/\s*\(/)[0].trim();
+        return isSlotMatch(slotOnly, cleanSlot) || isSlotMatch(item.time, cleanSlot);
+      });
       if (!existsInDayList && cleanSlot) {
         const timeOrder = getTimeOrder(cleanSlot);
         const subName = r.subject_name || r.subject || "";
@@ -1422,8 +1436,26 @@ export default function App() {
 
     if (dayList.length === 0) return subjects;
 
-    dayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
-    return dayList;
+    // ── Final deduplication: remove any plain-name card if a typed card (Theory/Lab) exists for the same base subject + time ──
+    const dedupedList = dayList.filter((item, idx) => {
+      const itemHasType = /\s*-\s*(theory|lab|tutorial|tut)$/i.test(item.name);
+      if (itemHasType) return true; // always keep typed cards
+      const itemBaseName = item.name.toLowerCase().replace(/\s*-\s*(theory|lab|tutorial|tut)$/i, "").trim();
+      const itemSlotOnly = (item.time || "").split(/\s*\(/)[0].trim();
+      // Check if there's ANOTHER card for the same base name + same slot with a type suffix
+      const hasTypedSibling = dayList.some((other, oIdx) => {
+        if (oIdx === idx) return false;
+        const otherHasType = /\s*-\s*(theory|lab|tutorial|tut)$/i.test(other.name);
+        if (!otherHasType) return false;
+        const otherBaseName = other.name.toLowerCase().replace(/\s*-\s*(theory|lab|tutorial|tut)$/i, "").trim();
+        const otherSlotOnly = (other.time || "").split(/\s*\(/)[0].trim();
+        return itemBaseName === otherBaseName && itemSlotOnly === otherSlotOnly;
+      });
+      return !hasTypedSibling; // drop plain card if typed sibling exists for same slot
+    });
+
+    dedupedList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
+    return dedupedList;
   };
 
   const getTodayScheduledSubjects = (): Subject[] => {
