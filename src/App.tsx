@@ -386,16 +386,27 @@ export default function App() {
 
       let rawSubjectNames: string[];
       if (storedSubjects.length > 0) {
-        // Collect all subject names from OTHER semesters
+        // Collect all subject names from OTHER semesters (both raw and base names)
         const otherSemSubjects = new Set<string>(); 
         Object.entries(DTU_CSE_SUBJECTS).forEach(([semKey, semSubs]) => {
           if (Number(semKey) !== userSemNum) {
-            semSubs.forEach(s => otherSemSubjects.add(s.toLowerCase().trim()));
+            semSubs.forEach(s => {
+              const lower = s.toLowerCase().trim();
+              const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
+              otherSemSubjects.add(lower);
+              otherSemSubjects.add(baseLower);
+            });
           }
         });
 
-        // Current semester's known subjects
-        const currentSemSubjects = new Set((DTU_CSE_SUBJECTS[userSemNum] || []).map(s => s.toLowerCase().trim()));
+        // Current semester's known subjects (both raw and base names)
+        const currentSemSubjects = new Set<string>();
+        (DTU_CSE_SUBJECTS[userSemNum] || []).forEach(s => {
+          const lower = s.toLowerCase().trim();
+          const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
+          currentSemSubjects.add(lower);
+          currentSemSubjects.add(baseLower);
+        });
 
         // Keep item if it belongs to current semester, OR if it's not a known subject from another semester
         const validSubjects = storedSubjects.filter(name => {
@@ -403,13 +414,16 @@ export default function App() {
           const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
           if (currentSemSubjects.has(lower) || currentSemSubjects.has(baseLower)) return true;
           // If it matches another semester's known subject, filter it out as alien/stale
-          const isAlien = Array.from(otherSemSubjects).some(other => other === lower || other === baseLower);
+          const isAlien = otherSemSubjects.has(lower) || otherSemSubjects.has(baseLower);
           return !isAlien;
         });
 
-        // If alien subjects were filtered out, sync clean list back to Supabase
-        if (validSubjects.length !== storedSubjects.length) {
-          const merged = Array.from(new Set([...validSubjects, ...defaultNames]));
+        // If alien subjects were filtered out or if Sem 2 user profile needs reset to exact subjects
+        const isSem2 = userSemNum === 2;
+        const sem2NeedsReset = isSem2 && (validSubjects.length !== defaultNames.length || !defaultNames.every(d => storedSubjects.includes(d)));
+
+        if (validSubjects.length !== storedSubjects.length || sem2NeedsReset) {
+          const merged = isSem2 ? defaultNames : Array.from(new Set([...validSubjects, ...defaultNames]));
           supabase.from("profiles").update({ subjects: merged }).eq("id", u.id).then(() => {});
           rawSubjectNames = merged;
         } else {
