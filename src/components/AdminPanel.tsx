@@ -698,23 +698,61 @@ interface TimetableRow {
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const TYPES = ["Theory Lecture", "Lab Session", "Tutorial"] as const;
+const PRESET_SECTIONS = ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10"];
+const PRESET_SLOTS = ["8-9", "9-10", "10-11", "10-12", "11-12", "12-1", "1-2", "2-3", "2-4", "3-4", "4-5"];
+const PRESET_CODES = [
+  "CS201", "CS203", "CS205", "CS207", "CS209",
+  "CS301", "CS303", "CS305", "CS309", "CS311", "CS313", "CS315",
+  "DA201", "DA203", "DA205", "DA207", "DA209", "HU301"
+];
+
+const KNOWN_SUBJECT_MAP: Record<string, string> = {
+  "Digital Logic Design": "CS201",
+  "Object Oriented Design": "CS203",
+  "Design & Analysis of Algorithm": "CS205",
+  "Operating System Design": "CS207",
+  "Software Engineering": "CS209",
+  "Compiler Design": "CS301",
+  "Machine Learning": "CS303",
+  "Information and Network Security": "CS305",
+  "Distributed Systems": "CS309",
+  "Information Theory and Coding": "CS311",
+  "Quantum Computing": "CS313",
+  "Advance Data Structure": "CS315",
+  "Foundation to Data Science": "DA203",
+  "Linear Algebra": "DA205",
+  "Computer Organization & OS Design": "DA209",
+  "Humanities Elective": "HU301",
+};
 
 function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
   const { toast, show } = useToast();
 
   // Form Fields State
-  const [semester,     setSemester]     = useState<number>(3);
-  const [section,      setSection]      = useState<string>("A3");
-  const [day,          setDay]          = useState<string>("Monday");
-  const [timeSlot,     setTimeSlot]     = useState<string>("9-10");
-  const [subjectName,  setSubjectName]  = useState<string>("");
-  const [subjectCode,  setSubjectCode]  = useState<string>("");
-  const [type,         setType]         = useState<string>("Theory Lecture");
-  const [teacherName,  setTeacherName]  = useState<string>("");
-  const [room,         setRoom]         = useState<string>("");
-  const [group,        setGroup]        = useState<string>("");
+  const [semester,       setSemester]       = useState<number>(3);
+  const [sectionSelect,  setSectionSelect]  = useState<string>("A3");
+  const [customSection,  setCustomSection]  = useState<string>("");
+  const [day,            setDay]            = useState<string>("Monday");
+  const [slotSelect,     setSlotSelect]     = useState<string>("9-10");
+  const [customSlot,     setCustomSlot]     = useState<string>("");
+
+  const [subjectSelect,  setSubjectSelect]  = useState<string>("");
+  const [customSubject,  setCustomSubject]  = useState<string>("");
+
+  const [codeSelect,     setCodeSelect]     = useState<string>("");
+  const [customCode,     setCustomCode]     = useState<string>("");
+
+  const [type,           setType]           = useState<string>("Theory Lecture");
+  const [teacherName,    setTeacherName]    = useState<string>("");
+  const [room,           setRoom]           = useState<string>("");
+  const [group,          setGroup]          = useState<string>("");
 
   const [saving, setSaving] = useState(false);
+
+  // Database lists for populating options
+  const [dbSubjects, setDbSubjects] = useState<string[]>([]);
+  const [dbCodes,    setDbCodes]    = useState<string[]>([]);
+  const [dbSections, setDbSections] = useState<string[]>([]);
 
   // Table Filter State
   const [filterSem, setFilterSem] = useState<number | "All">(3);
@@ -724,6 +762,43 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [entries,    setEntries]    = useState<TimetableRow[]>([]);
   const [loading,    setLoading]    = useState<boolean>(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Load fed subject list from database
+  useEffect(() => {
+    async function loadDbMasterData() {
+      const { data: subData } = await supabase.from("subject_list").select("name, sem");
+      if (subData) {
+        const names = subData.map((r: any) => r.name).filter(Boolean);
+        setDbSubjects(Array.from(new Set(names)));
+      }
+      const { data: ttData } = await supabase.from("timetable").select("section, subject_name, subject_code");
+      if (ttData) {
+        const secs = ttData.map((r: any) => r.section).filter(Boolean);
+        const subs = ttData.map((r: any) => r.subject_name).filter(Boolean);
+        const codes = ttData.map((r: any) => r.subject_code).filter(Boolean);
+        setDbSections(Array.from(new Set(secs)));
+        setDbSubjects(prev => Array.from(new Set([...prev, ...subs])));
+        setDbCodes(Array.from(new Set(codes)));
+      }
+    }
+    loadDbMasterData();
+  }, []);
+
+  // Compute available sections list
+  const availableSections = Array.from(new Set([...PRESET_SECTIONS, ...dbSections])).sort();
+
+  // Compute available subjects list for selected semester
+  const availableSubjects = (() => {
+    const fromJson = dtuData?.branches?.[0]?.semesters?.find((s: any) => s.sem === semester)?.subjects || [];
+    const fromMap = Object.keys(KNOWN_SUBJECT_MAP);
+    const combined = [...fromJson, ...dbSubjects, ...fromMap];
+    // Clean up subject names (remove - Theory / - Lab for clean selection)
+    const cleaned = combined.map(s => s.replace(/ - (Theory|Lab|Tutorial)$/i, "").trim());
+    return Array.from(new Set(cleaned)).filter(Boolean).sort();
+  })();
+
+  // Compute available codes list
+  const availableCodes = Array.from(new Set([...PRESET_CODES, ...dbCodes, ...Object.values(KNOWN_SUBJECT_MAP)])).filter(Boolean).sort();
 
   const fetchTimetable = useCallback(async () => {
     setLoading(true);
@@ -764,37 +839,52 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
     fetchTimetable();
   }, [fetchTimetable]);
 
+  // Handle subject selection -> auto fill subject code
+  const handleSelectSubject = (selectedName: string) => {
+    setSubjectSelect(selectedName);
+    if (selectedName === "__CUSTOM__") {
+      return;
+    }
+    const cleanName = selectedName.replace(/ - (Theory|Lab|Tutorial)$/i, "").trim();
+    if (KNOWN_SUBJECT_MAP[cleanName]) {
+      setCodeSelect(KNOWN_SUBJECT_MAP[cleanName]);
+      setCustomCode("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subjectName.trim()) {
-      show("Please enter a subject name.", false);
+
+    const finalSection = (sectionSelect === "__CUSTOM__" ? customSection : sectionSelect).trim().toUpperCase();
+    const finalSlot = (slotSelect === "__CUSTOM__" ? customSlot : slotSelect).trim();
+    const finalSubject = (subjectSelect === "__CUSTOM__" ? customSubject : subjectSelect).trim();
+    const finalCode = (codeSelect === "__CUSTOM__" ? customCode : codeSelect).trim();
+
+    if (!finalSubject) {
+      show("Please select or enter a subject name.", false);
       return;
     }
-    if (!timeSlot.trim()) {
-      show("Please enter a time slot (e.g. 9-10).", false);
+    if (!finalSlot) {
+      show("Please select or enter a time slot.", false);
       return;
     }
-    if (!section.trim()) {
-      show("Please enter a section (e.g. A3).", false);
+    if (!finalSection) {
+      show("Please select or enter a section.", false);
       return;
     }
 
     setSaving(true);
-    const secClean = section.trim().toUpperCase();
-    const slotClean = timeSlot.trim();
-    const subClean = subjectName.trim();
-    const codeClean = subjectCode.trim() || null;
     const teacherClean = teacherName.trim() || null;
     const roomClean = room.trim() || null;
     const groupClean = group.trim() || null;
 
     const payload = {
       semester,
-      section: secClean,
+      section: finalSection,
       day,
-      time_slot: slotClean,
-      subject_name: subClean,
-      subject_code: codeClean,
+      time_slot: finalSlot,
+      subject_name: finalSubject,
+      subject_code: finalCode || null,
       type,
       teacher_name: teacherClean,
       faculty: teacherClean,
@@ -808,26 +898,23 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       .from("timetable")
       .select("id")
       .eq("semester", semester)
-      .eq("section", secClean)
+      .eq("section", finalSection)
       .eq("day", day)
-      .eq("time_slot", slotClean);
+      .eq("time_slot", finalSlot);
 
     let err = null;
     if (existing && existing.length > 0) {
-      // Overwrite existing record
       const { error: updateErr } = await supabase
         .from("timetable")
         .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", existing[0].id);
       err = updateErr;
     } else {
-      // Upsert with onConflict on (semester, section, day, time_slot)
       const { error: upsertErr } = await supabase
         .from("timetable")
         .upsert(payload, { onConflict: "semester,section,day,time_slot" });
 
       if (upsertErr) {
-        // Fallback insert if onConflict failover
         const { error: insertErr } = await supabase
           .from("timetable")
           .insert(payload);
@@ -842,9 +929,11 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
     if (err) {
       show("Save failed: " + err.message, false);
     } else {
-      show(`Saved entry: Sem ${semester} ${secClean} - ${day} ${slotClean} (${subClean}) ✓`);
-      setSubjectName("");
-      setSubjectCode("");
+      show(`Saved entry: Sem ${semester} ${finalSection} - ${day} ${finalSlot} (${finalSubject}) ✓`);
+      setSubjectSelect("");
+      setCustomSubject("");
+      setCodeSelect("");
+      setCustomCode("");
       setTeacherName("");
       setRoom("");
       setGroup("");
@@ -904,6 +993,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Semester */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester *</label>
               <select value={semester} onChange={e => setSemester(Number(e.target.value))} className={SEL}>
@@ -913,17 +1003,27 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
               </select>
             </div>
 
+            {/* Section (Dropdown + Custom) */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Section *</label>
-              <input
-                type="text"
-                value={section}
-                onChange={e => setSection(e.target.value)}
-                placeholder="e.g. A1, A3, B1"
-                className={INP}
-              />
+              <select value={sectionSelect} onChange={e => setSectionSelect(e.target.value)} className={SEL}>
+                {availableSections.map(s => (
+                  <option key={s} value={s}>Section {s}</option>
+                ))}
+                <option value="__CUSTOM__">+ Other (Type Custom Section...)</option>
+              </select>
+              {sectionSelect === "__CUSTOM__" && (
+                <input
+                  type="text"
+                  value={customSection}
+                  onChange={e => setCustomSection(e.target.value)}
+                  placeholder="e.g. C1 or ECE-1"
+                  className={`${INP} mt-2`}
+                />
+              )}
             </div>
 
+            {/* Day */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Day *</label>
               <select value={day} onChange={e => setDay(e.target.value)} className={SEL}>
@@ -933,39 +1033,69 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
               </select>
             </div>
 
+            {/* Time Slot (Dropdown + Custom) */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Time Slot *</label>
-              <input
-                type="text"
-                value={timeSlot}
-                onChange={e => setTimeSlot(e.target.value)}
-                placeholder="e.g. 9-10, 10-12, 2-4"
-                className={INP}
-              />
+              <select value={slotSelect} onChange={e => setSlotSelect(e.target.value)} className={SEL}>
+                {PRESET_SLOTS.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+                <option value="__CUSTOM__">+ Other (Type Custom Slot...)</option>
+              </select>
+              {slotSelect === "__CUSTOM__" && (
+                <input
+                  type="text"
+                  value={customSlot}
+                  onChange={e => setCustomSlot(e.target.value)}
+                  placeholder="e.g. 9:30-10:30"
+                  className={`${INP} mt-2`}
+                />
+              )}
             </div>
 
+            {/* Subject Name (Dropdown + Custom) */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Name *</label>
-              <input
-                type="text"
-                value={subjectName}
-                onChange={e => setSubjectName(e.target.value)}
-                placeholder="e.g. Digital Logic Design"
-                className={INP}
-              />
+              <select value={subjectSelect} onChange={e => handleSelectSubject(e.target.value)} className={SEL}>
+                <option value="">— Select Subject —</option>
+                {availableSubjects.map(sub => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+                <option value="__CUSTOM__">+ Other (Type Custom Subject...)</option>
+              </select>
+              {subjectSelect === "__CUSTOM__" && (
+                <input
+                  type="text"
+                  value={customSubject}
+                  onChange={e => setCustomSubject(e.target.value)}
+                  placeholder="Type custom subject name..."
+                  className={`${INP} mt-2`}
+                />
+              )}
             </div>
 
+            {/* Subject Code (Dropdown + Custom) */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Code</label>
-              <input
-                type="text"
-                value={subjectCode}
-                onChange={e => setSubjectCode(e.target.value)}
-                placeholder="e.g. CS207"
-                className={INP}
-              />
+              <select value={codeSelect} onChange={e => setCodeSelect(e.target.value)} className={SEL}>
+                <option value="">— Select Subject Code —</option>
+                {availableCodes.map(code => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+                <option value="__CUSTOM__">+ Other (Type Custom Code...)</option>
+              </select>
+              {codeSelect === "__CUSTOM__" && (
+                <input
+                  type="text"
+                  value={customCode}
+                  onChange={e => setCustomCode(e.target.value)}
+                  placeholder="e.g. CS207"
+                  className={`${INP} mt-2`}
+                />
+              )}
             </div>
 
+            {/* Type */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Type *</label>
               <select value={type} onChange={e => setType(e.target.value)} className={SEL}>
@@ -975,6 +1105,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
               </select>
             </div>
 
+            {/* Teacher Name */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Teacher Name</label>
               <input
@@ -986,6 +1117,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
               />
             </div>
 
+            {/* Room */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Room</label>
               <input
@@ -997,6 +1129,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
               />
             </div>
 
+            {/* Group */}
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Group (Optional)</label>
               <input
