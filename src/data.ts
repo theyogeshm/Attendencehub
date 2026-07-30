@@ -63,7 +63,6 @@ export const getStandardizedSubjectName = (name: string): string => {
   if (!name) return "";
   const isLab = name.toLowerCase().includes("lab");
   const isTut = name.toLowerCase().includes("tutorial") || name.toLowerCase().includes("tut");
-  const isTheory = name.toLowerCase().includes("theory");
 
   const rawBase = name
     .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
@@ -71,12 +70,9 @@ export const getStandardizedSubjectName = (name: string): string => {
     .trim();
   const base = getStandardizedBaseName(rawBase);
 
-  if (base === "Software Engineering") return "Software Engineering - Theory";
-
   if (isLab) return `${base} - Lab`;
   if (isTut) return `${base} - Tutorial`;
-  if (isTheory) return `${base} - Theory`;
-  return base;
+  return `${base} - Theory`;
 };
 
 // ── Helper: convert a list of subject name strings into Subject objects ───────

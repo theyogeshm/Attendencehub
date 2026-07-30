@@ -403,18 +403,32 @@ export default function App() {
       const baseSubjects = subjectNamestoSubjects(expandedSubjectsList);
 
       const agg = buildAttendanceAggregates(attData || []);
+      const getType = (name: string): string | null => {
+        const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
+        if (!m) return null;
+        const t = m[1].toLowerCase();
+        return t === "tut" ? "tutorial" : (t === "lec" ? "theory" : t);
+      };
+
       const merged = baseSubjects.map(sub => {
-        const keys = getNormalizedSubjectKeys(sub.name);
-        let saved: { attendance_count: number; total_classes: number } | undefined = undefined;
-        for (const k of keys) {
-          if (agg[k]) {
-            saved = agg[k];
-            break;
-          }
+        const subNameLower = sub.name.toLowerCase();
+        const subType = getType(sub.name);
+
+        if (agg[subNameLower]) {
+          return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
         }
-        return saved
-          ? { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes }
-          : { ...sub, attendanceCount: 0, totalClasses: 0 };
+
+        const keys = getNormalizedSubjectKeys(sub.name);
+        for (const k of keys) {
+          if (!agg[k]) continue;
+          if (subType) {
+            const keyType = getType(k);
+            if (keyType && keyType !== subType) continue;
+            if (!keyType) continue;
+          }
+          return { ...sub, attendanceCount: agg[k].attendance_count, totalClasses: agg[k].total_classes };
+        }
+        return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
       setSubjects(merged);
       resolvedSubjects = merged;
@@ -620,22 +634,44 @@ export default function App() {
     const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
     if (!attData || attData.length === 0) return agg;
 
+    // Deduplicate entries per (date, standardized_subject) to prevent multi-click or legacy duplicates on same date
+    const seenByDateAndSub = new Map<string, { subject: string; status: string }>();
+
     for (const row of attData) {
       const rawName = (row.subject ?? "").trim();
       if (!rawName) continue;
-      const keys = getNormalizedSubjectKeys(rawName);
-      const s = (row.status ?? "").toLowerCase();
-      const rowHasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(rawName);
+      const stdName = getStandardizedSubjectName(rawName);
+      const dateKey = row.date ? `${row.date}::${stdName.toLowerCase()}` : null;
+
+      if (dateKey) {
+        seenByDateAndSub.set(dateKey, { subject: stdName, status: row.status });
+      } else {
+        const stdNameLower = stdName.toLowerCase();
+        if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
+        const s = (row.status ?? "").toLowerCase();
+        if (s !== "leave") agg[stdNameLower].total_classes += 1;
+        if (s === "present") agg[stdNameLower].attendance_count += 1;
+      }
+    }
+
+    seenByDateAndSub.forEach(({ subject, status }) => {
+      const stdNameLower = subject.toLowerCase();
+      const keys = getNormalizedSubjectKeys(subject);
+      const s = (status ?? "").toLowerCase();
+
+      if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
+      if (s !== "leave") agg[stdNameLower].total_classes += 1;
+      if (s === "present") agg[stdNameLower].attendance_count += 1;
 
       keys.forEach(k => {
-        // Skip plain base keys when the row has a type suffix — prevents
-        // "OOD - Theory" attendance polluting the "OOD - Lab" aggregate.
-        if (rowHasTypeSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
+        if (k === stdNameLower) return;
+        const kHasType = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k);
+        if (!kHasType) return; // skip untyped keys for typed subject
         if (!agg[k]) agg[k] = { attendance_count: 0, total_classes: 0 };
         if (s !== "leave") agg[k].total_classes += 1;
         if (s === "present") agg[k].attendance_count += 1;
       });
-    }
+    });
 
     return agg;
   };
@@ -726,14 +762,26 @@ export default function App() {
       const targetType = getComponentType(targetSubjectName);
 
       const updated = prev.map(sub => {
-        const subKeys = getNormalizedSubjectKeys(sub.name);
-        const isMatch = subKeys.some(k => targetKeys.includes(k));
-        if (!isMatch) return sub;
+        // ── PRIMARY: exact ID match (most precise, no name ambiguity) ──────────
+        const isIdMatch =
+          sub.id === subjectId ||
+          (schedMatch && sub.id === schedMatch.id) ||
+          (schedMatch && (schedMatch as any).rawSubjectId === sub.id);
 
-        // ── TYPE GUARD: don't let "- Theory" update "- Lab" and vice versa ──
-        if (targetType) {
-          const subType = getComponentType(sub.name);
-          if (subType && subType !== targetType) return sub;
+        if (!isIdMatch) {
+          // ── SECONDARY: name-based match with STRICT type guard ──────────────
+          const subKeys = getNormalizedSubjectKeys(sub.name);
+          const isNameMatch = subKeys.some(k => targetKeys.includes(k));
+          if (!isNameMatch) return sub;
+
+          // When target has a type (Theory/Lab/Tutorial), the sub MUST have the
+          // SAME type.  Plain-named subjects (subType=null) are intentionally
+          // excluded — they are a different enrollment row and should not
+          // inherit this mark.
+          if (targetType) {
+            const subType = getComponentType(sub.name);
+            if (!subType || subType !== targetType) return sub;
+          }
         }
 
         let newAttended = sub.attendanceCount;
@@ -1072,33 +1120,40 @@ export default function App() {
     if (!u) return;
     const { data: attData } = await supabase
       .from("attendance")
-      .select("subject, status")
+      .select("subject, status, date")
       .eq("user_id", u.id);
     if (!attData) return;
 
-    const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
-    for (const row of attData) {
-      const key = (row.subject ?? "").trim();
-      if (!key) continue;
-      const keys = getNormalizedSubjectKeys(key);
-      const mainKey = keys[0] || key.toLowerCase();
-      if (!agg[mainKey]) agg[mainKey] = { attendance_count: 0, total_classes: 0 };
-      const s = (row.status ?? "").toLowerCase();
-      if (s !== "leave") agg[mainKey].total_classes += 1;
-      if (s === "present") agg[mainKey].attendance_count += 1;
-    }
+    const agg = buildAttendanceAggregates(attData);
+
+    const getType = (name: string): string | null => {
+      const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
+      if (!m) return null;
+      const t = m[1].toLowerCase();
+      return t === "tut" ? "tutorial" : (t === "lec" ? "theory" : t);
+    };
 
     setSubjects(prev => prev.map(sub => {
-      const keys = getNormalizedSubjectKeys(sub.name);
-      let saved: { attendance_count: number; total_classes: number } | undefined = undefined;
-      for (const k of keys) {
-        if (agg[k]) {
-          saved = agg[k];
-          break;
-        }
+      const subNameLower = sub.name.toLowerCase();
+      const subType = getType(sub.name);
+
+      // 1. Exact name match first
+      if (agg[subNameLower]) {
+        return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
       }
-      if (!saved) return sub;
-      return { ...sub, attendanceCount: saved.attendance_count, totalClasses: saved.total_classes };
+
+      // 2. Alias match — only if the DB key has the same type as this subject
+      const keys = getNormalizedSubjectKeys(sub.name);
+      for (const k of keys) {
+        if (!agg[k]) continue;
+        if (subType) {
+          const keyType = getType(k);
+          if (keyType && keyType !== subType) continue;
+          if (!keyType) continue; // skip plain base-name keys for typed subjects
+        }
+        return { ...sub, attendanceCount: agg[k].attendance_count, totalClasses: agg[k].total_classes };
+      }
+      return sub;
     }));
   };
 
