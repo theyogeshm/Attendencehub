@@ -171,8 +171,27 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchDbTimetableEntries();
+
+    // Real-time subscription: auto-refresh timetable whenever admin makes changes
+    const channel = supabase
+      .channel("timetable-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "timetable" },
+        () => {
+          // Re-fetch all entries whenever any row changes
+          fetchDbTimetableEntries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
 
   // ── Feedback form ─────────────────────────────────────────────────────────
   const [feedbackText, setFeedbackText] = useState("");

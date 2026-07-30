@@ -260,6 +260,7 @@ export default function TimetablePage({
   onSelectLabGroup,
   onMarkAttendance,
   onUpdateSubjectHours,
+  dbTimetableEntries = [],
 }: TimetablePageProps) {
   const [internalLabGroup, setInternalLabGroup] = useState<"All" | "G1" | "G2" | "G3">("All");
   const selectedLabGroup = propSelectedLabGroup ?? internalLabGroup;
