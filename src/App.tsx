@@ -147,8 +147,20 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
 
+  // ── Database Timetable entries from Supabase ──────────────────────────────
+  const [dbTimetableEntries, setDbTimetableEntries] = useState<any[]>([]);
+
+  const fetchDbTimetableEntries = useCallback(async () => {
+    const { data } = await supabase.from("timetable").select("*");
+    if (data) setDbTimetableEntries(data);
+  }, []);
+
+  useEffect(() => {
+    fetchDbTimetableEntries();
+  }, [fetchDbTimetableEntries]);
+
   // ── Selected Lab Group (G1 / G2 / G3 / All) ──────────────────────────────
-  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">(() => {
+  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">((): any => {
     return (localStorage.getItem("dtu_selected_lab_group") as any) || "All";
   });
 
@@ -1260,6 +1272,87 @@ export default function App() {
         }
       });
     });
+
+    if (dayList.length === 0 && (!dbTimetableEntries || dbTimetableEntries.length === 0)) return subjects;
+
+    // ── Overlay real-time database entries from Supabase timetable table ────
+    const dayNameMap: Record<string, string[]> = {
+      "MON": ["monday", "mon"],
+      "TUE": ["tuesday", "tue"],
+      "WED": ["wednesday", "wed"],
+      "THUR": ["thursday", "thu", "thur"],
+      "FRI": ["friday", "fri"],
+      "SAT": ["saturday", "sat"],
+    };
+    const targetDayAliases = dayNameMap[targetDayId] || [targetDayId.toLowerCase()];
+
+    const dbMatches = dbTimetableEntries.filter((r: any) => {
+      const rSem = Number(r.semester);
+      const rSec = (r.section || "").toUpperCase().trim();
+      const rDay = (r.day || "").toLowerCase().trim();
+
+      const semOk = rSem === semNum || semNum === 0;
+      const secOk = rSec === userSecKey || rSec === profile.section.toUpperCase().trim() || rSec === `SECTION ${userSecKey}` || userSecKey.includes(rSec);
+      const dayOk = targetDayAliases.includes(rDay);
+
+      return semOk && secOk && dayOk;
+    });
+
+    if (dbMatches.length > 0) {
+      dbMatches.forEach((r: any) => {
+        const cleanSlot = (r.time_slot || "").trim();
+        const timeOrder = getTimeOrder(cleanSlot);
+        const subName = (r.subject_name || "").trim();
+        if (!subName) return;
+
+        const isLab = (r.type || "").toLowerCase().includes("lab");
+        const isTut = (r.type || "").toLowerCase().includes("tut");
+
+        if (selectedLabGroup !== "All" && r.group_name && r.group_name !== selectedLabGroup) {
+          return;
+        }
+
+        let matched = subjects.find(s => s.name.toLowerCase().trim() === subName.toLowerCase().trim());
+        if (!matched) {
+          const normKeys = getNormalizedSubjectKeys(subName);
+          matched = subjects.find(s => getNormalizedSubjectKeys(s.name).some(k => normKeys.includes(k)));
+        }
+
+        const fallbackId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+        const itemObj = matched ? {
+          ...matched,
+          rawSubjectId: matched.id,
+          time: `${cleanSlot} (${r.room || secData?.room || "AB4"})`,
+          prof: r.teacher_name || r.faculty || matched.prof,
+          type: isLab ? "LAB" : (isTut ? "TUT" : "LEC"),
+          timeOrder,
+        } : {
+          id: fallbackId,
+          rawSubjectId: fallbackId,
+          name: subName,
+          code: r.subject_code || "CS200",
+          prof: r.teacher_name || r.faculty || "Faculty",
+          room: r.room || secData?.room || "AB4",
+          category: "Core",
+          description: subName,
+          time: `${cleanSlot} (${r.room || secData?.room || "AB4"})`,
+          type: isLab ? "LAB" : (isTut ? "TUT" : "LEC"),
+          attendanceCount: 0,
+          totalClasses: 0,
+          requiredPercentage: 75,
+          timeOrder,
+        };
+
+        const existingIdx = dayList.findIndex(item => item.time?.split(" ")[0] === cleanSlot);
+        if (existingIdx >= 0) {
+          dayList[existingIdx] = itemObj as any;
+        } else {
+          dayList.push(itemObj as any);
+        }
+      });
+
+      dayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
+    }
 
     if (dayList.length === 0) return subjects;
 

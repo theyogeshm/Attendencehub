@@ -348,8 +348,59 @@ export default function TimetablePage({
     localStorage.setItem(`dtu_timetable_section_sem${selectedSemester}`, selectedSection);
   }, [selectedSection, selectedSemester]);
 
-  const sectionData = (currentTimetableData.sections as any)[selectedSection] || (currentTimetableData.sections as any)["A1"];
+  // Fetch real-time timetable entries from Supabase database created by Admin Panel
+  const [dbTimetableRows, setDbTimetableRows] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchDbTimetable() {
+      const { data } = await supabase
+        .from("timetable")
+        .select("*")
+        .eq("semester", selectedSemester)
+        .eq("section", selectedSection);
+      if (data) setDbTimetableRows(data);
+    }
+    fetchDbTimetable();
+  }, [selectedSemester, selectedSection]);
+
+  const rawSectionData = (currentTimetableData.sections as any)[selectedSection] || (currentTimetableData.sections as any)["A1"];
   const sectionMeta = currentSectionOptions.find((s) => s.id === selectedSection) || currentSectionOptions[0];
+
+  // Merge database timetable entries on top of static sectionData schedule
+  const sectionData = useMemo(() => {
+    if (!dbTimetableRows || dbTimetableRows.length === 0) return rawSectionData;
+
+    const clonedTimetable: Record<string, Record<string, string>> = JSON.parse(JSON.stringify(rawSectionData.timetable || {}));
+
+    const dayMap: Record<string, string> = {
+      "monday": "MON", "mon": "MON",
+      "tuesday": "TUE", "tue": "TUE",
+      "wednesday": "WED", "wed": "WED",
+      "thursday": "THUR", "thu": "THUR", "thur": "THUR",
+      "friday": "FRI", "fri": "FRI",
+      "saturday": "SAT", "sat": "SAT",
+    };
+
+    dbTimetableRows.forEach((row: any) => {
+      const dayKey = dayMap[(row.day || "").toLowerCase()] || row.day;
+      const slotKey = row.time_slot;
+      if (!dayKey || !slotKey) return;
+
+      if (!clonedTimetable[dayKey]) clonedTimetable[dayKey] = {};
+
+      const codeStr = row.subject_code ? ` [${row.subject_code}]` : "";
+      const roomStr = row.room ? ` (${row.room})` : (rawSectionData.room ? ` (${rawSectionData.room})` : "");
+      const profStr = row.teacher_name ? ` • ${row.teacher_name}` : (row.faculty ? ` • ${row.faculty}` : "");
+      const groupStr = row.group_name ? ` [${row.group_name}]` : (row.group ? ` [${row.group}]` : "");
+
+      clonedTimetable[dayKey][slotKey] = `${row.subject_name}${codeStr}${groupStr}${profStr}${roomStr}`;
+    });
+
+    return {
+      ...rawSectionData,
+      timetable: clonedTimetable,
+    };
+  }, [rawSectionData, dbTimetableRows]);
 
   // Helper to extract slot raw text format from string/object
   const getSlotRawText = (rawVal: any) => {
