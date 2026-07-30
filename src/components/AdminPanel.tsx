@@ -878,7 +878,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
     const roomClean = room.trim() || null;
     const groupClean = group.trim() || null;
 
-    const payload = {
+    const payload: Record<string, any> = {
       semester,
       section: finalSection,
       day,
@@ -887,41 +887,49 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       subject_code: finalCode || null,
       type,
       teacher_name: teacherClean,
-      faculty: teacherClean,
       room: roomClean,
       group_name: groupClean,
-      group: groupClean,
     };
 
-    // Check if record exists for same (semester, section, day, time_slot)
-    const { data: existing } = await supabase
-      .from("timetable")
-      .select("id")
-      .eq("semester", semester)
-      .eq("section", finalSection)
-      .eq("day", day)
-      .eq("time_slot", finalSlot);
-
-    let err = null;
-    if (existing && existing.length > 0) {
-      const { error: updateErr } = await supabase
+    // Helper to sanitize payload if schema missing columns like teacher_name / group_name
+    const executeSave = async (dataPayload: Record<string, any>) => {
+      const { data: existing } = await supabase
         .from("timetable")
-        .update({ ...payload, updated_at: new Date().toISOString() })
-        .eq("id", existing[0].id);
-      err = updateErr;
-    } else {
-      const { error: upsertErr } = await supabase
-        .from("timetable")
-        .upsert(payload, { onConflict: "semester,section,day,time_slot" });
+        .select("id")
+        .eq("semester", semester)
+        .eq("section", finalSection)
+        .eq("day", day)
+        .eq("time_slot", finalSlot);
 
-      if (upsertErr) {
-        const { error: insertErr } = await supabase
+      if (existing && existing.length > 0) {
+        return await supabase
           .from("timetable")
-          .insert(payload);
-        err = insertErr;
+          .update({ ...dataPayload, updated_at: new Date().toISOString() })
+          .eq("id", existing[0].id);
       } else {
-        err = upsertErr;
+        const { error: upsertErr } = await supabase
+          .from("timetable")
+          .upsert(dataPayload, { onConflict: "semester,section,day,time_slot" });
+
+        if (upsertErr) {
+          return await supabase.from("timetable").insert(dataPayload);
+        }
+        return { error: null };
       }
+    };
+
+    let { error: err } = await executeSave(payload);
+
+    // If a column error occurs (e.g. missing teacher_name or group_name column), retry without optional fields
+    if (err && err.message?.includes("column")) {
+      const fallbackPayload = { ...payload };
+      if (err.message.includes("teacher_name")) delete fallbackPayload.teacher_name;
+      if (err.message.includes("group_name")) delete fallbackPayload.group_name;
+      if (err.message.includes("subject_code")) delete fallbackPayload.subject_code;
+      if (err.message.includes("room")) delete fallbackPayload.room;
+      
+      const retryResult = await executeSave(fallbackPayload);
+      err = retryResult.error;
     }
 
     setSaving(false);
