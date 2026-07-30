@@ -23,6 +23,7 @@ import {
   Check,
 } from "lucide-react";
 import { Subject } from "../types";
+import { parseSemesterNumber } from "../data";
 import {
   TIMETABLE_SEM_3_DATA,
   SECTION_OPTIONS,
@@ -284,16 +285,8 @@ export default function TimetablePage({
 
   // Semester Selection - strictly derived from student's enrolled semester
   const selectedSemester = useMemo(() => {
-    // Extract numeric semester from strings like "7th Semester", "CO-VII Semester", etc.
     if (userSemester) {
-      const match = userSemester.match(/(\d+)/);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        if (num === 7) return 7;
-        if (num === 5) return 5;
-        if (num === 3) return 3;
-        return num; // unsupported semester - will show "not available" screen
-      }
+      return parseSemesterNumber(userSemester);
     }
     // Fallback: detect from subjects
     if (subjects.some(s => s.name.includes("Cyber") || s.name.includes("Cloud") || s.name.includes("Big Data"))) return 7;

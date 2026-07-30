@@ -95,3 +95,19 @@ export const subjectNamestoSubjects = (names: string[]): Subject[] =>
 export const INITIAL_SUBJECTS: Subject[] = [];
 
 export const INITIAL_ASSIGNMENTS: Assignment[] = [];
+
+// ── Helper to parse semester number (handles "CO-VII Semester", "7th Semester", "VII", "7") ──
+export const parseSemesterNumber = (semStr?: string): number => {
+  if (!semStr) return 3;
+  const s = String(semStr).toUpperCase().trim();
+  if (s.includes("VIII") || s.includes("8")) return 8;
+  if (s.includes("VII") || s.includes("7")) return 7;
+  if (s.includes("VI") || s.includes("6")) return 6;
+  if (s.includes("IV") || s.includes("4")) return 4;
+  if (s.includes("V") || s.includes("5")) return 5;
+  if (s.includes("III") || s.includes("3")) return 3;
+  if (s.includes("II") || s.includes("2")) return 2;
+  if (s.includes("I") || s.includes("1")) return 1;
+  const m = s.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 3;
+};

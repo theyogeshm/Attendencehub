@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
-import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName } from "./data";
+import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName, parseSemesterNumber } from "./data";
 import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
@@ -375,7 +375,7 @@ export default function App() {
 
       // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
-      const userSemNum = parseInt((pData.semester ?? "").match(/(\d+)/)?.[1] || "3", 10);
+      const userSemNum = parseSemesterNumber(pData.semester);
       const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
       const defaultNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
 
@@ -1357,8 +1357,7 @@ export default function App() {
     const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
       ? profile.section.toUpperCase().trim()
       : `A${profile.section.toUpperCase().trim()}`;
-    const semMatch = profile.semester.match(/(\d+)/);
-    const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
+    const semNum = parseSemesterNumber(profile.semester);
 
     // Resolve section key: Sem 7 uses E-prefixed keys (E7, E8...), Sem 3/5 use A-prefixed
     const isSem5 = semNum === 5;
