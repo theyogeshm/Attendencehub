@@ -904,7 +904,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       if (existing && existing.length > 0) {
         return await supabase
           .from("timetable")
-          .update({ ...dataPayload, updated_at: new Date().toISOString() })
+          .update(dataPayload)
           .eq("id", existing[0].id);
       } else {
         const { error: upsertErr } = await supabase
