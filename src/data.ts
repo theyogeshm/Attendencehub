@@ -12,8 +12,20 @@ import { DTU_CSE_SEM7_SUBJECTS } from "./data/timetableSem7";
 // NOTE: Add the real subject names for each semester below.
 // These are used during onboarding and profile semester changes.
 export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
-  1: [],
-  2: [],
+  1: [
+    "Basic ECE",
+    "Mathematics I",
+    "Web Design",
+    "Programming Fundamentals",
+    "Engineering Graphics II",
+  ],
+  2: [
+    "Basics of ML & Applications",
+    "Discrete Structures",
+    "Data Structures and Algorithms",
+    "Mathematics II",
+    "Physics",
+  ],
   3: [
     "Object Oriented Design - Theory",
     "Object Oriented Design - Lab",
@@ -25,7 +37,13 @@ export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
     "Digital Logic Design - Theory",
     "Digital Logic Design - Lab",
   ],
-  4: [],
+  4: [
+    "Database Management System",
+    "Probability and Statistics",
+    "Theory of Computation",
+    "Computer Communication Networks",
+    "Computer Organisation and Architecture",
+  ],
   5: DTU_CSE_SEM5_SUBJECTS,
   6: [],
   7: DTU_CSE_SEM7_SUBJECTS,
