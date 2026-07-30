@@ -891,7 +891,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       group_name: groupClean,
     };
 
-    // Helper to sanitize payload if schema missing columns like teacher_name / group_name
+    // Helper to save payload to Supabase
     const executeSave = async (dataPayload: Record<string, any>) => {
       const { data: existing } = await supabase
         .from("timetable")
@@ -918,18 +918,29 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       }
     };
 
-    let { error: err } = await executeSave(payload);
+    let currentPayload = { ...payload };
+    let err: any = null;
+    let attempts = 0;
 
-    // If a column error occurs (e.g. missing teacher_name or group_name column), retry without optional fields
-    if (err && err.message?.includes("column")) {
-      const fallbackPayload = { ...payload };
-      if (err.message.includes("teacher_name")) delete fallbackPayload.teacher_name;
-      if (err.message.includes("group_name")) delete fallbackPayload.group_name;
-      if (err.message.includes("subject_code")) delete fallbackPayload.subject_code;
-      if (err.message.includes("room")) delete fallbackPayload.room;
-      
-      const retryResult = await executeSave(fallbackPayload);
-      err = retryResult.error;
+    // Retry loop: automatically strips any column missing from user's Supabase schema
+    while (attempts < 6) {
+      attempts++;
+      const result = await executeSave(currentPayload);
+      err = result.error;
+      if (!err) break; // Success!
+
+      const colMatch = err.message?.match(/Could not find the ['"]?([a-zA-Z0-9_]+)['"]? column/i) ||
+                       err.message?.match(/column ['"]?([a-zA-Z0-9_]+)['"]? of relation/i) ||
+                       err.message?.match(/column ['"]?([a-zA-Z0-9_]+)['"]? does not exist/i);
+
+      if (colMatch && colMatch[1]) {
+        const missingCol = colMatch[1];
+        if (currentPayload[missingCol] !== undefined) {
+          delete currentPayload[missingCol];
+          continue; // Retry without the unsupported column
+        }
+      }
+      break; // Non-column error
     }
 
     setSaving(false);
