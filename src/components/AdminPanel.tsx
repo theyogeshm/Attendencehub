@@ -763,6 +763,10 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [loading,    setLoading]    = useState<boolean>(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Edit mode state — holds the row currently being edited
+  const [editingEntry, setEditingEntry] = useState<TimetableRow | null>(null);
+  const [schemaWarning, setSchemaWarning] = useState<string | null>(null);
+
   // Load fed subject list from database
   useEffect(() => {
     async function loadDbMasterData() {
@@ -874,6 +878,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
     }
 
     setSaving(true);
+    setSchemaWarning(null);
     const teacherClean = teacherName.trim() || null;
     const roomClean = room.trim() || null;
     const groupClean = group.trim() || null;
@@ -891,8 +896,19 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       group_name: groupClean,
     };
 
+    const strippedCols: string[] = [];
+
     // Helper to save payload to Supabase
     const executeSave = async (dataPayload: Record<string, any>) => {
+      // If editing an existing row by ID, update directly
+      if (editingEntry?.id) {
+        return await supabase
+          .from("timetable")
+          .update(dataPayload)
+          .eq("id", editingEntry.id);
+      }
+
+      // Otherwise upsert / insert by composite key
       const { data: existing } = await supabase
         .from("timetable")
         .select("id")
@@ -936,6 +952,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
       if (colMatch && colMatch[1]) {
         const missingCol = colMatch[1];
         if (currentPayload[missingCol] !== undefined) {
+          strippedCols.push(missingCol);
           delete currentPayload[missingCol];
           continue; // Retry without the unsupported column
         }
@@ -948,14 +965,13 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
     if (err) {
       show("Save failed: " + err.message, false);
     } else {
-      show(`Saved entry: Sem ${semester} ${finalSection} - ${day} ${finalSlot} (${finalSubject}) ✓`);
-      setSubjectSelect("");
-      setCustomSubject("");
-      setCodeSelect("");
-      setCustomCode("");
-      setTeacherName("");
-      setRoom("");
-      setGroup("");
+      const wasEdit = !!editingEntry;
+      // Warn if important columns were stripped (not in user's Supabase schema)
+      if (strippedCols.length > 0) {
+        setSchemaWarning(`⚠️ These columns were missing from your Supabase timetable table and could NOT be saved: ${strippedCols.join(", ")}. Run the SQL fix below to add them.`);
+      }
+      show(`${wasEdit ? "Updated" : "Saved"} entry: Sem ${semester} ${finalSection} - ${day} ${finalSlot} (${finalSubject}) ✓`);
+      handleCancelEdit();
       fetchTimetable();
     }
   };
@@ -984,9 +1000,81 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
     if (delErr) {
       show("Delete failed: " + delErr.message, false);
     } else {
+      setEditingEntry(null);
       show(`Deleted timetable entry (${r.day} ${r.time_slot}) ✓`);
       fetchTimetable();
     }
+  };
+
+  // Populate the form with an existing row for editing
+  const handleStartEdit = (r: TimetableRow) => {
+    setEditingEntry(r);
+    setSemester(r.semester);
+
+    // Section
+    if (PRESET_SECTIONS.includes(r.section)) {
+      setSectionSelect(r.section);
+      setCustomSection("");
+    } else {
+      setSectionSelect("__CUSTOM__");
+      setCustomSection(r.section);
+    }
+
+    // Day
+    setDay(r.day);
+
+    // Time Slot
+    if (PRESET_SLOTS.includes(r.time_slot)) {
+      setSlotSelect(r.time_slot);
+      setCustomSlot("");
+    } else {
+      setSlotSelect("__CUSTOM__");
+      setCustomSlot(r.time_slot);
+    }
+
+    // Subject
+    const subName = r.subject_name || "";
+    const cleanSub = subName.replace(/ - (Theory|Lab|Tutorial)$/i, "").trim();
+    setSubjectSelect(cleanSub);
+    setCustomSubject(cleanSub);
+
+    // Code
+    if (r.subject_code && PRESET_CODES.includes(r.subject_code)) {
+      setCodeSelect(r.subject_code);
+      setCustomCode("");
+    } else if (r.subject_code) {
+      setCodeSelect("__CUSTOM__");
+      setCustomCode(r.subject_code);
+    } else {
+      setCodeSelect("");
+      setCustomCode("");
+    }
+
+    setType(r.type || "Theory Lecture");
+    setTeacherName(r.teacher_name || "");
+    setRoom(r.room || "");
+    setGroup(r.group_name || "");
+
+    // Scroll to top of form
+    window.scrollTo({ top: 400, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
+    setSemester(3);
+    setSectionSelect("A3");
+    setCustomSection("");
+    setDay("Monday");
+    setSlotSelect("9-10");
+    setCustomSlot("");
+    setSubjectSelect("");
+    setCustomSubject("");
+    setCodeSelect("");
+    setCustomCode("");
+    setType("Theory Lecture");
+    setTeacherName("");
+    setRoom("");
+    setGroup("");
   };
 
   const INP = getInpStyle(isDarkMode);
@@ -1003,12 +1091,30 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
         </div>
       )}
 
+      {/* ── Schema Warning Banner ── */}
+      {schemaWarning && (
+        <div className="p-4 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs font-semibold space-y-2">
+          <p>{schemaWarning}</p>
+          <details>
+            <summary className="cursor-pointer font-bold underline">▶ Show SQL fix to add missing columns</summary>
+            <pre className="mt-2 p-3 rounded bg-black/40 text-[11px] text-green-300 overflow-x-auto whitespace-pre-wrap">{`ALTER TABLE public.timetable\n  ADD COLUMN IF NOT EXISTS teacher_name TEXT,\n  ADD COLUMN IF NOT EXISTS room TEXT,\n  ADD COLUMN IF NOT EXISTS subject_code TEXT,\n  ADD COLUMN IF NOT EXISTS group_name TEXT,\n  ADD COLUMN IF NOT EXISTS type TEXT;\nNOTIFY pgrst, 'reload schema';`}</pre>
+          </details>
+        </div>
+      )}
+
       {/* ── Form Card ── */}
       <div className={getCardStyle(isDarkMode)}>
-        <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
-          <Plus className="w-4 h-4" />
-          Add / Update Timetable Entry
-        </h3>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h3 className={`text-sm font-bold flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
+            {editingEntry ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {editingEntry ? `Editing Entry: ${editingEntry.day} ${editingEntry.time_slot} — ${editingEntry.subject_name}` : "Add / Update Timetable Entry"}
+          </h3>
+          {editingEntry && (
+            <button type="button" onClick={handleCancelEdit} className={getBtnSecondary(isDarkMode)}>
+              <X className="w-3.5 h-3.5" /> Cancel Edit
+            </button>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1161,11 +1267,16 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
             </div>
           </div>
 
-          <div className="pt-2 flex items-center gap-3">
+          <div className="pt-2 flex items-center gap-3 flex-wrap">
             <button type="submit" disabled={saving} className={BTN_PRIMARY}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save Timetable Entry
+              {editingEntry ? "Save Changes" : "Save Timetable Entry"}
             </button>
+            {editingEntry && (
+              <button type="button" onClick={handleCancelEdit} className={getBtnSecondary(isDarkMode)}>
+                <X className="w-3.5 h-3.5" /> Cancel
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -1240,15 +1351,24 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
                       <td className={`px-3 py-3 font-mono text-[11px] ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.room ?? "—"}</td>
                       <td className={`px-3 py-3 font-mono font-bold text-[11px] ${isDarkMode ? "text-amber-400" : "text-amber-700"}`}>{r.group_name ?? "—"}</td>
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => handleDelete(r)}
-                          disabled={deletingId === rowKey}
-                          className={getBtnDanger()}
-                          title="Delete timetable entry"
-                        >
-                          {deletingId === rowKey ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                          Delete
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleStartEdit(r)}
+                            className={getBtnSecondary(isDarkMode)}
+                            title="Edit this entry"
+                          >
+                            <Pencil className="w-3 h-3" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(r)}
+                            disabled={deletingId === rowKey}
+                            className={getBtnDanger()}
+                            title="Delete timetable entry"
+                          >
+                            {deletingId === rowKey ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
