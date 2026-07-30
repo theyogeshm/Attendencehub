@@ -702,10 +702,28 @@ export default function App() {
     // Instantly update subjects array count in local state
     setSubjects(prev => {
       const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+
+      // Determine the component type of the TARGET (Theory / Lab / Tutorial / none)
+      const getComponentType = (name: string): string | null => {
+        const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lecture|lec)$/i);
+        if (!m) return null;
+        const t = m[1].toLowerCase();
+        if (t === "tut") return "tutorial";
+        if (t === "lec" || t === "lecture") return "theory";
+        return t;
+      };
+      const targetType = getComponentType(targetSubjectName);
+
       const updated = prev.map(sub => {
         const subKeys = getNormalizedSubjectKeys(sub.name);
         const isMatch = subKeys.some(k => targetKeys.includes(k));
         if (!isMatch) return sub;
+
+        // ── TYPE GUARD: don't let "- Theory" update "- Lab" and vice versa ──
+        if (targetType) {
+          const subType = getComponentType(sub.name);
+          if (subType && subType !== targetType) return sub;
+        }
 
         let newAttended = sub.attendanceCount;
         let newTotal = sub.totalClasses;
