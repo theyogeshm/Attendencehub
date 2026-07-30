@@ -263,9 +263,24 @@ export default function DashboardPage({
           ) : (
             <div className="space-y-3">
               {(() => {
+                const getSubStatus = (sub: Subject): AttendanceStatus | undefined => {
+                  if (!todayAttendance) return undefined;
+                  if (todayAttendance[sub.id]) return todayAttendance[sub.id];
+                  if ((sub as any).rawSubjectId && todayAttendance[(sub as any).rawSubjectId]) {
+                    return todayAttendance[(sub as any).rawSubjectId];
+                  }
+                  const cleanName = sub.name.toLowerCase().trim();
+                  if (todayAttendance[cleanName]) return todayAttendance[cleanName];
+
+                  const baseName = cleanName.replace(/ - (theory|lab|tutorial|tut)$/i, "").trim();
+                  if (todayAttendance[baseName]) return todayAttendance[baseName];
+
+                  return undefined;
+                };
+
                 const sorted = [...todayTimetable].sort((a, b) => {
-                  const aMarked = !!todayAttendance[a.id] || !!todayAttendance[a.name.toLowerCase().trim()] || ((a as any).rawSubjectId ? !!todayAttendance[(a as any).rawSubjectId] : false);
-                  const bMarked = !!todayAttendance[b.id] || !!todayAttendance[b.name.toLowerCase().trim()] || ((b as any).rawSubjectId ? !!todayAttendance[(b as any).rawSubjectId] : false);
+                  const aMarked = !!getSubStatus(a);
+                  const bMarked = !!getSubStatus(b);
                   if (aMarked !== bMarked) {
                     return aMarked ? 1 : -1;
                   }
@@ -277,8 +292,7 @@ export default function DashboardPage({
                   const attPct = sub.totalClasses > 0
                     ? ((sub.attendanceCount / sub.totalClasses) * 100).toFixed(0)
                     : null;
-                  const currentStatus = (todayAttendance[sub.id] ||
-                    todayAttendance[sub.name.toLowerCase().trim()]) as AttendanceStatus | undefined;
+                  const currentStatus = getSubStatus(sub);
                   const icon = getSubjectIcon(sub.name);
 
                 const statusBadge: Record<string, { label: string; cls: string }> = {
