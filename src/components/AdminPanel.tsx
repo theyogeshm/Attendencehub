@@ -6,7 +6,7 @@
  * Route: /admin (registered outside the main app shell)
  */
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { isAdminEmail, sanitizeText, sanitizeUrl } from "../lib/security";

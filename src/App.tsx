@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
-import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS } from "./data";
+import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName } from "./data";
 import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
@@ -155,6 +155,24 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("dtu_selected_lab_group", selectedLabGroup);
   }, [selectedLabGroup]);
+
+  // ── Custom Admin Timetable Entries from Supabase ─────────────────────────
+  const [dbTimetableEntries, setDbTimetableEntries] = useState<any[]>([]);
+
+  const fetchDbTimetableEntries = async () => {
+    try {
+      const { data, error } = await supabase.from("timetable").select("*");
+      if (!error && data) {
+        setDbTimetableEntries(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch db timetable entries:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchDbTimetableEntries();
+  }, []);
 
   // ── Feedback form ─────────────────────────────────────────────────────────
   const [feedbackText, setFeedbackText] = useState("");
@@ -1160,6 +1178,37 @@ export default function App() {
     const targetDayId = daysMap[targetDayIndex];
     if (targetDayId === "SUN" || targetDayId === "SAT") return subjects;
 
+    const isDayMatch = (dbDay: string, tDay: string) => {
+      if (!dbDay || !tDay) return false;
+      const d = dbDay.trim().toUpperCase();
+      const t = tDay.trim().toUpperCase();
+      if (d === t) return true;
+      if (d.startsWith("MON") && t.startsWith("MON")) return true;
+      if (d.startsWith("TUE") && t.startsWith("TUE")) return true;
+      if (d.startsWith("WED") && t.startsWith("WED")) return true;
+      if ((d.startsWith("THU") || d.startsWith("THUR")) && (t.startsWith("THU") || t.startsWith("THUR"))) return true;
+      if (d.startsWith("FRI") && t.startsWith("FRI")) return true;
+      if (d.startsWith("SAT") && t.startsWith("SAT")) return true;
+      return false;
+    };
+
+    const isSecMatch = (dbSec: string, uSec: string) => {
+      if (!dbSec || !uSec) return false;
+      const s1 = String(dbSec).trim().toUpperCase().replace(/^SECTION\s*/i, "").replace(/^SEC\s*/i, "");
+      const s2 = String(uSec).trim().toUpperCase().replace(/^SECTION\s*/i, "").replace(/^SEC\s*/i, "");
+      if (s1 === s2) return true;
+      if (`A${s1}` === s2 || s1 === `A${s2}`) return true;
+      if (`B${s1}` === s2 || s1 === `B${s2}`) return true;
+      return false;
+    };
+
+    const isSlotMatch = (dbSlot: string, tSlot: string) => {
+      if (!dbSlot || !tSlot) return false;
+      const s1 = String(dbSlot).trim().replace(/\s+/g, "").replace(":00", "");
+      const s2 = String(tSlot).trim().replace(/\s+/g, "").replace(":00", "");
+      return s1 === s2;
+    };
+
     const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
       ? profile.section.toUpperCase().trim()
       : `A${profile.section.toUpperCase().trim()}`;
@@ -1172,15 +1221,33 @@ export default function App() {
     const secData = isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
-    const daySchedule = secData?.timetable[targetDayId];
-    if (!daySchedule) return subjects;
+    const daySchedule = secData?.timetable[targetDayId] || {};
 
     const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
     Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
       const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
       const timeOrder = getTimeOrder(cleanSlot);
-      const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
+      let rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
+
+      // Check if custom admin timetable entry exists in Supabase
+      const dbMatch = dbTimetableEntries.find(r => 
+        Number(r.semester) === semNum &&
+        isSecMatch(r.section, userSecKey) &&
+        isDayMatch(r.day, targetDayId) &&
+        isSlotMatch(r.time_slot, cleanSlot)
+      );
+
+      if (dbMatch) {
+        const subName = dbMatch.subject_name || dbMatch.subject || "";
+        const code = dbMatch.subject_code || dbMatch.code || "";
+        const prof = dbMatch.teacher_name || dbMatch.faculty || "";
+        const rm = dbMatch.room || secData.room;
+        const grp = dbMatch.group_name || dbMatch.group || "";
+
+        rawText = `${subName}${code ? ' ['+code+']' : ''}${prof ? ' / '+prof : ''}${rm ? ' / '+rm : ''}${grp ? ' / ['+grp+']' : ''}`;
+      }
+
       if (!rawText) return;
 
       const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
@@ -1259,6 +1326,54 @@ export default function App() {
           });
         }
       });
+    });
+
+    // Also include any custom DB timetable entries for this day that weren't in static schedule
+    const customDbForDay = dbTimetableEntries.filter(r =>
+      Number(r.semester) === semNum &&
+      isSecMatch(r.section, userSecKey) &&
+      isDayMatch(r.day, targetDayId)
+    );
+
+    customDbForDay.forEach(r => {
+      const cleanSlot = (r.time_slot || "").trim();
+      const existsInDayList = dayList.some(item => isSlotMatch(item.time, cleanSlot));
+      if (!existsInDayList && cleanSlot) {
+        const timeOrder = getTimeOrder(cleanSlot);
+        const subName = r.subject_name || r.subject || "";
+        const code = r.subject_code || r.code || "";
+        const prof = r.teacher_name || r.faculty || "Faculty";
+        const rm = r.room || secData.room;
+        const fallbackId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+
+        let matched = subjects.find(s => s.name.toLowerCase().trim() === subName.toLowerCase().trim());
+        if (matched) {
+          dayList.push({
+            ...matched,
+            rawSubjectId: matched.id,
+            time: `${cleanSlot} (${rm})`,
+            prof: prof || matched.prof,
+            type: (r.type || "").toLowerCase().includes("lab") ? "LAB" : "LEC",
+            timeOrder,
+          });
+        } else {
+          dayList.push({
+            id: fallbackId,
+            rawSubjectId: fallbackId,
+            name: subName,
+            code: code || "CS200",
+            prof,
+            room: rm,
+            category: "Core",
+            description: subName,
+            time: `${cleanSlot} (${rm})`,
+            type: (r.type || "").toLowerCase().includes("lab") ? "LAB" : "LEC",
+            attendanceCount: 0,
+            totalClasses: 0,
+            timeOrder,
+          });
+        }
+      }
     });
 
     if (dayList.length === 0) return subjects;

@@ -45,6 +45,7 @@ interface TimetablePageProps {
   onSelectLabGroup?: (grp: "All" | "G1" | "G2" | "G3") => void;
   onMarkAttendance?: (subjectId: string, isPresent: boolean) => void;
   onUpdateSubjectHours?: (subjectId: string, attendanceCount: number, totalClasses: number) => void;
+  dbTimetableEntries?: any[];
 }
 
 const DAYS_OF_WEEK = [
@@ -331,12 +332,20 @@ export default function TimetablePage({
     localStorage.setItem("dtu_sem5_elective_overrides", JSON.stringify(next));
   };
 
-  // Sync section whenever profile userSection prop updates
+  const handleSaveElectiveOverrides = (overrides: Record<string, string>) => {
+    setElectiveOverrides(overrides);
+    localStorage.setItem("dtu_elective_overrides", JSON.stringify(overrides));
+  };
+
+  // Sync section when sem changes
   useEffect(() => {
-    if (userSection) {
-      const normalized = userSection.toUpperCase().trim();
-      const formatted = normalized.startsWith("A") ? normalized : `A${normalized}`;
-      const match = currentSectionOptions.find((s) => s.id === formatted || s.id === normalized);
+    const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
+    if (saved) {
+      setSelectedSection(saved);
+    } else {
+      const match = currentSectionOptions.find(
+        (s) => s.id.toLowerCase() === userSection.toLowerCase() || s.label.toLowerCase().includes(userSection.toLowerCase())
+      );
       if (match) {
         setSelectedSection(match.id);
       }
@@ -351,8 +360,58 @@ export default function TimetablePage({
   const sectionData = (currentTimetableData.sections as any)[selectedSection] || (currentTimetableData.sections as any)["A1"];
   const sectionMeta = currentSectionOptions.find((s) => s.id === selectedSection) || currentSectionOptions[0];
 
-  // Helper to extract slot raw text format from string/object
-  const getSlotRawText = (rawVal: any) => {
+  const isDayMatch = (dbDay: string, tDay: string) => {
+    if (!dbDay || !tDay) return false;
+    const d = dbDay.trim().toUpperCase();
+    const t = tDay.trim().toUpperCase();
+    if (d === t) return true;
+    if (d.startsWith("MON") && t.startsWith("MON")) return true;
+    if (d.startsWith("TUE") && t.startsWith("TUE")) return true;
+    if (d.startsWith("WED") && t.startsWith("WED")) return true;
+    if ((d.startsWith("THU") || d.startsWith("THUR")) && (t.startsWith("THU") || t.startsWith("THUR"))) return true;
+    if (d.startsWith("FRI") && t.startsWith("FRI")) return true;
+    if (d.startsWith("SAT") && t.startsWith("SAT")) return true;
+    return false;
+  };
+
+  const isSecMatch = (dbSec: string, uSec: string) => {
+    if (!dbSec || !uSec) return false;
+    const s1 = String(dbSec).trim().toUpperCase().replace(/^SECTION\s*/i, "").replace(/^SEC\s*/i, "");
+    const s2 = String(uSec).trim().toUpperCase().replace(/^SECTION\s*/i, "").replace(/^SEC\s*/i, "");
+    if (s1 === s2) return true;
+    if (`A${s1}` === s2 || s1 === `A${s2}`) return true;
+    if (`B${s1}` === s2 || s1 === `B${s2}`) return true;
+    return false;
+  };
+
+  const isSlotMatch = (dbSlot: string, tSlot: string) => {
+    if (!dbSlot || !tSlot) return false;
+    const s1 = String(dbSlot).trim().replace(/\s+/g, "").replace(":00", "");
+    const s2 = String(tSlot).trim().replace(/\s+/g, "").replace(":00", "");
+    return s1 === s2;
+  };
+
+  // Helper to extract slot raw text format from string/object or Supabase dbTimetableEntries
+  const getSlotRawText = (rawVal: any, dayId?: string, timeSlotKey?: string) => {
+    if (dbTimetableEntries && dbTimetableEntries.length > 0 && dayId && timeSlotKey) {
+      const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
+      const dbMatch = dbTimetableEntries.find(r => 
+        Number(r.semester) === selectedSemester &&
+        isSecMatch(r.section, selectedSection) &&
+        isDayMatch(r.day, dayId) &&
+        isSlotMatch(r.time_slot, cleanSlot)
+      );
+
+      if (dbMatch) {
+        const subName = dbMatch.subject_name || dbMatch.subject || "";
+        const code = dbMatch.subject_code || dbMatch.code || "";
+        const prof = dbMatch.teacher_name || dbMatch.faculty || "";
+        const rm = dbMatch.room || sectionData?.room || "";
+        const grp = dbMatch.group_name || dbMatch.group || "";
+        return `${subName}${code ? ' ['+code+']' : ''}${prof ? ' / '+prof : ''}${rm ? ' / '+rm : ''}${grp ? ' / ['+grp+']' : ''}`;
+      }
+    }
+
     if (!rawVal) return "";
     let str = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
     if (selectedSemester === 5 && str.includes("Elective - unresolved")) {
@@ -861,8 +920,8 @@ export default function TimetablePage({
             const dayTimetable = sectionData.timetable[activeDay] || {};
             const slots = Object.entries(dayTimetable);
 
-            const filteredSlots = slots.filter(([_, rawVal]) => {
-              const rawText = getSlotRawText(rawVal);
+            const filteredSlots = slots.filter(([timeSlotKey, rawVal]) => {
+              const rawText = getSlotRawText(rawVal, activeDay, timeSlotKey);
               if (!searchQuery) return true;
               return rawText.toLowerCase().includes(searchQuery.toLowerCase());
             });
@@ -885,7 +944,7 @@ export default function TimetablePage({
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredSlots.map(([timeSlot, rawVal]) => {
-                  const rawText = getSlotRawText(rawVal);
+                  const rawText = getSlotRawText(rawVal, activeDay, timeSlot);
 
                   return (
                     <div
@@ -923,8 +982,8 @@ export default function TimetablePage({
               const slotsArray = Object.entries(daySlots);
               const isToday = defaultDayId === day.id;
 
-              const filtered = slotsArray.filter(([_, rawVal]) => {
-                const rawText = getSlotRawText(rawVal);
+              const filtered = slotsArray.filter(([timeSlotKey, rawVal]) => {
+                const rawText = getSlotRawText(rawVal, day.id, timeSlotKey);
                 if (!searchQuery) return true;
                 return rawText.toLowerCase().includes(searchQuery.toLowerCase());
               });
@@ -972,7 +1031,7 @@ export default function TimetablePage({
                       </div>
                     ) : (
                       filtered.map(([timeSlot, rawVal]) => {
-                        const rawText = getSlotRawText(rawVal);
+                        const rawText = getSlotRawText(rawVal, day.id, timeSlot);
                         return (
                           <div
                             key={timeSlot}
