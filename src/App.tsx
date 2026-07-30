@@ -682,6 +682,9 @@ export default function App() {
         const next = { ...prev };
         const keys = getNormalizedSubjectKeys(targetSubjectName);
 
+        // Determine if the target has a type suffix (Theory / Lab / Tutorial)
+        const targetHasSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(targetSubjectName);
+
         next[subjectId] = status;
         if (schedMatch) {
           next[schedMatch.id] = status;
@@ -691,6 +694,10 @@ export default function App() {
         }
 
         keys.forEach(k => {
+          // Skip the plain base-name key when target has a type suffix.
+          // e.g. marking "OOD - Theory" must NOT set todayAttendance["object oriented design"]
+          // because that would bleed into the Lab card's status check.
+          if (targetHasSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
           next[k] = status;
           next[`sub-${k.replace(/[^a-z0-9]/g, "-")}`] = status;
         });

@@ -272,8 +272,13 @@ export default function DashboardPage({
                   const cleanName = sub.name.toLowerCase().trim();
                   if (todayAttendance[cleanName]) return todayAttendance[cleanName];
 
-                  const baseName = cleanName.replace(/ - (theory|lab|tutorial|tut)$/i, "").trim();
-                  if (todayAttendance[baseName]) return todayAttendance[baseName];
+                  // Only fall back to base name if THIS card has NO type suffix
+                  // (prevents "OOD - Theory" status bleeding into "OOD - Lab" card)
+                  const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(sub.name);
+                  if (!hasTypeSuffix) {
+                    const baseName = cleanName.trim();
+                    if (todayAttendance[baseName]) return todayAttendance[baseName];
+                  }
 
                   return undefined;
                 };
