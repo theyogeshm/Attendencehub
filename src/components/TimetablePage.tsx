@@ -73,7 +73,7 @@ const ELECTIVE_PRESETS = [
 function ElectiveSlotCard({
   slot, value, onChange, isDarkMode = true,
 }: {
-  slot: string; value: string; onChange: (v: string) => void; isDarkMode?: boolean;
+  key?: any; slot: string; value: string; onChange: (v: string) => void; isDarkMode?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -762,7 +762,7 @@ export default function TimetablePage({
           </h1>
 
           <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
-            Official {selectedSemester === 5 ? "Semester 5 (CSE-V)" : "Semester 3"} schedule for {sectionMeta.label} ({sectionMeta.room}).
+            Official {selectedSemester === 7 ? "Semester 7 (CSE-VII)" : (selectedSemester === 5 ? "Semester 5 (CSE-V)" : "Semester 3")} schedule for {sectionMeta.label} ({sectionData.room}).
           </p>
         </div>
 
@@ -785,7 +785,7 @@ export default function TimetablePage({
               options={currentSectionOptions.map((sec) => ({
                 value: sec.id,
                 label: sec.label,
-                badge: sec.room,
+                badge: (sec as any).room || sectionData.room,
               }))}
               onChange={(val) => setSelectedSection(val)}
               isDarkMode={isDarkMode}

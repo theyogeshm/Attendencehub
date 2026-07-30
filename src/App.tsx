@@ -1394,10 +1394,11 @@ export default function App() {
       return TIMETABLE_SEM_7_DATA.sections["E7"];
     };
     const sem7SecData = getSem7SecData(profile.section);
+    // Resolve the actual E-section key sem7SecData corresponds to (e.g. "E7", "E8")
+    // Used for DB matching: Admin Panel stores entries with E-section keys, not A-section keys
+    const resolvedSem7Section = Object.entries(TIMETABLE_SEM_7_DATA.sections)
+      .find(([, v]) => v === sem7SecData)?.[0] || "E7";
 
-    const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
-      ? profile.section.toUpperCase().trim()
-      : `A${profile.section.toUpperCase().trim()}`;
     const secData = isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
@@ -1416,9 +1417,15 @@ export default function App() {
 
       // Check if custom admin timetable entry exists in Supabase
       // Use .filter() to capture ALL entries for this slot (handles real multi-group labs)
+      // For Sem 7: Admin Panel stores entries with E-section keys ("E7"),
+      // but user's profile.section may still say "A1" (old Sem 3 value).
+      // Use resolvedSem7Section ("E7" etc.) for matching instead of userSecKey.
+      const dbSectionCheck = isSem7
+        ? (r: any) => !r.section || r.section === resolvedSem7Section || r.section === ""
+        : (r: any) => isSecMatch(r.section, userSecKey);
       const dbMatches = dbTimetableEntries.filter(r =>
         Number(r.semester) === semNum &&
-        isSecMatch(r.section, userSecKey) &&
+        dbSectionCheck(r) &&
         isDayMatch(r.day, targetDayId) &&
         isSlotMatch(r.time_slot, cleanSlot)
       );
@@ -1523,16 +1530,19 @@ export default function App() {
             type: parsed.isLab ? "LAB" : "LEC",
             attendanceCount: 0,
             totalClasses: 0,
-            timeOrder,
           });
+        }
       });
     });
     }
 
-    // Also include any custom DB timetable entries for this day that weren't in static schedule
+    // Also include any custom DB timetable entries for this day that weren't in static schedule.
+    // For Sem 7: match by resolvedSem7Section ("E7" etc.) not the A-prefixed userSecKey.
     const customDbForDay = dbTimetableEntries.filter(r =>
       Number(r.semester) === semNum &&
-      isSecMatch(r.section, userSecKey) &&
+      (isSem7
+        ? (!r.section || r.section === resolvedSem7Section || r.section === "")
+        : isSecMatch(r.section, userSecKey)) &&
       isDayMatch(r.day, targetDayId)
     );
 
