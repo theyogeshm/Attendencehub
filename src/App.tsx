@@ -51,54 +51,6 @@ interface StudentProfile {
   section: string;
 }
 
-export function getNormalizedSubjectKeys(name: string): string[] {
-  const clean = (name || "").toLowerCase().trim();
-  if (!clean) return [];
-  const keys = new Set<string>();
-  keys.add(clean);
-
-  const noParens = clean.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
-  if (noParens && noParens !== clean) keys.add(noParens);
-
-  const baseName = noParens.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
-  if (baseName && baseName !== noParens) keys.add(baseName);
-
-  if (clean.includes("object oriented") || clean.includes("oop") || clean.includes("ood")) {
-    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
-    keys.add("object oriented design" + typeSuffix);
-    keys.add("object oriented programming" + typeSuffix);
-    keys.add("object oriented programming (oop)" + typeSuffix);
-    keys.add("object oriented design");
-  }
-  if (clean.includes("algorithm") || clean.includes("daa")) {
-    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
-    keys.add("design & analysis of algorithm" + typeSuffix);
-    keys.add("algorithm design and analysis" + typeSuffix);
-    keys.add("algorithm design and analysis (daa)" + typeSuffix);
-    keys.add("design & analysis of algorithm");
-  }
-  if (clean.includes("digital logic") || clean.includes("digital electronics") || clean.includes("dld")) {
-    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
-    keys.add("digital logic design" + typeSuffix);
-    keys.add("digital electronics" + typeSuffix);
-    keys.add("digital logic design");
-  }
-  if (clean.includes("operating system") || clean === "os") {
-    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
-    keys.add("operating system design" + typeSuffix);
-    keys.add("operating system design (os)" + typeSuffix);
-    keys.add("operating system design");
-  }
-  if (clean.includes("software engineering") || clean === "se") {
-    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
-    keys.add("software engineering" + typeSuffix);
-    keys.add("software engineering (se)" + typeSuffix);
-    keys.add("software engineering");
-  }
-
-  return Array.from(keys);
-}
-
 export default function App() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [user, setUser] = useState<User | null>(null);
@@ -195,20 +147,8 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
 
-  // ── Database Timetable entries from Supabase ──────────────────────────────
-  const [dbTimetableEntries, setDbTimetableEntries] = useState<any[]>([]);
-
-  const fetchDbTimetableEntries = useCallback(async () => {
-    const { data } = await supabase.from("timetable").select("*");
-    if (data) setDbTimetableEntries(data);
-  }, []);
-
-  useEffect(() => {
-    fetchDbTimetableEntries();
-  }, [fetchDbTimetableEntries]);
-
   // ── Selected Lab Group (G1 / G2 / G3 / All) ──────────────────────────────
-  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">((): any => {
+  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">(() => {
     return (localStorage.getItem("dtu_selected_lab_group") as any) || "All";
   });
 
@@ -586,6 +526,57 @@ export default function App() {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  const getNormalizedSubjectKeys = (name: string): string[] => {
+    const clean = name.toLowerCase().trim();
+    if (!clean) return [];
+    const keys = new Set<string>();
+    keys.add(clean);
+
+    // Remove brackets e.g. "Software Engineering (SE) - Theory" -> "Software Engineering - Theory"
+    const noParens = clean.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+    if (noParens && noParens !== clean) keys.add(noParens);
+
+    // Strip " - theory" or " - lab" if present
+    const baseName = noParens.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
+    if (baseName && baseName !== noParens) keys.add(baseName);
+
+    // Add subject aliases to match old stored names
+    if (clean.includes("object oriented") || clean.includes("oop") || clean.includes("ood")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("object oriented design" + typeSuffix);
+      keys.add("object oriented programming" + typeSuffix);
+      keys.add("object oriented programming (oop)" + typeSuffix);
+      keys.add("object oriented design");
+    }
+    if (clean.includes("algorithm") || clean.includes("daa")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("design & analysis of algorithm" + typeSuffix);
+      keys.add("algorithm design and analysis" + typeSuffix);
+      keys.add("algorithm design and analysis (daa)" + typeSuffix);
+      keys.add("design & analysis of algorithm");
+    }
+    if (clean.includes("digital logic") || clean.includes("digital electronics") || clean.includes("dld")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("digital logic design" + typeSuffix);
+      keys.add("digital electronics" + typeSuffix);
+      keys.add("digital logic design");
+    }
+    if (clean.includes("operating system") || clean === "os") {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("operating system design" + typeSuffix);
+      keys.add("operating system design (os)" + typeSuffix);
+      keys.add("operating system design");
+    }
+    if (clean.includes("software engineering") || clean === "se") {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("software engineering" + typeSuffix);
+      keys.add("software engineering (se)" + typeSuffix);
+      keys.add("software engineering");
+    }
+
+    return Array.from(keys);
   };
 
   const buildAttendanceAggregates = (attData: any[]): Record<string, { attendance_count: number; total_classes: number }> => {
@@ -1154,208 +1145,126 @@ export default function App() {
   };
 
   const getScheduledSubjectsForDate = (dateStr: string): Subject[] => {
-    try {
-      let targetDayIndex = new Date().getDay();
-      if (dateStr) {
-        const partsDate = dateStr.split("-");
-        if (partsDate.length === 3) {
-          const y = parseInt(partsDate[0], 10);
-          const m = parseInt(partsDate[1], 10) - 1;
-          const d = parseInt(partsDate[2], 10);
-          targetDayIndex = new Date(y, m, d).getDay();
+    let targetDayIndex = new Date().getDay();
+    if (dateStr) {
+      const partsDate = dateStr.split("-");
+      if (partsDate.length === 3) {
+        const y = parseInt(partsDate[0], 10);
+        const m = parseInt(partsDate[1], 10) - 1;
+        const d = parseInt(partsDate[2], 10);
+        targetDayIndex = new Date(y, m, d).getDay();
+      }
+    }
+
+    const daysMap = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
+    const targetDayId = daysMap[targetDayIndex];
+    if (targetDayId === "SUN" || targetDayId === "SAT") return subjects;
+
+    const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
+      ? profile.section.toUpperCase().trim()
+      : `A${profile.section.toUpperCase().trim()}`;
+    const semMatch = profile.semester.match(/(\d+)/);
+    const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
+
+    if (semNum !== 3 && semNum !== 5) return subjects;
+
+    const isSem5 = semNum === 5;
+    const secData = isSem5
+      ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
+      : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
+    const daySchedule = secData?.timetable[targetDayId];
+    if (!daySchedule) return subjects;
+
+    const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
+
+    Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
+      const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
+      const timeOrder = getTimeOrder(cleanSlot);
+      const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
+      if (!rawText) return;
+
+      const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
+
+      parts.forEach((partText) => {
+        const parsed = parseTimetableEntry(partText, secData.room);
+
+        // Group filter check: if user selected G1, G2, or G3, skip lab/tutorial entries for other groups
+        if (selectedLabGroup !== "All" && parsed.group && parsed.group !== selectedLabGroup) {
+          return;
         }
-      }
 
-      const daysMap = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
-      const targetDayId = daysMap[targetDayIndex];
-      if (targetDayId === "SUN" || targetDayId === "SAT") return subjects || [];
+        const targetName = parsed.splitSubjectName.toLowerCase().trim();
+        const baseLower = parsed.baseSubjectName.toLowerCase().trim();
 
-      const rawProfSec = (profile?.section || "1").toUpperCase().trim();
-      const userSecKey = rawProfSec.startsWith("A") ? rawProfSec : `A${rawProfSec}`;
-      const semMatch = (profile?.semester || "").match(/(\d+)/);
-      const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
+        // 1. Exact match on splitSubjectName
+        let matched = subjects.find(s => s.name.toLowerCase().trim() === targetName);
 
-      if (semNum !== 3 && semNum !== 5) return subjects || [];
-
-      const isSem5 = semNum === 5;
-      const secData = isSem5
-        ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
-        : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
-      const daySchedule = secData?.timetable?.[targetDayId];
-
-      const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
-
-      if (daySchedule) {
-        Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
-          const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
-          const timeOrder = getTimeOrder(cleanSlot);
-          const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
-          if (!rawText) return;
-
-          const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
-
-          parts.forEach((partText) => {
-            const parsed = parseTimetableEntry(partText, secData?.room || "AB4");
-
-            // Group filter check: if user selected G1, G2, or G3, skip lab/tutorial entries for other groups
-            if (selectedLabGroup !== "All" && parsed.group && parsed.group !== selectedLabGroup) {
-              return;
-            }
-
-            const targetName = parsed.splitSubjectName.toLowerCase().trim();
-            const baseLower = parsed.baseSubjectName.toLowerCase().trim();
-
-            let matched = (subjects || []).find(s => s.name.toLowerCase().trim() === targetName);
-
-            if (!matched) {
-              if (parsed.isLab) {
-                matched = (subjects || []).find(
-                  s =>
-                    s.name.toLowerCase().trim().includes(baseLower) &&
-                    (s.type === "LAB" || s.name.toLowerCase().includes("lab"))
-                );
-              } else if (parsed.isTutorial) {
-                matched = (subjects || []).find(
-                  s =>
-                    s.name.toLowerCase().trim().includes(baseLower) &&
-                    (s.type === "TUT" || s.name.toLowerCase().includes("tutorial"))
-                );
-              } else {
-                matched = (subjects || []).find(
-                  s =>
-                    s.name.toLowerCase().trim().includes(baseLower) &&
-                    s.type !== "LAB" &&
-                    s.type !== "TUT" &&
-                    !s.name.toLowerCase().includes("lab") &&
-                    !s.name.toLowerCase().includes("tutorial")
-                );
-              }
-            }
-
-            if (!matched) {
-              matched = (subjects || []).find(s => s.name.toLowerCase().trim().includes(baseLower));
-            }
-
-            if (matched) {
-              dayList.push({
-                ...matched,
-                rawSubjectId: matched.id,
-                time: `${cleanSlot} (${parsed.room || secData?.room || "AB4"})`,
-                prof: parsed.faculty || matched.prof,
-                type: parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC"),
-                timeOrder,
-              });
-            } else {
-              const fallbackId = `sub-${parsed.splitSubjectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-              dayList.push({
-                id: fallbackId,
-                rawSubjectId: fallbackId,
-                name: parsed.splitSubjectName,
-                code: parsed.subjectCode || "CS200",
-                prof: parsed.faculty || "Faculty",
-                room: parsed.room || secData?.room || "AB4",
-                category: "Core",
-                description: parsed.splitSubjectName,
-                time: `${cleanSlot} (${parsed.room || secData?.room || "AB4"})`,
-                type: parsed.isLab ? "LAB" : "LEC",
-                attendanceCount: 0,
-                totalClasses: 0,
-                requiredPercentage: 75,
-                timeOrder,
-              });
-            }
-          });
-        });
-      }
-
-      // ── Overlay real-time database entries from Supabase timetable table ────
-      const dayNameMap: Record<string, string[]> = {
-        "MON": ["monday", "mon"],
-        "TUE": ["tuesday", "tue"],
-        "WED": ["wednesday", "wed"],
-        "THUR": ["thursday", "thu", "thur"],
-        "FRI": ["friday", "fri"],
-        "SAT": ["saturday", "sat"],
-      };
-      const targetDayAliases = dayNameMap[targetDayId] || [targetDayId.toLowerCase()];
-
-      const dbMatches = (dbTimetableEntries || []).filter((r: any) => {
-        if (!r) return false;
-        const rSem = Number(r.semester);
-        const rSec = (r.section || "").toUpperCase().trim();
-        const rDay = (r.day || "").toLowerCase().trim();
-
-        const semOk = rSem === semNum || semNum === 0;
-        const secOk = rSec === userSecKey || rSec === rawProfSec || rSec === `SECTION ${userSecKey}` || (userSecKey && userSecKey.includes(rSec));
-        const dayOk = targetDayAliases.includes(rDay);
-
-        return semOk && secOk && dayOk;
-      });
-
-      if (dbMatches.length > 0) {
-        dbMatches.forEach((r: any) => {
-          const cleanSlot = (r.time_slot || "").trim();
-          const timeOrder = getTimeOrder(cleanSlot);
-          const subName = (r.subject_name || "").trim();
-          if (!subName) return;
-
-          const isLab = (r.type || "").toLowerCase().includes("lab");
-          const isTut = (r.type || "").toLowerCase().includes("tut");
-
-          if (selectedLabGroup !== "All" && r.group_name && r.group_name !== selectedLabGroup) {
-            return;
+        // 2. Strict Lab vs Theory component match
+        if (!matched) {
+          if (parsed.isLab) {
+            matched = subjects.find(
+              s =>
+                s.name.toLowerCase().trim().includes(baseLower) &&
+                (s.type === "LAB" || s.name.toLowerCase().includes("lab"))
+            );
+          } else if (parsed.isTutorial) {
+            matched = subjects.find(
+              s =>
+                s.name.toLowerCase().trim().includes(baseLower) &&
+                (s.type === "TUT" || s.name.toLowerCase().includes("tutorial"))
+            );
+          } else {
+            matched = subjects.find(
+              s =>
+                s.name.toLowerCase().trim().includes(baseLower) &&
+                s.type !== "LAB" &&
+                s.type !== "TUT" &&
+                !s.name.toLowerCase().includes("lab") &&
+                !s.name.toLowerCase().includes("tutorial")
+            );
           }
+        }
 
-          let matched = (subjects || []).find(s => s.name.toLowerCase().trim() === subName.toLowerCase().trim());
-          if (!matched) {
-            const normKeys = getNormalizedSubjectKeys(subName);
-            matched = (subjects || []).find(s => getNormalizedSubjectKeys(s.name).some(k => normKeys.includes(k)));
-          }
+        // 3. Fallback matching
+        if (!matched) {
+          matched = subjects.find(s => s.name.toLowerCase().trim().includes(baseLower));
+        }
 
-          const fallbackId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-          const itemObj = matched ? {
+        if (matched) {
+          dayList.push({
             ...matched,
             rawSubjectId: matched.id,
-            time: `${cleanSlot} (${r.room || secData?.room || "AB4"})`,
-            prof: r.teacher_name || r.faculty || matched.prof,
-            type: isLab ? "LAB" : (isTut ? "TUT" : "LEC"),
+            time: `${cleanSlot} (${parsed.room || secData.room})`,
+            prof: parsed.faculty || matched.prof,
+            type: parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC"),
             timeOrder,
-          } : {
+          });
+        } else {
+          // Construct fallback subject entry so all scheduled classes appear
+          const fallbackId = `sub-${parsed.splitSubjectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+          dayList.push({
             id: fallbackId,
             rawSubjectId: fallbackId,
-            name: subName,
-            code: r.subject_code || "CS200",
-            prof: r.teacher_name || r.faculty || "Faculty",
-            room: r.room || secData?.room || "AB4",
+            name: parsed.splitSubjectName,
+            code: parsed.subjectCode || "CS200",
+            prof: parsed.faculty || "Faculty",
+            room: parsed.room || secData.room,
             category: "Core",
-            description: subName,
-            time: `${cleanSlot} (${r.room || secData?.room || "AB4"})`,
-            type: isLab ? "LAB" : (isTut ? "TUT" : "LEC"),
+            description: parsed.splitSubjectName,
+            time: `${cleanSlot} (${parsed.room || secData.room})`,
+            type: parsed.isLab ? "LAB" : "LEC",
             attendanceCount: 0,
             totalClasses: 0,
-            requiredPercentage: 75,
             timeOrder,
-          };
+          });
+        }
+      });
+    });
 
-          const existingIdx = dayList.findIndex(item => item.time?.split(" ")[0] === cleanSlot);
-          if (existingIdx >= 0) {
-            dayList[existingIdx] = itemObj as any;
-          } else {
-            dayList.push(itemObj as any);
-          }
-        });
+    if (dayList.length === 0) return subjects;
 
-        dayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
-      }
-
-      if (dayList.length === 0) return subjects || [];
-
-      dayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
-      return dayList;
-    } catch (err) {
-      console.error("Error in getScheduledSubjectsForDate:", err);
-      return subjects || [];
-    }
+    dayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
+    return dayList;
   };
 
   const getTodayScheduledSubjects = (): Subject[] => {
