@@ -386,17 +386,32 @@ export default function App() {
 
       let rawSubjectNames: string[];
       if (storedSubjects.length > 0) {
-        const storedLower = storedSubjects.map((n: string) => n.toLowerCase());
-        const isStale = Object.entries(DTU_CSE_SUBJECTS).some(([semKey, semSubs]) => {
-          if (Number(semKey) === userSemNum) return false;
-          const semSubsLower = semSubs.map(s => s.toLowerCase());
-          const overlap = storedLower.filter(n => semSubsLower.includes(n)).length;
-          return semSubs.length > 0 && overlap / storedLower.length >= 0.5;
+        // Collect all subject names from OTHER semesters
+        const otherSemSubjects = new Set<string>();
+        Object.entries(DTU_CSE_SUBJECTS).forEach(([semKey, semSubs]) => {
+          if (Number(semKey) !== userSemNum) {
+            semSubs.forEach(s => otherSemSubjects.add(s.toLowerCase().trim()));
+          }
         });
-        if (isStale) {
-          // Clear stale subjects from Supabase silently
-          supabase.from("profiles").update({ subjects: [] }).eq("id", u.id).then(() => {});
-          rawSubjectNames = defaultNames;
+
+        // Current semester's known subjects
+        const currentSemSubjects = new Set((DTU_CSE_SUBJECTS[userSemNum] || []).map(s => s.toLowerCase().trim()));
+
+        // Keep item if it belongs to current semester, OR if it's not a known subject from another semester
+        const validSubjects = storedSubjects.filter(name => {
+          const lower = name.toLowerCase().trim();
+          const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
+          if (currentSemSubjects.has(lower) || currentSemSubjects.has(baseLower)) return true;
+          // If it matches another semester's known subject, filter it out as alien/stale
+          const isAlien = Array.from(otherSemSubjects).some(other => other === lower || other === baseLower);
+          return !isAlien;
+        });
+
+        // If alien subjects were filtered out, sync clean list back to Supabase
+        if (validSubjects.length !== storedSubjects.length) {
+          const merged = Array.from(new Set([...validSubjects, ...defaultNames]));
+          supabase.from("profiles").update({ subjects: merged }).eq("id", u.id).then(() => {});
+          rawSubjectNames = merged;
         } else {
           rawSubjectNames = storedSubjects;
         }
