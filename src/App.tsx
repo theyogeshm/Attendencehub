@@ -375,11 +375,31 @@ export default function App() {
       // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
       const userSemNum = parseInt((pData.semester ?? "").match(/(\d+)/)?.[1] || "3", 10);
-      const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
-      const defaultNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
-      const rawSubjectNames = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
-        ? pData.subjects
-        : defaultNames;
+      const isSem3Sub = (name: string) => {
+        const l = name.toLowerCase();
+        return l.includes("object oriented") || l.includes("algorithm") || l.includes("operating system") || l.includes("software engineering") || l.includes("digital logic") || l.includes("dld") || l.includes("daa") || l.includes("ood");
+      };
+      const isSem5Sub = (name: string) => {
+        const l = name.toLowerCase();
+        return l.includes("compiler") || l.includes("machine learning") || l.includes("information and network") || l.includes("distributed system");
+      };
+
+      let rawSubjectNames: string[] = [];
+      if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
+        if (userSemNum === 3) {
+          rawSubjectNames = pData.subjects.filter(s => !isSem5Sub(s));
+        } else if (userSemNum === 5) {
+          rawSubjectNames = pData.subjects.filter(s => !isSem3Sub(s));
+        } else {
+          // Semesters other than 3 and 5 (e.g. Sem 7) — drop Sem 3 & Sem 5 hardcoded subjects
+          rawSubjectNames = pData.subjects.filter(s => !isSem3Sub(s) && !isSem5Sub(s));
+        }
+      }
+
+      if (rawSubjectNames.length === 0) {
+        const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
+        rawSubjectNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
+      }
 
       let expandedSubjectsList: string[] = [];
       for (const name of rawSubjectNames) {
@@ -1039,16 +1059,21 @@ export default function App() {
       const semNum = semMatch ? parseInt(semMatch[0], 10) : 1;
       
       if (editProfile.branch.toLowerCase().includes("computer science") || editProfile.branch.toUpperCase() === "CSE") {
-        const cseBranch = dtuData.branches.find((b: any) => b.branch === "CSE");
-        const semData = cseBranch?.semesters.find((s: any) => s.sem === semNum);
-        const subNames = semData ? [...semData.subjects] : [];
+        const cseBranch = dtuData?.branches?.find((b: any) => b.branch === "CSE");
+        const semData = cseBranch?.semesters?.find((s: any) => s.sem === semNum);
+        let subNames = semData ? [...semData.subjects] : [];
+        if (subNames.length === 0 && DTU_CSE_SUBJECTS[semNum]) {
+          subNames = [...DTU_CSE_SUBJECTS[semNum]];
+        }
 
         if (subNames.length > 0) {
           newSubjectsList = subNames;
           setSubjects(subjectNamestoSubjects(subNames));
           showToast(`Profile updated, subjects updated for Sem ${semNum}`);
         } else {
-          showToast("Profile updated");
+          newSubjectsList = [];
+          setSubjects([]);
+          showToast(`Profile updated for Sem ${semNum}. Previous subjects cleared.`);
         }
       } else {
         newSubjectsList = [];
