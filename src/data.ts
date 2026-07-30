@@ -20,10 +20,19 @@ export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
     "Engineering Graphics II",
   ],
   2: [
-    "Basics of ML & Applications",
-    "Discrete Structures",
-    "Data Structures and Algorithms",
-    "Mathematics II",
+    "Basic ML - Theory",
+    "Basic ML - Lab",
+    "Data Structure - Theory",
+    "Data Structure - Lab",
+    "Discrete Structure - Theory",
+    "Maths II - Theory",
+    "Maths II - Tutorial",
+    "Physics - Theory",
+    "Physics - Lab",
+    "Basic ML",
+    "Data Structure",
+    "Discrete Structure",
+    "Maths II",
     "Physics",
   ],
   3: [
@@ -66,6 +75,11 @@ export const DTU_CSE_DA_SEM3_SUBJECTS: string[] = [
 export const getStandardizedBaseName = (raw: string): string => {
   if (!raw) return "";
   const lower = raw.toLowerCase().trim();
+  if (lower.includes("basic ml") || lower.includes("basics of ml")) return "Basic ML";
+  if (lower.includes("discrete structure") || lower.includes("discrete math")) return "Discrete Structure";
+  if (lower.includes("data structure") && !lower.includes("advance")) return "Data Structure";
+  if (lower.includes("maths ii") || lower.includes("maths 2") || (lower.includes("mathematics") && (lower.includes("ii") || lower.includes("2")))) return "Maths II";
+  if (lower.includes("physics")) return "Physics";
   if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) return "Object Oriented Design";
   if (lower.includes("algorithm") || lower.includes("daa")) return "Design & Analysis of Algorithm";
   if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) return "Digital Logic Design";

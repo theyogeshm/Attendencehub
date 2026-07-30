@@ -387,7 +387,7 @@ export default function App() {
       let rawSubjectNames: string[];
       if (storedSubjects.length > 0) {
         // Collect all subject names from OTHER semesters
-        const otherSemSubjects = new Set<string>();
+        const otherSemSubjects = new Set<string>(); 
         Object.entries(DTU_CSE_SUBJECTS).forEach(([semKey, semSubs]) => {
           if (Number(semKey) !== userSemNum) {
             semSubs.forEach(s => otherSemSubjects.add(s.toLowerCase().trim()));

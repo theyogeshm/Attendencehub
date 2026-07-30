@@ -17,10 +17,10 @@
         {
           "sem": 2,
           "subjects": [
-            "Basics of ML & Applications",
-            "Discrete Structures",
-            "Data Structures and Algorithms",
-            "Mathematics II",
+            "Basic ML",
+            "Data Structure",
+            "Discrete Structure",
+            "Maths II",
             "Physics"
           ]
         },
