@@ -6,6 +6,7 @@
 import { Subject, Assignment, TimetableSlot } from "./types";
 
 import { DTU_CSE_SEM5_SUBJECTS } from "./data/timetableSem5";
+import { DTU_CSE_SEM7_SUBJECTS } from "./data/timetableSem7";
 
 // ── DTU CSE Subjects by Semester ─────────────────────────────────────────────
 // NOTE: Add the real subject names for each semester below.
@@ -27,7 +28,7 @@ export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
   4: [],
   5: DTU_CSE_SEM5_SUBJECTS,
   6: [],
-  7: [],
+  7: DTU_CSE_SEM7_SUBJECTS,
   8: [],
 };
 

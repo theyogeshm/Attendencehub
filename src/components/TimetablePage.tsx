@@ -34,6 +34,10 @@ import {
   SECTION_OPTIONS_SEM_5,
   convertSem5SlotToString,
 } from "../data/timetableSem5";
+import {
+  TIMETABLE_SEM_7_DATA,
+  SECTION_OPTIONS_SEM_7,
+} from "../data/timetableSem7";
 import CustomSelect from "./CustomSelect";
 
 interface TimetablePageProps {
@@ -280,35 +284,45 @@ export default function TimetablePage({
 
   // Semester Selection - strictly derived from student's enrolled semester
   const selectedSemester = useMemo(() => {
-    // Extract numeric semester from strings like "3rd Semester", "5th Semester", "2", etc.
+    // Extract numeric semester from strings like "7th Semester", "CO-VII Semester", etc.
     if (userSemester) {
       const match = userSemester.match(/(\d+)/);
       if (match) {
         const num = parseInt(match[1], 10);
+        if (num === 7) return 7;
         if (num === 5) return 5;
         if (num === 3) return 3;
         return num; // unsupported semester - will show "not available" screen
       }
     }
     // Fallback: detect from subjects
+    if (subjects.some(s => s.name.includes("Cyber") || s.name.includes("Cloud") || s.name.includes("Big Data"))) return 7;
     if (subjects.some(s => s.name.includes("Compiler") || s.name.includes("Machine Learning"))) return 5;
     return 3;
   }, [userSemester, subjects]);
 
-  const isSemesterSupported = selectedSemester === 3 || selectedSemester === 5;
-  const currentSectionOptions = selectedSemester === 5 ? SECTION_OPTIONS_SEM_5 : SECTION_OPTIONS;
-  const currentTimetableData = selectedSemester === 5 ? TIMETABLE_SEM_5_DATA : TIMETABLE_SEM_3_DATA;
+  const isSemesterSupported = selectedSemester === 3 || selectedSemester === 5 || selectedSemester === 7;
+  const currentSectionOptions = selectedSemester === 7
+    ? SECTION_OPTIONS_SEM_7
+    : selectedSemester === 5
+    ? SECTION_OPTIONS_SEM_5
+    : SECTION_OPTIONS;
+  const currentTimetableData = selectedSemester === 7
+    ? (TIMETABLE_SEM_7_DATA as any)
+    : selectedSemester === 5
+    ? TIMETABLE_SEM_5_DATA
+    : TIMETABLE_SEM_3_DATA;
 
   // Section selection - defaults to user's section
   const [selectedSection, setSelectedSection] = useState<string>(() => {
     const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
     if (saved && (currentTimetableData?.sections as any)?.[saved]) return saved;
-    const normalizedUserSection = (userSection || "A1").toUpperCase().trim();
-    const formattedSec = normalizedUserSection.startsWith("A")
-      ? normalizedUserSection
-      : `A${normalizedUserSection}`;
+    const normalizedUserSection = (userSection || "").toUpperCase().trim();
+    const formattedSec = selectedSemester === 7
+      ? (normalizedUserSection || "E7")
+      : (normalizedUserSection.startsWith("A") ? normalizedUserSection : `A${normalizedUserSection}`);
     const match = currentSectionOptions?.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
-    return match ? match.id : (currentSectionOptions?.[0]?.id || "A1");
+    return match ? match.id : (currentSectionOptions?.[0]?.id || (selectedSemester === 7 ? "E7" : "A1"));
   });
 
   const [activeDay, setActiveDay] = useState<string>(defaultDayId);
@@ -727,7 +741,7 @@ export default function TimetablePage({
           <div className="flex items-center justify-center gap-2 pt-1">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-xs text-on-surface-variant/70 font-medium">
-              Currently live: Sem 3 &amp; Sem 5
+              Currently live: Sem 3, Sem 5 &amp; Sem 7
             </span>
           </div>
         </div>

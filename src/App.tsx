@@ -28,6 +28,7 @@ import AdminPanel from "./components/AdminPanel";
 import NotFoundPage from "./components/NotFoundPage";
 import { TIMETABLE_SEM_3_DATA, parseTimetableEntry } from "./data/timetableSem3";
 import { TIMETABLE_SEM_5_DATA, convertSem5SlotToString } from "./data/timetableSem5";
+import { TIMETABLE_SEM_7_DATA } from "./data/timetableSem7";
 
 import {
   Sun,
@@ -375,30 +376,32 @@ export default function App() {
       // Merge subjects with attendance aggregates
       let resolvedSubjects: Subject[] = [];
       const userSemNum = parseInt((pData.semester ?? "").match(/(\d+)/)?.[1] || "3", 10);
-      const isSem3Sub = (name: string) => {
-        const l = name.toLowerCase();
-        return l.includes("object oriented") || l.includes("algorithm") || l.includes("operating system") || l.includes("software engineering") || l.includes("digital logic") || l.includes("dld") || l.includes("daa") || l.includes("ood");
-      };
-      const isSem5Sub = (name: string) => {
-        const l = name.toLowerCase();
-        return l.includes("compiler") || l.includes("machine learning") || l.includes("information and network") || l.includes("distributed system");
-      };
+      const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
+      const defaultNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
 
-      let rawSubjectNames: string[] = [];
-      if (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0) {
-        if (userSemNum === 3) {
-          rawSubjectNames = pData.subjects.filter(s => !isSem5Sub(s));
-        } else if (userSemNum === 5) {
-          rawSubjectNames = pData.subjects.filter(s => !isSem3Sub(s));
+      // Detect stale subjects: if stored subjects belong to a DIFFERENT semester, discard them
+      const storedSubjects: string[] = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
+        ? pData.subjects as string[]
+        : [];
+
+      let rawSubjectNames: string[];
+      if (storedSubjects.length > 0) {
+        const storedLower = storedSubjects.map((n: string) => n.toLowerCase());
+        const isStale = Object.entries(DTU_CSE_SUBJECTS).some(([semKey, semSubs]) => {
+          if (Number(semKey) === userSemNum) return false;
+          const semSubsLower = semSubs.map(s => s.toLowerCase());
+          const overlap = storedLower.filter(n => semSubsLower.includes(n)).length;
+          return semSubs.length > 0 && overlap / storedLower.length >= 0.5;
+        });
+        if (isStale) {
+          // Clear stale subjects from Supabase silently
+          supabase.from("profiles").update({ subjects: [] }).eq("id", u.id).then(() => {});
+          rawSubjectNames = defaultNames;
         } else {
-          // Semesters other than 3 and 5 (e.g. Sem 7) — drop Sem 3 & Sem 5 hardcoded subjects
-          rawSubjectNames = pData.subjects.filter(s => !isSem3Sub(s) && !isSem5Sub(s));
+          rawSubjectNames = storedSubjects;
         }
-      }
-
-      if (rawSubjectNames.length === 0) {
-        const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
-        rawSubjectNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
+      } else {
+        rawSubjectNames = defaultNames;
       }
 
       let expandedSubjectsList: string[] = [];
@@ -1059,21 +1062,19 @@ export default function App() {
       const semNum = semMatch ? parseInt(semMatch[0], 10) : 1;
       
       if (editProfile.branch.toLowerCase().includes("computer science") || editProfile.branch.toUpperCase() === "CSE") {
-        const cseBranch = dtuData?.branches?.find((b: any) => b.branch === "CSE");
-        const semData = cseBranch?.semesters?.find((s: any) => s.sem === semNum);
-        let subNames = semData ? [...semData.subjects] : [];
-        if (subNames.length === 0 && DTU_CSE_SUBJECTS[semNum]) {
-          subNames = [...DTU_CSE_SUBJECTS[semNum]];
-        }
+        const cseBranch = dtuData.branches.find((b: any) => b.branch === "CSE");
+        const semData = cseBranch?.semesters.find((s: any) => s.sem === semNum);
+        const subNames = semData ? [...semData.subjects] : [];
 
         if (subNames.length > 0) {
           newSubjectsList = subNames;
           setSubjects(subjectNamestoSubjects(subNames));
           showToast(`Profile updated, subjects updated for Sem ${semNum}`);
         } else {
+          // No predefined subjects for this semester — explicitly clear stale subjects
           newSubjectsList = [];
           setSubjects([]);
-          showToast(`Profile updated for Sem ${semNum}. Previous subjects cleared.`);
+          showToast(`Profile updated for Sem ${semNum}. Add your subjects from the Subjects page.`);
         }
       } else {
         newSubjectsList = [];
@@ -1359,16 +1360,30 @@ export default function App() {
     const semMatch = profile.semester.match(/(\d+)/);
     const semNum = semMatch ? parseInt(semMatch[1], 10) : 0;
 
+    // Resolve section key: Sem 7 uses E-prefixed keys (E7, E8...), Sem 3/5 use A-prefixed
     const isSem5 = semNum === 5;
     const isSem3 = semNum === 3;
+    const isSem7 = semNum === 7;
+
+    // Sem 7 section key: use raw section as-is (E7, E8, E9, E10), fallback to E7
+    const sem7SecKey = profile.section.toUpperCase().trim();
+    const sem7SecData = TIMETABLE_SEM_7_DATA.sections[sem7SecKey] ||
+      TIMETABLE_SEM_7_DATA.sections[sem7SecKey.replace(/^[AaBb]/, "E")] ||
+      TIMETABLE_SEM_7_DATA.sections["E7"];
+
+    const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
+      ? profile.section.toUpperCase().trim()
+      : `A${profile.section.toUpperCase().trim()}`;
     const secData = isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
-    const daySchedule = (isSem3 || isSem5) ? (secData?.timetable[targetDayId] || {}) : {};
+
+    const activeSec = isSem7 ? sem7SecData : secData;
+    const daySchedule = (isSem3 || isSem5 || isSem7) ? (activeSec?.timetable[targetDayId] || {}) : {};
 
     const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
-    if (isSem3 || isSem5) {
+    if (isSem3 || isSem5 || isSem7) {
 
     Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
       const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
@@ -1390,7 +1405,7 @@ export default function App() {
           const subName = row.subject_name || row.subject || "";
           const code    = row.subject_code  || row.code    || "";
           const prof    = row.teacher_name  || row.faculty  || "";
-          const rm      = row.room || secData.room;
+          const rm      = row.room || activeSec?.room;
           const grp     = row.group_name    || row.group    || "";
           return [subName, code ? `[${code}]` : "", prof ? `[${prof}]` : "", rm ? `[${rm}]` : "", grp ? `[${grp}]` : ""].filter(Boolean).join(" ");
         };
@@ -1404,7 +1419,7 @@ export default function App() {
       const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
 
       parts.forEach((partText) => {
-        const parsed = parseTimetableEntry(partText, secData.room);
+        const parsed = parseTimetableEntry(partText, activeSec?.room || "");
 
 
         // Group filter check: if user selected G1, G2, or G3, skip lab/tutorial entries for other groups
@@ -1477,10 +1492,10 @@ export default function App() {
             name: parsed.splitSubjectName,
             code: parsed.subjectCode || "CS200",
             prof: parsed.faculty || "Faculty",
-            room: parsed.room || secData.room,
+            room: parsed.room || activeSec?.room || "",
             category: "Core",
             description: parsed.splitSubjectName,
-            time: `${cleanSlot} (${parsed.room || secData.room})`,
+            time: `${cleanSlot} (${parsed.room || activeSec?.room || ""})`,
             type: parsed.isLab ? "LAB" : "LEC",
             attendanceCount: 0,
             totalClasses: 0,
@@ -1509,7 +1524,7 @@ export default function App() {
         const subName = r.subject_name || r.subject || "";
         const code = r.subject_code || r.code || "";
         const prof = r.teacher_name || r.faculty || "Faculty";
-        const rm = r.room || secData.room;
+        const rm = r.room || activeSec?.room || "";
         const fallbackId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
 
         let matched = subjects.find(s => s.name.toLowerCase().trim() === subName.toLowerCase().trim());
