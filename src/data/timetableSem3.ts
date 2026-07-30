@@ -429,6 +429,10 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
     else if (code.startsWith("CS311")) baseSubjectName = "Information Theory and Coding";
     else if (code.startsWith("CS313")) baseSubjectName = "Quantum Computing";
     else if (code.startsWith("CS315")) baseSubjectName = "Advance Data Structure";
+    else if (code.startsWith("CS411")) baseSubjectName = "Cyber Vulnerability & Ethical Hacking";
+    else if (code.startsWith("CS425")) baseSubjectName = "Cloud Computing";
+    else if (code.startsWith("CS421")) baseSubjectName = "Advance Web Technology";
+    else if (code.startsWith("CS423")) baseSubjectName = "Big Data Analytics";
     else if (code.includes("HU301")) baseSubjectName = "Humanities Elective (EE HU301)";
     else if (code.startsWith("DA201")) baseSubjectName = "Design & Analysis of Algorithm";
     else if (code.startsWith("DA203")) baseSubjectName = "Foundation to Data Science";
@@ -438,7 +442,15 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   }
 
   if (!baseSubjectName) {
-    if (lower.includes("compiler design") || lower.includes("cd")) {
+    if (lower.includes("cyber vulnerability") || lower.includes("ethical hacking") || lower.includes("cs411")) {
+      baseSubjectName = "Cyber Vulnerability & Ethical Hacking";
+    } else if (lower.includes("cloud computing") || lower.includes("cs425")) {
+      baseSubjectName = "Cloud Computing";
+    } else if (lower.includes("advance web technology") || lower.includes("web technology") || lower.includes("cs421")) {
+      baseSubjectName = "Advance Web Technology";
+    } else if (lower.includes("big data analytics") || lower.includes("big data") || lower.includes("cs423")) {
+      baseSubjectName = "Big Data Analytics";
+    } else if (lower.includes("compiler design") || lower.includes("cd")) {
       baseSubjectName = "Compiler Design";
     } else if (lower.includes("machine learning") || lower.includes("ml")) {
       baseSubjectName = "Machine Learning";

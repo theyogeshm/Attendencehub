@@ -650,6 +650,24 @@ export default function App() {
       keys.add("software engineering (se)" + typeSuffix);
       keys.add("software engineering");
     }
+    if (clean.includes("cyber vulnerability") || clean.includes("ethical hacking") || clean.includes("cs411")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("cyber vulnerability & ethical hacking" + typeSuffix);
+      keys.add("cyber vulnerability and ethical hacking" + typeSuffix);
+    }
+    if (clean.includes("cloud computing") || clean.includes("cs425")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("cloud computing" + typeSuffix);
+    }
+    if (clean.includes("advance web technology") || clean.includes("web technology") || clean.includes("cs421")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("advance web technology" + typeSuffix);
+      keys.add("advanced web technology" + typeSuffix);
+    }
+    if (clean.includes("big data analytics") || clean.includes("big data") || clean.includes("cs423")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("big data analytics" + typeSuffix);
+    }
 
     return Array.from(keys);
   };
@@ -1364,11 +1382,18 @@ export default function App() {
     const isSem3 = semNum === 3;
     const isSem7 = semNum === 7;
 
-    // Sem 7 section key: use raw section as-is (E7, E8, E9, E10), fallback to E7
-    const sem7SecKey = profile.section.toUpperCase().trim();
-    const sem7SecData = TIMETABLE_SEM_7_DATA.sections[sem7SecKey] ||
-      TIMETABLE_SEM_7_DATA.sections[sem7SecKey.replace(/^[AaBb]/, "E")] ||
-      TIMETABLE_SEM_7_DATA.sections["E7"];
+    // Sem 7 section key: use raw section as-is (E7, E8, E9, E10).
+    // If the section is empty (e.g. E1/E5 or default A1), fall back to E7 so classes always render
+    const getSem7SecData = (secStr: string) => {
+      const rawSec = secStr.toUpperCase().trim();
+      const mapped = rawSec.replace(/^[AaBb]/, "E");
+      const cand1 = TIMETABLE_SEM_7_DATA.sections[rawSec];
+      if (cand1 && cand1.timetable && Object.keys(cand1.timetable).length > 0) return cand1;
+      const cand2 = TIMETABLE_SEM_7_DATA.sections[mapped];
+      if (cand2 && cand2.timetable && Object.keys(cand2.timetable).length > 0) return cand2;
+      return TIMETABLE_SEM_7_DATA.sections["E7"];
+    };
+    const sem7SecData = getSem7SecData(profile.section);
 
     const userSecKey = profile.section.toUpperCase().trim().startsWith("A")
       ? profile.section.toUpperCase().trim()

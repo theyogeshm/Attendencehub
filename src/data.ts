@@ -57,6 +57,10 @@ export const getStandardizedBaseName = (raw: string): string => {
   if (lower.includes("machine learning") || lower.includes("ml")) return "Machine Learning";
   if (lower.includes("information and network security") || lower.includes("ins")) return "Information and Network Security";
   if (lower.includes("distributed system") || lower.includes("dis")) return "Distributed Systems";
+  if (lower.includes("cyber vulnerability") || lower.includes("ethical hacking") || lower.includes("cs411")) return "Cyber Vulnerability & Ethical Hacking";
+  if (lower.includes("cloud computing") || lower.includes("cs425")) return "Cloud Computing";
+  if (lower.includes("advance web technology") || lower.includes("web technology") || lower.includes("cs421")) return "Advance Web Technology";
+  if (lower.includes("big data analytics") || lower.includes("big data") || lower.includes("cs423")) return "Big Data Analytics";
   return raw;
 };
 
