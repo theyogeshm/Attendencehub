@@ -301,13 +301,13 @@ export default function TimetablePage({
   // Section selection - defaults to user's section
   const [selectedSection, setSelectedSection] = useState<string>(() => {
     const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
-    if (saved && (currentTimetableData.sections as any)[saved]) return saved;
-    const normalizedUserSection = userSection.toUpperCase().trim();
+    if (saved && (currentTimetableData?.sections as any)?.[saved]) return saved;
+    const normalizedUserSection = (userSection || "A1").toUpperCase().trim();
     const formattedSec = normalizedUserSection.startsWith("A")
       ? normalizedUserSection
       : `A${normalizedUserSection}`;
-    const match = currentSectionOptions.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
-    return match ? match.id : "A1";
+    const match = currentSectionOptions?.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
+    return match ? match.id : (currentSectionOptions?.[0]?.id || "A1");
   });
 
   const [activeDay, setActiveDay] = useState<string>(defaultDayId);
@@ -340,14 +340,17 @@ export default function TimetablePage({
   // Sync section when sem changes
   useEffect(() => {
     const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
-    if (saved) {
+    if (saved && (currentTimetableData?.sections as any)?.[saved]) {
       setSelectedSection(saved);
     } else {
-      const match = currentSectionOptions.find(
-        (s) => s.id.toLowerCase() === userSection.toLowerCase() || s.label.toLowerCase().includes(userSection.toLowerCase())
+      const uSec = (userSection || "").toLowerCase();
+      const match = currentSectionOptions?.find(
+        (s) => s.id.toLowerCase() === uSec || s.label.toLowerCase().includes(uSec)
       );
       if (match) {
         setSelectedSection(match.id);
+      } else {
+        setSelectedSection(currentSectionOptions?.[0]?.id || "A1");
       }
     }
   }, [userSection, selectedSemester]);
@@ -357,8 +360,10 @@ export default function TimetablePage({
     localStorage.setItem(`dtu_timetable_section_sem${selectedSemester}`, selectedSection);
   }, [selectedSection, selectedSemester]);
 
-  const sectionData = (currentTimetableData.sections as any)[selectedSection] || (currentTimetableData.sections as any)["A1"];
-  const sectionMeta = currentSectionOptions.find((s) => s.id === selectedSection) || currentSectionOptions[0];
+  const sectionData = (currentTimetableData?.sections as any)?.[selectedSection] ||
+                      (currentTimetableData?.sections as any)?.[Object.keys(currentTimetableData?.sections || {})[0]] ||
+                      { timetable: {}, room: "AB4-204" };
+  const sectionMeta = currentSectionOptions?.find((s) => s.id === selectedSection) || currentSectionOptions?.[0] || { id: "A1", label: "Section A1" };
 
   const isDayMatch = (dbDay: string, tDay: string) => {
     if (!dbDay || !tDay) return false;

@@ -1655,13 +1655,14 @@ export default function App() {
               <Route path="/timetable" element={
                 <TimetablePage
                   subjects={subjects}
-                  userSection={profile.section}
-                  userSemester={profile.semester}
+                  userSection={profile?.section || "A1"}
+                  userSemester={profile?.semester || "3rd Semester"}
                   isDarkMode={isDarkMode}
                   selectedLabGroup={selectedLabGroup}
                   onSelectLabGroup={setSelectedLabGroup}
                   onMarkAttendance={(id, isPresent) => handleMarkAttendance(id, isPresent ? "present" : "absent")}
                   onUpdateSubjectHours={handleUpdateSubjectHours}
+                  dbTimetableEntries={dbTimetableEntries}
                 />
               } />
               <Route path="/analytics" element={
