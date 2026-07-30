@@ -65,12 +65,17 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
         if (!error && data) {
           const map: Record<string, number> = {};
           data.forEach((row: { subject: string }) => {
-            const key = row.subject
+            const rawBase = (row.subject || "")
               .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
               .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
-              .toLowerCase()
               .trim();
+            const stdName = getStandardizedBaseName(rawBase);
+            const key = stdName.toLowerCase().trim();
             map[key] = (map[key] ?? 0) + 1;
+            const rawKey = rawBase.toLowerCase().trim();
+            if (rawKey !== key) {
+              map[rawKey] = (map[rawKey] ?? 0) + 1;
+            }
           });
           setCountMap(map);
           break;

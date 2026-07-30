@@ -149,16 +149,35 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         const { data, error } = await supabase
           .from(tableName)
           .select("*")
-          .ilike("subject", decodedName)
           .order("year", { ascending: false });
 
         if (!error && data && data.length > 0) {
-          const rows = data as DbResource[];
-          setResources(rows);
-          const nonSyllabus = rows.filter(r => !r.tab_type.toLowerCase().includes("syllabus"));
-          const defaultTab = (nonSyllabus.length > 0 ? nonSyllabus[0] : rows[0])?.tab_type ?? "";
-          setActiveTab(defaultTab);
-          break;
+          const allRows = data as DbResource[];
+          const decStd = getStandardizedBaseName(decodedName);
+
+          const matchingRows = allRows.filter((r) => {
+            const rRawBase = (r.subject || "")
+              .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+              .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+              .trim();
+            const rStd = getStandardizedBaseName(rRawBase);
+
+            return (
+              rStd.toLowerCase() === decStd.toLowerCase() ||
+              rStd.toLowerCase() === decodedName.toLowerCase() ||
+              rRawBase.toLowerCase() === decodedName.toLowerCase() ||
+              rRawBase.toLowerCase().includes(decodedName.toLowerCase()) ||
+              decodedName.toLowerCase().includes(rRawBase.toLowerCase())
+            );
+          });
+
+          if (matchingRows.length > 0) {
+            setResources(matchingRows);
+            const nonSyllabus = matchingRows.filter(r => !r.tab_type.toLowerCase().includes("syllabus"));
+            const defaultTab = (nonSyllabus.length > 0 ? nonSyllabus[0] : matchingRows[0])?.tab_type ?? "";
+            setActiveTab(defaultTab);
+            break;
+          }
         }
       }
       setLoading(false);
