@@ -681,92 +681,204 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 2: Timetable Manager
 // ══════════════════════════════════════════════════════════════════════════════
+interface TimetableRow {
+  id?: string;
+  semester: number;
+  section: string;
+  day: string;
+  time_slot: string;
+  subject_name: string;
+  subject_code?: string;
+  type: string;
+  teacher_name?: string;
+  room?: string;
+  group_name?: string;
+  created_at?: string;
+}
+
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+const TYPES = ["Theory Lecture", "Lab Session", "Tutorial"] as const;
+
 function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
   const { toast, show } = useToast();
 
-  const [semester, setSemester] = useState<number>(3);
-  const [section,  setSection]  = useState<string>("1");
-  const [grid,     setGrid]     = useState<TimetableGrid>({});
-  const [saving,   setSaving]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
+  // Form Fields State
+  const [semester,     setSemester]     = useState<number>(3);
+  const [section,      setSection]      = useState<string>("A3");
+  const [day,          setDay]          = useState<string>("Monday");
+  const [timeSlot,     setTimeSlot]     = useState<string>("9-10");
+  const [subjectName,  setSubjectName]  = useState<string>("");
+  const [subjectCode,  setSubjectCode]  = useState<string>("");
+  const [type,         setType]         = useState<string>("Theory Lecture");
+  const [teacherName,  setTeacherName]  = useState<string>("");
+  const [room,         setRoom]         = useState<string>("");
+  const [group,        setGroup]        = useState<string>("");
 
-  const emptyGrid = useCallback((): TimetableGrid => {
-    const g: TimetableGrid = {};
-    DAYS.forEach(d => {
-      g[d] = {};
-      TIME_SLOTS.forEach(t => { g[d][t] = { subject: "", room: "", type: "" }; });
-    });
-    return g;
-  }, []);
+  const [saving, setSaving] = useState(false);
 
-  const loadTimetable = useCallback(async () => {
+  // Table Filter State
+  const [filterSem, setFilterSem] = useState<number | "All">(3);
+  const [filterSec, setFilterSec] = useState<string>("A3");
+
+  // Timetable Entries List
+  const [entries,    setEntries]    = useState<TimetableRow[]>([]);
+  const [loading,    setLoading]    = useState<boolean>(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fetchTimetable = useCallback(async () => {
     setLoading(true);
-    const g = emptyGrid();
-    const { data, error } = await supabase
-      .from("timetable")
-      .select("*")
-      .eq("semester", semester)
-      .eq("section", section);
+    let query = supabase.from("timetable").select("*");
+
+    if (filterSem !== "All") {
+      query = query.eq("semester", filterSem);
+    }
+    if (filterSec.trim()) {
+      query = query.eq("section", filterSec.trim().toUpperCase());
+    }
+
+    const { data, error } = await query.order("semester", { ascending: true }).order("day", { ascending: true });
 
     if (!error && data) {
-      data.forEach((row: any) => {
-        if (g[row.day] && g[row.day][row.time_slot] !== undefined) {
-          g[row.day][row.time_slot] = {
-            subject: row.subject_name ?? "",
-            room:    row.room ?? "",
-            type:    row.type ?? "",
-          };
-        }
-      });
+      const mapped: TimetableRow[] = data.map((r: any) => ({
+        id: r.id,
+        semester: Number(r.semester ?? 3),
+        section: r.section ?? "",
+        day: r.day ?? "Monday",
+        time_slot: r.time_slot ?? "",
+        subject_name: r.subject_name ?? r.subject ?? "",
+        subject_code: r.subject_code ?? r.code ?? "",
+        type: r.type ?? "Theory Lecture",
+        teacher_name: r.teacher_name ?? r.faculty ?? "",
+        room: r.room ?? "",
+        group_name: r.group_name ?? r.group ?? "",
+        created_at: r.created_at,
+      }));
+      setEntries(mapped);
+    } else {
+      setEntries([]);
     }
-    setGrid(g);
     setLoading(false);
-  }, [semester, section, emptyGrid]);
+  }, [filterSem, filterSec]);
 
-  useEffect(() => { loadTimetable(); }, [loadTimetable]);
+  useEffect(() => {
+    fetchTimetable();
+  }, [fetchTimetable]);
 
-  const updateCell = (day: string, slot: string, field: keyof TimetableCell, value: string) => {
-    setGrid(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [slot]: { ...prev[day][slot], [field]: value },
-      },
-    }));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subjectName.trim()) {
+      show("Please enter a subject name.", false);
+      return;
+    }
+    if (!timeSlot.trim()) {
+      show("Please enter a time slot (e.g. 9-10).", false);
+      return;
+    }
+    if (!section.trim()) {
+      show("Please enter a section (e.g. A3).", false);
+      return;
+    }
+
+    setSaving(true);
+    const secClean = section.trim().toUpperCase();
+    const slotClean = timeSlot.trim();
+    const subClean = subjectName.trim();
+    const codeClean = subjectCode.trim() || null;
+    const teacherClean = teacherName.trim() || null;
+    const roomClean = room.trim() || null;
+    const groupClean = group.trim() || null;
+
+    const payload = {
+      semester,
+      section: secClean,
+      day,
+      time_slot: slotClean,
+      subject_name: subClean,
+      subject_code: codeClean,
+      type,
+      teacher_name: teacherClean,
+      faculty: teacherClean,
+      room: roomClean,
+      group_name: groupClean,
+      group: groupClean,
+    };
+
+    // Check if record exists for same (semester, section, day, time_slot)
+    const { data: existing } = await supabase
+      .from("timetable")
+      .select("id")
+      .eq("semester", semester)
+      .eq("section", secClean)
+      .eq("day", day)
+      .eq("time_slot", slotClean);
+
+    let err = null;
+    if (existing && existing.length > 0) {
+      // Overwrite existing record
+      const { error: updateErr } = await supabase
+        .from("timetable")
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq("id", existing[0].id);
+      err = updateErr;
+    } else {
+      // Upsert with onConflict on (semester, section, day, time_slot)
+      const { error: upsertErr } = await supabase
+        .from("timetable")
+        .upsert(payload, { onConflict: "semester,section,day,time_slot" });
+
+      if (upsertErr) {
+        // Fallback insert if onConflict failover
+        const { error: insertErr } = await supabase
+          .from("timetable")
+          .insert(payload);
+        err = insertErr;
+      } else {
+        err = upsertErr;
+      }
+    }
+
+    setSaving(false);
+
+    if (err) {
+      show("Save failed: " + err.message, false);
+    } else {
+      show(`Saved entry: Sem ${semester} ${secClean} - ${day} ${slotClean} (${subClean}) ✓`);
+      setSubjectName("");
+      setSubjectCode("");
+      setTeacherName("");
+      setRoom("");
+      setGroup("");
+      fetchTimetable();
+    }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    await supabase.from("timetable")
-      .delete()
-      .eq("semester", semester)
-      .eq("section", section);
+  const handleDelete = async (r: TimetableRow) => {
+    const rowId = r.id || `${r.semester}-${r.section}-${r.day}-${r.time_slot}`;
+    setDeletingId(rowId);
 
-    const rows: any[] = [];
-    DAYS.forEach(day => {
-      TIME_SLOTS.forEach(slot => {
-        const cell = grid[day]?.[slot];
-        if (cell?.subject?.trim()) {
-          rows.push({
-            semester,
-            section,
-            day,
-            time_slot:    slot,
-            subject_name: cell.subject.trim(),
-            room:         cell.room.trim() || null,
-            type:         cell.type || "LEC",
-          });
-        }
-      });
-    });
-
-    if (rows.length > 0) {
-      const { error } = await supabase.from("timetable").insert(rows);
-      if (error) { show("Save failed: " + error.message, false); setSaving(false); return; }
+    let delErr = null;
+    if (r.id) {
+      const { error } = await supabase.from("timetable").delete().eq("id", r.id);
+      delErr = error;
+    } else {
+      const { error } = await supabase
+        .from("timetable")
+        .delete()
+        .eq("semester", r.semester)
+        .eq("section", r.section)
+        .eq("day", r.day)
+        .eq("time_slot", r.time_slot);
+      delErr = error;
     }
 
-    show(`Timetable saved — Sem ${semester}, Section ${section} (${rows.length} slots) ✓`);
-    setSaving(false);
+    setDeletingId(null);
+
+    if (delErr) {
+      show("Delete failed: " + delErr.message, false);
+    } else {
+      show(`Deleted timetable entry (${r.day} ${r.time_slot}) ✓`);
+      fetchTimetable();
+    }
   };
 
   const INP = getInpStyle(isDarkMode);
@@ -775,7 +887,7 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
   const BTN_SECONDARY = getBtnSecondary(isDarkMode);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {toast && (
         <div className={`flex items-center gap-2 p-3 rounded-lg text-sm font-semibold ${toast.ok ? "bg-green-900/40 border border-green-500/40 text-green-300" : "bg-red-900/40 border border-red-500/40 text-red-300"}`}>
           {toast.ok ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
@@ -783,93 +895,217 @@ function TimetableManager({ isDarkMode }: { isDarkMode: boolean }) {
         </div>
       )}
 
+      {/* ── Form Card ── */}
       <div className={getCardStyle(isDarkMode)}>
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester</label>
-            <select value={semester} onChange={e => setSemester(Number(e.target.value))} className={`${SEL} w-36`}>
-              {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
-            </select>
+        <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-600"}`}>
+          <Plus className="w-4 h-4" />
+          Add / Update Timetable Entry
+        </h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Semester *</label>
+              <select value={semester} onChange={e => setSemester(Number(e.target.value))} className={SEL}>
+                {SEMESTERS.map(s => (
+                  <option key={s} value={s}>Semester {s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Section *</label>
+              <input
+                type="text"
+                value={section}
+                onChange={e => setSection(e.target.value)}
+                placeholder="e.g. A1, A3, B1"
+                className={INP}
+              />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Day *</label>
+              <select value={day} onChange={e => setDay(e.target.value)} className={SEL}>
+                {WEEKDAYS.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Time Slot *</label>
+              <input
+                type="text"
+                value={timeSlot}
+                onChange={e => setTimeSlot(e.target.value)}
+                placeholder="e.g. 9-10, 10-12, 2-4"
+                className={INP}
+              />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Name *</label>
+              <input
+                type="text"
+                value={subjectName}
+                onChange={e => setSubjectName(e.target.value)}
+                placeholder="e.g. Digital Logic Design"
+                className={INP}
+              />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Subject Code</label>
+              <input
+                type="text"
+                value={subjectCode}
+                onChange={e => setSubjectCode(e.target.value)}
+                placeholder="e.g. CS207"
+                className={INP}
+              />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Type *</label>
+              <select value={type} onChange={e => setType(e.target.value)} className={SEL}>
+                {TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Teacher Name</label>
+              <input
+                type="text"
+                value={teacherName}
+                onChange={e => setTeacherName(e.target.value)}
+                placeholder="e.g. Dr. Gunjan Chugh"
+                className={INP}
+              />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Room</label>
+              <input
+                type="text"
+                value={room}
+                onChange={e => setRoom(e.target.value)}
+                placeholder="e.g. AB4-303"
+                className={INP}
+              />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Group (Optional)</label>
+              <input
+                type="text"
+                value={group}
+                onChange={e => setGroup(e.target.value)}
+                placeholder="e.g. G1, G2"
+                className={INP}
+              />
+            </div>
           </div>
-          <div>
-            <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>Section</label>
-            <select value={section} onChange={e => setSection(e.target.value)} className={`${SEL} w-28`}>
-              {SECTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={loadTimetable} disabled={loading} className={BTN_SECONDARY}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Load
-            </button>
-            <button onClick={handleSave} disabled={saving} className={BTN_PRIMARY}>
+
+          <div className="pt-2 flex items-center gap-3">
+            <button type="submit" disabled={saving} className={BTN_PRIMARY}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save Timetable
+              Save Timetable Entry
             </button>
           </div>
-        </div>
+        </form>
       </div>
 
-      {loading ? (
-        <div className={`flex items-center justify-center py-16 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-500"}`}>
-          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading timetable...
+      {/* ── Table Container ── */}
+      <div className={getCardStyle(isDarkMode)}>
+        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200/20 flex-wrap">
+          <h3 className={`text-sm font-bold ${isDarkMode ? "text-[#dae2fd]" : "text-slate-900"}`}>
+            Timetable Entries ({entries.length})
+          </h3>
+          <div className="flex gap-2 flex-wrap items-center">
+            <select
+              value={filterSem}
+              onChange={e => setFilterSem(e.target.value === "All" ? "All" : Number(e.target.value))}
+              className={`${SEL} w-32`}
+            >
+              <option value="All">All Sems</option>
+              {SEMESTERS.map(s => <option key={s} value={s}>Sem {s}</option>)}
+            </select>
+            <input
+              type="text"
+              value={filterSec}
+              onChange={e => setFilterSec(e.target.value)}
+              placeholder="Section e.g. A3"
+              className={`${INP} w-32`}
+            />
+            <button onClick={fetchTimetable} className={BTN_SECONDARY}>
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className={getCardStyle(isDarkMode)}>
+
+        {loading ? (
+          <div className={`flex items-center justify-center py-12 ${isDarkMode ? "text-[#bacbbf]" : "text-slate-500"}`}>
+            <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading timetable...
+          </div>
+        ) : entries.length === 0 ? (
+          <div className={`text-center py-12 text-sm ${isDarkMode ? "text-[#4a5568]" : "text-slate-400"}`}>
+            No timetable entries found for Semester {filterSem} Section "{filterSec}".
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className={isDarkMode ? "bg-[#0d1525]" : "bg-slate-100"}>
-                  <th className={`px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider w-36 border-r ${isDarkMode ? "text-[#bacbbf] border-[#1f2d3d]" : "text-slate-700 border-slate-200"}`}>Time Slot</th>
-                  {DAYS.map(d => (
-                    <th key={d} className={`px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider border-r last:border-r-0 ${isDarkMode ? "text-[#82ffc8] border-[#1f2d3d]" : "text-emerald-700 border-slate-200"}`}>
-                      {d}
-                    </th>
+            <table className="w-full text-xs">
+              <thead className={isDarkMode ? "bg-[#0d1525]" : "bg-slate-100 border-b border-slate-200"}>
+                <tr>
+                  {["Sem", "Sec", "Day", "Time Slot", "Subject Name", "Code", "Type", "Teacher", "Room", "Group", ""].map(h => (
+                    <th key={h} className={`text-left px-3 py-3 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${isDarkMode ? "text-[#bacbbf]" : "text-slate-700"}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {TIME_SLOTS.map((slot, si) => (
-                  <tr key={slot} className={`border-t ${isDarkMode ? "border-[#1f2d3d]" : "border-slate-200"} ${si % 2 === 0 ? (isDarkMode ? "bg-[#0d1525]/30" : "bg-slate-50/50") : ""}`}>
-                    <td className={`px-3 py-2 text-[11px] border-r whitespace-nowrap ${isDarkMode ? "text-[#bacbbf] border-[#1f2d3d]" : "text-slate-700 border-slate-200 font-semibold"}`}>{slot}</td>
-                    {DAYS.map(day => {
-                      const cell = grid[day]?.[slot] ?? { subject: "", room: "", type: "" };
-                      return (
-                        <td key={day} className={`p-1.5 border-r last:border-r-0 min-w-[130px] ${isDarkMode ? "border-[#1f2d3d]" : "border-slate-200"}`}>
-                          <div className="space-y-1">
-                            <input
-                              value={cell.subject}
-                              onChange={e => updateCell(day, slot, "subject", e.target.value)}
-                              placeholder="Subject"
-                              className={`${INP} py-1 text-xs`}
-                            />
-                            <div className="flex gap-1">
-                              <input
-                                value={cell.room}
-                                onChange={e => updateCell(day, slot, "room", e.target.value)}
-                                placeholder="Room"
-                                className={`${INP} py-0.5 text-[10px] w-1/2`}
-                              />
-                              <select
-                                value={cell.type}
-                                onChange={e => updateCell(day, slot, "type", e.target.value as any)}
-                                className={`${SEL} py-0.5 text-[10px] w-1/2`}
-                              >
-                                <option value="">LEC</option>
-                                <option value="LAB">LAB</option>
-                              </select>
-                            </div>
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {entries.map((r, i) => {
+                  const rowKey = r.id || `${r.semester}-${r.section}-${r.day}-${r.time_slot}`;
+                  return (
+                    <tr key={rowKey} className={`border-t ${isDarkMode ? "border-[#1f2d3d] hover:bg-[#0d1525]/50" : "border-slate-200 hover:bg-slate-50 text-slate-800"} ${i % 2 === 0 ? "" : (isDarkMode ? "bg-[#0d1525]/20" : "bg-slate-50/40")}`}>
+                      <td className={`px-3 py-3 font-semibold ${isDarkMode ? "text-[#dae2fd]" : "text-slate-900"}`}>{r.semester}</td>
+                      <td className={`px-3 py-3 font-bold ${isDarkMode ? "text-[#82ffc8]" : "text-emerald-700"}`}>{r.section}</td>
+                      <td className={`px-3 py-3 font-medium ${isDarkMode ? "text-[#bacbbf]" : "text-slate-700"}`}>{r.day}</td>
+                      <td className={`px-3 py-3 font-mono font-semibold ${isDarkMode ? "text-[#dae2fd]" : "text-slate-800"}`}>{r.time_slot}</td>
+                      <td className={`px-3 py-3 font-bold max-w-[160px] truncate ${isDarkMode ? "text-[#dae2fd]" : "text-slate-900"}`}>{r.subject_name}</td>
+                      <td className={`px-3 py-3 font-mono text-[11px] ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.subject_code ?? "—"}</td>
+                      <td className="px-3 py-3">
+                        <span className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase ${
+                          r.type.toLowerCase().includes("lab") ? (isDarkMode ? "bg-purple-500/20 text-purple-300" : "bg-purple-100 text-purple-700")
+                          : r.type.toLowerCase().includes("tut") ? (isDarkMode ? "bg-amber-500/20 text-amber-300" : "bg-amber-100 text-amber-700")
+                          : (isDarkMode ? "bg-[#82ffc8]/10 text-[#82ffc8]" : "bg-emerald-100 text-emerald-700")
+                        }`}>
+                          {r.type}
+                        </span>
+                      </td>
+                      <td className={`px-3 py-3 max-w-[140px] truncate ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.teacher_name ?? "—"}</td>
+                      <td className={`px-3 py-3 font-mono text-[11px] ${isDarkMode ? "text-[#bacbbf]" : "text-slate-600"}`}>{r.room ?? "—"}</td>
+                      <td className={`px-3 py-3 font-mono font-bold text-[11px] ${isDarkMode ? "text-amber-400" : "text-amber-700"}`}>{r.group_name ?? "—"}</td>
+                      <td className="px-3 py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => handleDelete(r)}
+                          disabled={deletingId === rowKey}
+                          className={getBtnDanger()}
+                          title="Delete timetable entry"
+                        >
+                          {deletingId === rowKey ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
