@@ -716,33 +716,43 @@ export default function App() {
     const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
     if (!attData || attData.length === 0) return agg;
 
-    // Deduplicate entries per (date, raw_subject) to prevent multi-click or legacy duplicates on same date
-    const seenByDateAndSub = new Map<string, { subject: string; status: string }>();
+    // Map: date + stdSubject -> Map<slotKey, { subject, status }>
+    // Ensures legacy un-slotted rows and slotted rows for the same class are deduplicated perfectly
+    const mapByDateAndSub = new Map<string, Map<string, { subject: string; status: string }>>();
 
     for (const row of attData) {
       const rawName = (row.subject ?? "").trim();
       if (!rawName) continue;
       const stdName = getStandardizedSubjectName(rawName);
-      const dateKey = row.date ? `${row.date}::${rawName.toLowerCase()}` : null;
+      if (!row.date) continue;
 
-      if (dateKey) {
-        seenByDateAndSub.set(dateKey, { subject: stdName, status: row.status });
-      } else {
-        const stdNameLower = stdName.toLowerCase().trim();
-        if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
-        const s = (row.status ?? "").toLowerCase();
-        if (s !== "leave") agg[stdNameLower].total_classes += 1;
-        if (s === "present") agg[stdNameLower].attendance_count += 1;
+      const stdLower = stdName.toLowerCase().trim();
+      const groupKey = `${row.date}::${stdLower}`;
+
+      const slotMatch = rawName.match(/\(([^)]+)\)$/);
+      const slotKey = slotMatch ? slotMatch[1].trim() : "default";
+
+      if (!mapByDateAndSub.has(groupKey)) {
+        mapByDateAndSub.set(groupKey, new Map());
       }
+
+      const subMap = mapByDateAndSub.get(groupKey)!;
+      // If a slotted row is present, purge any un-slotted default fallback row for the same subject & date
+      if (slotKey !== "default" && subMap.has("default")) {
+        subMap.delete("default");
+      }
+      subMap.set(slotKey, { subject: stdName, status: row.status });
     }
 
-    seenByDateAndSub.forEach(({ subject, status }) => {
-      const stdNameLower = subject.toLowerCase().trim();
-      const s = (status ?? "").toLowerCase();
+    mapByDateAndSub.forEach(subMap => {
+      subMap.forEach(({ subject, status }) => {
+        const stdNameLower = subject.toLowerCase().trim();
+        const s = (status ?? "").toLowerCase();
 
-      if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
-      if (s !== "leave") agg[stdNameLower].total_classes += 1;
-      if (s === "present") agg[stdNameLower].attendance_count += 1;
+        if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
+        if (s !== "leave") agg[stdNameLower].total_classes += 1;
+        if (s === "present") agg[stdNameLower].attendance_count += 1;
+      });
     });
 
     return agg;
