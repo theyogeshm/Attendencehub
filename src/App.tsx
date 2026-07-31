@@ -1567,20 +1567,20 @@ export default function App() {
         }
 
         if (matched) {
-          // Always show the component-qualified name (Theory/Lab) so there are no ambiguous plain cards
+          // Always show the component-qualified name (Theory/Lab/Tutorial) so there are no ambiguous plain cards
           const displayType = parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC");
-          const matchedNameLower = matched.name.toLowerCase();
-          const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(matched.name);
-          let displayName = matched.name;
-          if (!hasTypeSuffix && parsed.splitSubjectName) {
-            // Prefer the timetable-derived name that has the Theory/Lab suffix
-            displayName = parsed.splitSubjectName;
-          }
+          const baseNameClean = (matched.name || parsed.splitSubjectName).replace(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i, "").trim();
+          const displayName = parsed.isTutorial
+            ? `${baseNameClean} - Tutorial`
+            : parsed.isLab
+            ? `${baseNameClean} - Lab`
+            : `${baseNameClean} - Theory`;
+
           dayList.push({
             ...matched,
             name: displayName,
             rawSubjectId: matched.id,
-            time: `${cleanSlot} (${parsed.room || secData.room})`,
+            time: `${cleanSlot} (${parsed.room || activeSec?.room || ""})`,
             prof: parsed.faculty || matched.prof,
             type: displayType,
             timeOrder,
@@ -1598,9 +1598,10 @@ export default function App() {
             category: "Core",
             description: parsed.splitSubjectName,
             time: `${cleanSlot} (${parsed.room || activeSec?.room || ""})`,
-            type: parsed.isLab ? "LAB" : "LEC",
+            type: parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC"),
             attendanceCount: 0,
             totalClasses: 0,
+            timeOrder,
           });
         }
       });
@@ -1664,26 +1665,24 @@ export default function App() {
 
     if (dayList.length === 0) return [];
 
-    // ── Final deduplication: remove any plain-name card if a typed card (Theory/Lab) exists for the same base subject + time ──
-    const dedupedList = dayList.filter((item, idx) => {
-      const itemHasType = /\s*-\s*(theory|lab|tutorial|tut)$/i.test(item.name);
-      if (itemHasType) return true; // always keep typed cards
-      const itemBaseName = item.name.toLowerCase().replace(/\s*-\s*(theory|lab|tutorial|tut)$/i, "").trim();
-      const itemSlotOnly = (item.time || "").split(/\s*\(/)[0].trim();
-      // Check if there's ANOTHER card for the same base name + same slot with a type suffix
-      const hasTypedSibling = dayList.some((other, oIdx) => {
-        if (oIdx === idx) return false;
-        const otherHasType = /\s*-\s*(theory|lab|tutorial|tut)$/i.test(other.name);
-        if (!otherHasType) return false;
-        const otherBaseName = other.name.toLowerCase().replace(/\s*-\s*(theory|lab|tutorial|tut)$/i, "").trim();
-        const otherSlotOnly = (other.time || "").split(/\s*\(/)[0].trim();
-        return itemBaseName === otherBaseName && itemSlotOnly === otherSlotOnly;
-      });
-      return !hasTypedSibling; // drop plain card if typed sibling exists for same slot
+    // Deduplicate cards so same subject + same time slot is never duplicated
+    const uniqueDayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
+    const seenKeys = new Set<string>();
+
+    dayList.forEach(item => {
+      const slotOnly = (item.time || "").split(/\s*\(/)[0].trim();
+      const key = `${item.name.toLowerCase().trim()}_${slotOnly}`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        uniqueDayList.push({
+          ...item,
+          id: `${item.rawSubjectId || item.id}_${slotOnly.replace(/[^a-z0-9]/g, "-")}`,
+        });
+      }
     });
 
-    dedupedList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
-    return dedupedList;
+    uniqueDayList.sort((a, b) => (a.timeOrder ?? 0) - (b.timeOrder ?? 0));
+    return uniqueDayList;
   };
 
   const getTodayScheduledSubjects = (): Subject[] => {
