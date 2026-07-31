@@ -735,7 +735,7 @@ export default function App() {
       const rawName = (row.subject ?? "").trim();
       if (!rawName) continue;
       const stdName = getStandardizedSubjectName(rawName);
-      const dateKey = row.date ? `${row.date}::${stdName.toLowerCase()}` : null;
+      const dateKey = row.date ? `${row.date}::${rawName.toLowerCase()}` : null;
 
       if (dateKey) {
         seenByDateAndSub.set(dateKey, { subject: stdName, status: row.status });
