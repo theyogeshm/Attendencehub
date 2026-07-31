@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { Subject, Assignment, AttendanceStatus } from "../types";
+import { getStandardizedSubjectName } from "../data";
 import {
   CheckCircle,
   XCircle,
