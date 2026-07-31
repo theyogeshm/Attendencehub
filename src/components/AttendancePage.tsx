@@ -210,7 +210,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
       {/* ── MOBILE COMPACT SUMMARY BAR ── */}
       <div className="md:hidden glass-card p-2.5 rounded-2xl flex items-center justify-around gap-2 text-center text-xs shadow-sm">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm">📚</span>
+          <span className="material-symbols-outlined text-[#82ffc8] text-lg">analytics</span>
           <div className="text-left">
             <span className="text-[9px] font-bold text-on-surface-variant uppercase block leading-none">Classes</span>
             <span className="font-extrabold text-xs text-on-surface">{totalClassesAttended}/{totalClassesHeld}</span>
@@ -218,7 +218,9 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
         <div className="h-6 w-px bg-outline-variant/30 shrink-0" />
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm">{subjectsAtRiskCount > 0 ? "⚠️" : "✅"}</span>
+          <span className={`material-symbols-outlined text-lg ${subjectsAtRiskCount > 0 ? "text-error" : "text-primary"}`}>
+            {subjectsAtRiskCount > 0 ? "warning" : "check_circle"}
+          </span>
           <div className="text-left">
             <span className="text-[9px] font-bold text-on-surface-variant uppercase block leading-none">Risk</span>
             <span className={`font-extrabold text-xs ${subjectsAtRiskCount > 0 ? 'text-error' : 'text-primary'}`}>
@@ -228,7 +230,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
         <div className="h-6 w-px bg-outline-variant/30 shrink-0" />
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm">✅</span>
+          <span className="material-symbols-outlined text-[#7bd0ff] text-lg">verified</span>
           <div className="text-left">
             <span className="text-[9px] font-bold text-on-surface-variant uppercase block leading-none">Status</span>
             <span className="font-extrabold text-xs text-[#7bd0ff]">Active</span>

@@ -301,10 +301,10 @@ export default function DashboardPage({
                   const icon = getSubjectIcon(sub.name);
 
                 const statusBadge: Record<string, { label: string; cls: string }> = {
-                  present: { label: "✅ Present",  cls: "bg-primary/10 text-primary" },
-                  absent:  { label: "❌ Absent",   cls: "bg-error/10 text-error" },
-                  miss:    { label: "☕ Missed",   cls: isDarkMode ? "bg-[#2d3449] text-[#bacbbf]" : "bg-gray-100 text-gray-600" },
-                  leave:   { label: "✈️ Leave",    cls: "bg-secondary/10 text-secondary" },
+                  present: { label: "Present",  cls: "bg-primary/10 text-primary" },
+                  absent:  { label: "Absent",   cls: "bg-error/10 text-error" },
+                  miss:    { label: "Missed",   cls: isDarkMode ? "bg-[#2d3449] text-[#bacbbf]" : "bg-gray-100 text-gray-600" },
+                  leave:   { label: "Leave",    cls: "bg-secondary/10 text-secondary" },
                 };
 
                 return (
