@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 import { Assignment, Subject } from "../types";
 import { getStandardizedBaseName } from "../data";
 import ConfirmDialog from "./ConfirmDialog";
+import CustomSelect from "./CustomSelect";
 import { 
   Rocket, 
   CheckCircle, 
@@ -144,19 +145,19 @@ export default function AssignmentsPage({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">Subject</label>
-                <select 
+                <CustomSelect
                   value={formSubject}
-                  onChange={(e) => setFormSubject(e.target.value)}
-                  className="w-full bg-[#0b1326] border border-outline-variant rounded-xl px-3.5 py-2.5 text-xs text-on-surface outline-none cursor-pointer"
-                >
-                  {subjects.length === 0 ? (
-                    <option value="" disabled>No subjects — set up profile first</option>
-                  ) : (
-                    Array.from(new Set(subjects.map(s => getStandardizedBaseName(s.name)))).map(name => (
-                      <option key={name} value={name}>{name}</option>
-                    ))
-                  )}
-                </select>
+                  options={
+                    subjects.length === 0
+                      ? [{ value: "", label: "No subjects — set up profile first" }]
+                      : Array.from(new Set(subjects.map(s => getStandardizedBaseName(s.name)))).map(name => ({
+                          value: name,
+                          label: name,
+                        }))
+                  }
+                  onChange={(val) => setFormSubject(val)}
+                  isDarkMode={isDarkMode}
+                />
               </div>
 
               <div>
