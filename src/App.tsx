@@ -455,13 +455,26 @@ export default function App() {
         } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
           expandedSubjectsList.push("Object Oriented Design - Theory", "Object Oriented Design - Lab");
         } else if (lower.includes("software engineering") || lower.includes("se")) {
-          expandedSubjectsList.push("Software Engineering - Theory");
+          expandedSubjectsList.push("Software Engineering - Theory", "Software Engineering - Tutorial");
         } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
           expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
         } else {
           expandedSubjectsList.push(name);
         }
       }
+
+      // Also ensure any subject from attData is preserved in expandedSubjectsList
+      if (attData && attData.length > 0) {
+        attData.forEach(row => {
+          if (row.subject) {
+            const std = getStandardizedSubjectName(row.subject);
+            if (std && !expandedSubjectsList.includes(std)) {
+              expandedSubjectsList.push(std);
+            }
+          }
+        });
+      }
+
       expandedSubjectsList = Array.from(new Set(expandedSubjectsList));
       const baseSubjects = subjectNamestoSubjects(expandedSubjectsList);
 
