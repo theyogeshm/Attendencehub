@@ -819,7 +819,6 @@ export default function App() {
       if (isToday) {
         setTodayAttendance(prev => {
           const next = { ...prev };
-          const targetHasSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(targetSubjectName);
 
           if (status === "clear") {
             delete next[subjectId];
@@ -827,7 +826,6 @@ export default function App() {
               delete next[schedMatch.id];
               if ((schedMatch as any).rawSubjectId) delete next[(schedMatch as any).rawSubjectId];
             }
-            targetKeys.forEach(k => delete next[k]);
           } else {
             next[subjectId] = status;
             if (schedMatch) {
@@ -835,15 +833,7 @@ export default function App() {
               if ((schedMatch as any).rawSubjectId) {
                 next[(schedMatch as any).rawSubjectId] = status;
               }
-              if (schedMatch.name) {
-                next[schedMatch.name.toLowerCase().trim()] = status;
-              }
             }
-            targetKeys.forEach(k => {
-              if (targetHasSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
-              next[k] = status;
-              next[`sub-${k.replace(/[^a-z0-9]/g, "-")}`] = status;
-            });
           }
 
           return next;
