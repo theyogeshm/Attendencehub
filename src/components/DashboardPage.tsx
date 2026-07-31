@@ -283,26 +283,6 @@ export default function DashboardPage({
           ) : (
             <div className="space-y-3">
               {(() => {
-                const getSubStatus = (sub: Subject): AttendanceStatus | undefined => {
-                  if (!todayAttendance) return undefined;
-                  if (todayAttendance[sub.id]) return todayAttendance[sub.id];
-                  if ((sub as any).rawSubjectId && todayAttendance[(sub as any).rawSubjectId]) {
-                    return todayAttendance[(sub as any).rawSubjectId];
-                  }
-                  const cleanName = sub.name.toLowerCase().trim();
-                  if (todayAttendance[cleanName]) return todayAttendance[cleanName];
-
-                  // Only fall back to base name if THIS card has NO type suffix
-                  // (prevents "OOD - Theory" status bleeding into "OOD - Lab" card)
-                  const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(sub.name);
-                  if (!hasTypeSuffix) {
-                    const baseName = cleanName.trim();
-                    if (todayAttendance[baseName]) return todayAttendance[baseName];
-                  }
-
-                  return undefined;
-                };
-
                 const sorted = [...todayTimetable].sort((a, b) => {
                   const aMarked = !!getSubStatus(a);
                   const bMarked = !!getSubStatus(b);
