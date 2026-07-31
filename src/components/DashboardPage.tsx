@@ -112,8 +112,28 @@ export default function DashboardPage({
 
 
 
+  // Helper to resolve attendance status for a subject
+  const getSubStatus = (sub: Subject): AttendanceStatus | undefined => {
+    if (!todayAttendance) return undefined;
+    if (todayAttendance[sub.id]) return todayAttendance[sub.id];
+    if ((sub as any).rawSubjectId && todayAttendance[(sub as any).rawSubjectId]) {
+      return todayAttendance[(sub as any).rawSubjectId];
+    }
+    const cleanName = sub.name.toLowerCase().trim();
+    if (todayAttendance[cleanName]) return todayAttendance[cleanName];
+
+    // Only fall back to base name if THIS card has NO type suffix
+    const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(sub.name);
+    if (!hasTypeSuffix) {
+      const baseName = cleanName.trim();
+      if (todayAttendance[baseName]) return todayAttendance[baseName];
+    }
+
+    return undefined;
+  };
+
   // Next class calculation (first unmarked class today)
-  const unmarkedClasses = todayTimetable.filter((sub) => !todayAttendance[sub.id] && !todayAttendance[sub.name.toLowerCase().trim()]);
+  const unmarkedClasses = todayTimetable.filter((sub) => !getSubStatus(sub));
   const nextClass = unmarkedClasses.length > 0 ? unmarkedClasses[0] : null;
   const allMarkedToday = todayTimetable.length > 0 && unmarkedClasses.length === 0;
 

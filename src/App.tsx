@@ -143,7 +143,11 @@ export default function App() {
   };
 
   // ── Today's attendance status per subject (dashboard button highlights) ────
-  const [todayAttendance, setTodayAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [todayAttendance, setTodayAttendance] = useState<Record<string, AttendanceStatus>>(() => {
+    return safeLocalStorageGet<Record<string, AttendanceStatus>>("ATTENDANCE_HUB_TODAY_ATTENDANCE", {});
+  });
+
+  const inFlightMarkRef = useRef<Set<string>>(new Set());
 
   // ── Profile editing state ─────────────────────────────────────────────────
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -203,6 +207,11 @@ export default function App() {
   useEffect(() => { localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(subjects)); }, [subjects]);
   useEffect(() => { localStorage.setItem("ATTENDANCE_HUB_ASSIGNMENTS", JSON.stringify(assignments)); }, [assignments]);
   useEffect(() => { localStorage.setItem("ATTENDANCE_HUB_PROFILE", JSON.stringify(profile)); }, [profile]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("ATTENDANCE_HUB_TODAY_ATTENDANCE", JSON.stringify(todayAttendance));
+    } catch { /* ignore */ }
+  }, [todayAttendance]);
   useEffect(() => {
     const root = window.document.documentElement;
     if (isDarkMode) {
@@ -749,178 +758,183 @@ export default function App() {
   };
 
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
+  // ── Attendance handler (5 statuses) ────────────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
-    // 1. Resolve exact subject name (name + type)
-    const todaySched = getTodayScheduledSubjects();
-    const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
-    let targetSubjectName = "";
-
-    if (schedMatch) {
-      targetSubjectName = schedMatch.name;
-    } else {
-      let currentSub = subjects.find(s => s.id === subjectId);
-      if (!currentSub) {
-        currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
-      }
-      if (!currentSub && subjectId.startsWith("sub-")) {
-        const slug = subjectId.replace(/^sub-/, "");
-        currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
-      }
-      if (currentSub) {
-        targetSubjectName = currentSub.name;
-      } else {
-        targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
-      }
-    }
-
-    targetSubjectName = getStandardizedSubjectName(targetSubjectName);
-
-    const dateStr  = targetDate ?? getTodayDateStr();
-    const isToday  = dateStr === getTodayDateStr();
-
-    const labels: Record<AttendanceStatus, string> = {
-      present: "✅ Present marked",
-      absent:  "❌ Absent marked",
-      miss:    "☕ Missed",
-      leave:   "✈️ Leave marked",
-      clear:   "🗑️ Cleared",
-    };
-
-    // ── Instant 0ms Local UI Update ─────────────────────────────────────────
-    showToast(labels[status] || "Attendance updated");
-
-    if (isToday) {
-      setTodayAttendance(prev => {
-        const next = { ...prev };
-        const keys = getNormalizedSubjectKeys(targetSubjectName);
-
-        // Determine if the target has a type suffix (Theory / Lab / Tutorial)
-        const targetHasSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(targetSubjectName);
-
-        next[subjectId] = status;
-        if (schedMatch) {
-          next[schedMatch.id] = status;
-          if ((schedMatch as any).rawSubjectId) {
-            next[(schedMatch as any).rawSubjectId] = status;
-          }
-        }
-
-        keys.forEach(k => {
-          // Skip the plain base-name key when target has a type suffix.
-          // e.g. marking "OOD - Theory" must NOT set todayAttendance["object oriented design"]
-          // because that would bleed into the Lab card's status check.
-          if (targetHasSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
-          next[k] = status;
-          next[`sub-${k.replace(/[^a-z0-9]/g, "-")}`] = status;
-        });
-
-        return next;
-      });
-    }
-
-    // Instantly update subjects array count in local state
-    setSubjects(prev => {
-      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
-
-      // Determine the component type of the TARGET (Theory / Lab / Tutorial / none)
-      const getComponentType = (name: string): string | null => {
-        const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lecture|lec)$/i);
-        if (!m) return null;
-        const t = m[1].toLowerCase();
-        if (t === "tut") return "tutorial";
-        if (t === "lec" || t === "lecture") return "theory";
-        return t;
-      };
-      const targetType = getComponentType(targetSubjectName);
-
-      const updated = prev.map(sub => {
-        // ── PRIMARY: exact ID match (most precise, no name ambiguity) ──────────
-        const isIdMatch =
-          sub.id === subjectId ||
-          (schedMatch && sub.id === schedMatch.id) ||
-          (schedMatch && (schedMatch as any).rawSubjectId === sub.id);
-
-        if (!isIdMatch) {
-          // ── SECONDARY: name-based match with STRICT type guard ──────────────
-          const subKeys = getNormalizedSubjectKeys(sub.name);
-          const isNameMatch = subKeys.some(k => targetKeys.includes(k));
-          if (!isNameMatch) return sub;
-
-          // When target has a type (Theory/Lab/Tutorial), the sub MUST have the
-          // SAME type.  Plain-named subjects (subType=null) are intentionally
-          // excluded — they are a different enrollment row and should not
-          // inherit this mark.
-          if (targetType) {
-            const subType = getComponentType(sub.name);
-            if (!subType || subType !== targetType) return sub;
-          }
-        }
-
-        let newAttended = sub.attendanceCount;
-        let newTotal = sub.totalClasses;
-
-        const prevStatus = todayAttendance[sub.id] || todayAttendance[targetKeys[0]];
-
-        if (status === "clear") {
-          if (prevStatus === "present") {
-            newAttended = Math.max(0, newAttended - 1);
-            newTotal = Math.max(0, newTotal - 1);
-          } else if (prevStatus === "absent" || prevStatus === "miss") {
-            newTotal = Math.max(0, newTotal - 1);
-          }
-        } else if (status === "present") {
-          if (prevStatus === "absent" || prevStatus === "miss") {
-            newAttended += 1;
-          } else if (prevStatus !== "present") {
-            newAttended += 1;
-            newTotal += 1;
-          }
-        } else if (status === "absent" || status === "miss") {
-          if (prevStatus === "present") {
-            newAttended = Math.max(0, newAttended - 1);
-          } else if (prevStatus !== "absent" && prevStatus !== "miss") {
-            newTotal += 1;
-          }
-        } else if (status === "leave") {
-          if (prevStatus === "present") {
-            newAttended = Math.max(0, newAttended - 1);
-            newTotal = Math.max(0, newTotal - 1);
-          } else if (prevStatus === "absent" || prevStatus === "miss") {
-            newTotal = Math.max(0, newTotal - 1);
-          }
-        }
-
-        return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
-      });
-
-      try {
-        localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
-      } catch { /* ignore */ }
-      return updated;
-    });
-
-    // ── Clear entry from Supabase if clear ──────────────────────────────────
-    if (status === "clear") {
-      if (!user) return;
-      const { error: delErr } = await supabase.from("attendance")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("subject", targetSubjectName)
-        .eq("date", dateStr);
-
-      if (delErr) {
-        showToast("Failed to clear attendance.", "error");
-      } else {
-        await fetchTodayAttendance(user, subjects);
-        await refreshAttendanceCounts(user);
-      }
+    const dateStr = targetDate ?? getTodayDateStr();
+    const lockKey = `${user?.id || 'guest'}_${subjectId}_${dateStr}`;
+    if (inFlightMarkRef.current.has(lockKey)) {
       return;
     }
+    inFlightMarkRef.current.add(lockKey);
 
-    if (!user) return;
-
-    // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
     try {
+      // 1. Resolve exact subject name (name + type)
+      const todaySched = getTodayScheduledSubjects();
+      const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
+      let targetSubjectName = "";
+
+      if (schedMatch) {
+        targetSubjectName = schedMatch.name;
+      } else {
+        let currentSub = subjects.find(s => s.id === subjectId);
+        if (!currentSub) {
+          currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+        }
+        if (!currentSub && subjectId.startsWith("sub-")) {
+          const slug = subjectId.replace(/^sub-/, "");
+          currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
+        }
+        if (currentSub) {
+          targetSubjectName = currentSub.name;
+        } else {
+          targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
+        }
+      }
+
+      targetSubjectName = getStandardizedSubjectName(targetSubjectName);
+      const isToday = dateStr === getTodayDateStr();
+
+      // Check if already marked with this exact status (ignore duplicate click)
+      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+      const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
+      if (prevStatus === status && status !== "clear") {
+        return;
+      }
+
+      const labels: Record<AttendanceStatus, string> = {
+        present: "✅ Present marked",
+        absent:  "❌ Absent marked",
+        miss:    "☕ Missed",
+        leave:   "✈️ Leave marked",
+        clear:   "🗑️ Cleared",
+      };
+
+      // ── Instant 0ms Local UI Update ─────────────────────────────────────────
+      showToast(labels[status] || "Attendance updated");
+
+      if (isToday) {
+        setTodayAttendance(prev => {
+          const next = { ...prev };
+          const targetHasSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(targetSubjectName);
+
+          if (status === "clear") {
+            delete next[subjectId];
+            if (schedMatch) {
+              delete next[schedMatch.id];
+              if ((schedMatch as any).rawSubjectId) delete next[(schedMatch as any).rawSubjectId];
+            }
+            targetKeys.forEach(k => delete next[k]);
+          } else {
+            next[subjectId] = status;
+            if (schedMatch) {
+              next[schedMatch.id] = status;
+              if ((schedMatch as any).rawSubjectId) {
+                next[(schedMatch as any).rawSubjectId] = status;
+              }
+            }
+            targetKeys.forEach(k => {
+              if (targetHasSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
+              next[k] = status;
+              next[`sub-${k.replace(/[^a-z0-9]/g, "-")}`] = status;
+            });
+          }
+
+          return next;
+        });
+      }
+
+      // Instantly update subjects array count in local state
+      setSubjects(prev => {
+        // Determine the component type of the TARGET (Theory / Lab / Tutorial / none)
+        const getComponentType = (name: string): string | null => {
+          const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lecture|lec)$/i);
+          if (!m) return null;
+          const t = m[1].toLowerCase();
+          if (t === "tut") return "tutorial";
+          if (t === "lec" || t === "lecture") return "theory";
+          return t;
+        };
+        const targetType = getComponentType(targetSubjectName);
+
+        const updated = prev.map(sub => {
+          const isIdMatch =
+            sub.id === subjectId ||
+            (schedMatch && sub.id === schedMatch.id) ||
+            (schedMatch && (schedMatch as any).rawSubjectId === sub.id);
+
+          if (!isIdMatch) {
+            const subKeys = getNormalizedSubjectKeys(sub.name);
+            const isNameMatch = subKeys.some(k => targetKeys.includes(k));
+            if (!isNameMatch) return sub;
+
+            if (targetType) {
+              const subType = getComponentType(sub.name);
+              if (!subType || subType !== targetType) return sub;
+            }
+          }
+
+          let newAttended = sub.attendanceCount;
+          let newTotal = sub.totalClasses;
+
+          if (status === "clear") {
+            if (prevStatus === "present") {
+              newAttended = Math.max(0, newAttended - 1);
+              newTotal = Math.max(0, newTotal - 1);
+            } else if (prevStatus === "absent" || prevStatus === "miss") {
+              newTotal = Math.max(0, newTotal - 1);
+            }
+          } else if (status === "present") {
+            if (prevStatus === "absent" || prevStatus === "miss") {
+              newAttended += 1;
+            } else if (prevStatus !== "present") {
+              newAttended += 1;
+              newTotal += 1;
+            }
+          } else if (status === "absent" || status === "miss") {
+            if (prevStatus === "present") {
+              newAttended = Math.max(0, newAttended - 1);
+            } else if (prevStatus !== "absent" && prevStatus !== "miss") {
+              newTotal += 1;
+            }
+          } else if (status === "leave") {
+            if (prevStatus === "present") {
+              newAttended = Math.max(0, newAttended - 1);
+              newTotal = Math.max(0, newTotal - 1);
+            } else if (prevStatus === "absent" || prevStatus === "miss") {
+              newTotal = Math.max(0, newTotal - 1);
+            }
+          }
+
+          return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
+        });
+
+        try {
+          localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
+        } catch { /* ignore */ }
+        return updated;
+      });
+
+      // ── Clear entry from Supabase if clear ──────────────────────────────────
+      if (status === "clear") {
+        if (!user) return;
+        const { error: delErr } = await supabase.from("attendance")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("subject", targetSubjectName)
+          .eq("date", dateStr);
+
+        if (delErr) {
+          showToast("Failed to clear attendance.", "error");
+        } else {
+          await fetchTodayAttendance(user, subjects);
+          await refreshAttendanceCounts(user);
+        }
+        return;
+      }
+
+      if (!user) return;
+
+      // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
       const { data: existing } = await supabase
         .from("attendance")
         .select("id")
@@ -971,6 +985,8 @@ export default function App() {
     } catch (err) {
       console.error("Attendance save exception:", err);
       showToast("Failed to save attendance.", "error");
+    } finally {
+      inFlightMarkRef.current.delete(lockKey);
     }
   };
 
