@@ -117,9 +117,7 @@ export default function DashboardPage({
   const getSubStatus = (sub: Subject): AttendanceStatus | undefined => {
     if (!todayAttendance) return undefined;
     if (todayAttendance[sub.id]) return todayAttendance[sub.id];
-    if ((sub as any).rawSubjectId && todayAttendance[(sub as any).rawSubjectId]) {
-      return todayAttendance[(sub as any).rawSubjectId];
-    }
+
     const cleanName = sub.name.toLowerCase().trim();
     if (todayAttendance[cleanName]) return todayAttendance[cleanName];
 

@@ -836,15 +836,11 @@ export default function App() {
             delete next[subjectId];
             if (schedMatch) {
               delete next[schedMatch.id];
-              if ((schedMatch as any).rawSubjectId) delete next[(schedMatch as any).rawSubjectId];
             }
           } else {
             next[subjectId] = status;
             if (schedMatch) {
               next[schedMatch.id] = status;
-              if ((schedMatch as any).rawSubjectId) {
-                next[(schedMatch as any).rawSubjectId] = status;
-              }
             }
           }
 
