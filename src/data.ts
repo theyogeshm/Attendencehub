@@ -5,6 +5,7 @@
 
 import { Subject, Assignment, TimetableSlot } from "./types";
 
+import { DTU_CSE_SEM1_SUBJECTS } from "./data/timetableSem1";
 import { DTU_CSE_SEM5_SUBJECTS } from "./data/timetableSem5";
 import { DTU_CSE_SEM7_SUBJECTS } from "./data/timetableSem7";
 
@@ -12,13 +13,7 @@ import { DTU_CSE_SEM7_SUBJECTS } from "./data/timetableSem7";
 // NOTE: Add the real subject names for each semester below.
 // These are used during onboarding and profile semester changes.
 export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
-  1: [
-    "Basic ECE",
-    "Mathematics I",
-    "Web Design",
-    "Programming Fundamentals",
-    "Engineering Graphics II",
-  ],
+  1: DTU_CSE_SEM1_SUBJECTS,
   2: [
     "Basic ML",
     "Data Structure",
@@ -66,6 +61,11 @@ export const DTU_CSE_DA_SEM3_SUBJECTS: string[] = [
 export const getStandardizedBaseName = (raw: string): string => {
   if (!raw) return "";
   const lower = raw.toLowerCase().trim();
+  if (lower.includes("am101") || lower.includes("mathematics-i") || (lower.includes("mathematics i") && !lower.includes("ii"))) return "Mathematics-I";
+  if (lower.includes("co101") || lower.includes("programming fundamentals")) return "Programming Fundamentals";
+  if (lower.includes("ec101") || lower.includes("basic electronics")) return "Basic Electronics & Communication Engineering";
+  if (lower.includes("me105") || lower.includes("engineering graphics")) return "Computer Aided Engineering Graphics-2";
+  if (lower.includes("cs103") || lower.includes("web designing") || lower.includes("web design")) return "Web Designing";
   if (lower.includes("basic ml") || lower.includes("basics of ml")) return "Basic ML";
   if (lower.includes("discrete structure") || lower.includes("discrete math")) return "Discrete Structure";
   if (lower.includes("data structure") && !lower.includes("advance")) return "Data Structure";

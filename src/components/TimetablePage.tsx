@@ -25,6 +25,10 @@ import {
 import { Subject } from "../types";
 import { parseSemesterNumber } from "../data";
 import {
+  TIMETABLE_SEM_1_DATA,
+  SECTION_OPTIONS_SEM_1,
+} from "../data/timetableSem1";
+import {
   TIMETABLE_SEM_3_DATA,
   SECTION_OPTIONS,
   parseTimetableEntry,
@@ -289,18 +293,23 @@ export default function TimetablePage({
       return parseSemesterNumber(userSemester);
     }
     // Fallback: detect from subjects
+    if (subjects.some(s => s.name.includes("Mathematics-I") || s.name.includes("Basic Electronics") || s.name.includes("Web Designing"))) return 1;
     if (subjects.some(s => s.name.includes("Cyber") || s.name.includes("Cloud") || s.name.includes("Big Data"))) return 7;
     if (subjects.some(s => s.name.includes("Compiler") || s.name.includes("Machine Learning"))) return 5;
     return 3;
   }, [userSemester, subjects]);
 
-  const isSemesterSupported = selectedSemester === 3 || selectedSemester === 5 || selectedSemester === 7;
-  const currentSectionOptions = selectedSemester === 7
+  const isSemesterSupported = selectedSemester === 1 || selectedSemester === 3 || selectedSemester === 5 || selectedSemester === 7;
+  const currentSectionOptions = selectedSemester === 1
+    ? SECTION_OPTIONS_SEM_1
+    : selectedSemester === 7
     ? SECTION_OPTIONS_SEM_7
     : selectedSemester === 5
     ? SECTION_OPTIONS_SEM_5
     : SECTION_OPTIONS;
-  const currentTimetableData = selectedSemester === 7
+  const currentTimetableData = selectedSemester === 1
+    ? (TIMETABLE_SEM_1_DATA as any)
+    : selectedSemester === 7
     ? (TIMETABLE_SEM_7_DATA as any)
     : selectedSemester === 5
     ? TIMETABLE_SEM_5_DATA
@@ -311,11 +320,13 @@ export default function TimetablePage({
     const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
     if (saved && (currentTimetableData?.sections as any)?.[saved]) return saved;
     const normalizedUserSection = (userSection || "").toUpperCase().trim();
-    const formattedSec = selectedSemester === 7
+    const formattedSec = selectedSemester === 1
+      ? (normalizedUserSection.startsWith("A0") ? normalizedUserSection : `A0${normalizedUserSection.replace(/\D+/g, "") || "1"}`)
+      : selectedSemester === 7
       ? (normalizedUserSection || "E7")
       : (normalizedUserSection.startsWith("A") ? normalizedUserSection : `A${normalizedUserSection}`);
     const match = currentSectionOptions?.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
-    return match ? match.id : (currentSectionOptions?.[0]?.id || (selectedSemester === 7 ? "E7" : "A1"));
+    return match ? match.id : (currentSectionOptions?.[0]?.id || (selectedSemester === 1 ? "A01" : selectedSemester === 7 ? "E7" : "A1"));
   });
 
   const [activeDay, setActiveDay] = useState<string>(defaultDayId);

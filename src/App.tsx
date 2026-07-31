@@ -26,6 +26,7 @@ import LoginPage from "./components/LoginPage";
 import ConfirmDialog from "./components/ConfirmDialog";
 import AdminPanel from "./components/AdminPanel";
 import NotFoundPage from "./components/NotFoundPage";
+import { TIMETABLE_SEM_1_DATA } from "./data/timetableSem1";
 import { TIMETABLE_SEM_3_DATA, parseTimetableEntry } from "./data/timetableSem3";
 import { TIMETABLE_SEM_5_DATA, convertSem5SlotToString } from "./data/timetableSem5";
 import { TIMETABLE_SEM_7_DATA } from "./data/timetableSem7";
@@ -1409,10 +1410,20 @@ export default function App() {
       : `A${profile.section.toUpperCase().trim()}`;
     const semNum = parseSemesterNumber(profile.semester);
 
-    // Resolve section key: Sem 7 uses E-prefixed keys (E7, E8...), Sem 3/5 use A-prefixed
+    // Resolve section key: Sem 7 uses E-prefixed keys (E7, E8...), Sem 1 uses A01-A06, Sem 3/5 use A-prefixed
+    const isSem1 = semNum === 1;
     const isSem5 = semNum === 5;
     const isSem3 = semNum === 3;
     const isSem7 = semNum === 7;
+
+    const getSem1SecData = (secStr: string) => {
+      const rawSec = secStr.toUpperCase().trim();
+      if (TIMETABLE_SEM_1_DATA.sections[rawSec]) return TIMETABLE_SEM_1_DATA.sections[rawSec];
+      const m = rawSec.match(/\d+/);
+      const num = m ? parseInt(m[0], 10) : 1;
+      const formatted = `A0${Math.min(Math.max(num, 1), 6)}`;
+      return TIMETABLE_SEM_1_DATA.sections[formatted] || TIMETABLE_SEM_1_DATA.sections["A01"];
+    };
 
     // Sem 7 section key: use raw section as-is (E7, E8, E9, E10).
     // If the section is empty (e.g. E1/E5 or default A1), fall back to E7 so classes always render
@@ -1431,16 +1442,18 @@ export default function App() {
     const resolvedSem7Section = Object.entries(TIMETABLE_SEM_7_DATA.sections)
       .find(([, v]) => v === sem7SecData)?.[0] || "E7";
 
-    const secData = isSem5
+    const secData = isSem1
+      ? getSem1SecData(profile.section)
+      : isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
 
     const activeSec = isSem7 ? sem7SecData : secData;
-    const daySchedule = (isSem3 || isSem5 || isSem7) ? (activeSec?.timetable[targetDayId] || {}) : {};
+    const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7) ? (activeSec?.timetable[targetDayId] || {}) : {};
 
     const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
-    if (isSem3 || isSem5 || isSem7) {
+    if (isSem1 || isSem3 || isSem5 || isSem7) {
 
     Object.entries(daySchedule).forEach(([timeSlotKey, rawVal]) => {
       const cleanSlot = timeSlotKey.replace("_lab", "").replace("_alt", "");
