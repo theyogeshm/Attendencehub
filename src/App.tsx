@@ -1472,7 +1472,10 @@ export default function App() {
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
 
     const activeSec = isSem7 ? sem7SecData : secData;
-    const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7) ? (activeSec?.timetable[targetDayId] || {}) : {};
+    const effectiveDayId = (targetDayId === "SAT" || targetDayId === "SUN") ? "MON" : targetDayId;
+    const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7)
+      ? (activeSec?.timetable[targetDayId] || activeSec?.timetable[effectiveDayId] || {})
+      : {};
 
     const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
 
