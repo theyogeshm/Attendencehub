@@ -861,23 +861,18 @@ export default function App() {
         };
         const targetType = getComponentType(targetSubjectName);
 
+        let foundMatch = false;
         const updated = prev.map(sub => {
           const isIdMatch =
             sub.id === subjectId ||
-            (schedMatch && sub.id === schedMatch.id) ||
-            (schedMatch && (schedMatch as any).rawSubjectId === sub.id);
+            (schedMatch && sub.id === schedMatch.id);
 
-          if (!isIdMatch) {
-            const subKeys = getNormalizedSubjectKeys(sub.name);
-            const isNameMatch = subKeys.some(k => targetKeys.includes(k));
-            if (!isNameMatch) return sub;
+          const isExactNameMatch =
+            sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim();
 
-            if (targetType) {
-              const subType = getComponentType(sub.name);
-              if (!subType || subType !== targetType) return sub;
-            }
-          }
+          if (!isIdMatch && !isExactNameMatch) return sub;
 
+          foundMatch = true;
           let newAttended = sub.attendanceCount;
           let newTotal = sub.totalClasses;
 
@@ -912,6 +907,23 @@ export default function App() {
 
           return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
         });
+
+        if (!foundMatch && status !== "clear") {
+          const newSub: Subject = {
+            id: subjectId,
+            name: targetSubjectName,
+            code: schedMatch?.code || "CS200",
+            prof: schedMatch?.prof || "",
+            time: schedMatch?.time || "",
+            room: schedMatch?.room || "",
+            attendanceCount: status === "present" ? 1 : 0,
+            totalClasses: (status === "present" || status === "absent" || status === "miss") ? 1 : 0,
+            category: "Core",
+            description: targetSubjectName,
+            type: targetSubjectName.toLowerCase().includes("lab") ? "LAB" : "LEC",
+          };
+          updated.push(newSub);
+        }
 
         try {
           localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
