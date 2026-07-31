@@ -487,22 +487,10 @@ export default function App() {
       };
 
       const merged = baseSubjects.map(sub => {
-        const subNameLower = sub.name.toLowerCase();
-        const subType = getType(sub.name);
+        const subNameLower = sub.name.toLowerCase().trim();
 
         if (agg[subNameLower]) {
           return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
-        }
-
-        const keys = getNormalizedSubjectKeys(sub.name);
-        for (const k of keys) {
-          if (!agg[k]) continue;
-          if (subType) {
-            const keyType = getType(k);
-            if (keyType && keyType !== subType) continue;
-            if (!keyType) continue;
-          }
-          return { ...sub, attendanceCount: agg[k].attendance_count, totalClasses: agg[k].total_classes };
         }
         return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
@@ -728,7 +716,7 @@ export default function App() {
     const agg: Record<string, { attendance_count: number; total_classes: number }> = {};
     if (!attData || attData.length === 0) return agg;
 
-    // Deduplicate entries per (date, standardized_subject) to prevent multi-click or legacy duplicates on same date
+    // Deduplicate entries per (date, raw_subject) to prevent multi-click or legacy duplicates on same date
     const seenByDateAndSub = new Map<string, { subject: string; status: string }>();
 
     for (const row of attData) {
@@ -740,7 +728,7 @@ export default function App() {
       if (dateKey) {
         seenByDateAndSub.set(dateKey, { subject: stdName, status: row.status });
       } else {
-        const stdNameLower = stdName.toLowerCase();
+        const stdNameLower = stdName.toLowerCase().trim();
         if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
         const s = (row.status ?? "").toLowerCase();
         if (s !== "leave") agg[stdNameLower].total_classes += 1;
@@ -749,22 +737,12 @@ export default function App() {
     }
 
     seenByDateAndSub.forEach(({ subject, status }) => {
-      const stdNameLower = subject.toLowerCase();
-      const keys = getNormalizedSubjectKeys(subject);
+      const stdNameLower = subject.toLowerCase().trim();
       const s = (status ?? "").toLowerCase();
 
       if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
       if (s !== "leave") agg[stdNameLower].total_classes += 1;
       if (s === "present") agg[stdNameLower].attendance_count += 1;
-
-      keys.forEach(k => {
-        if (k === stdNameLower) return;
-        const kHasType = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k);
-        if (!kHasType) return; // skip untyped keys for typed subject
-        if (!agg[k]) agg[k] = { attendance_count: 0, total_classes: 0 };
-        if (s !== "leave") agg[k].total_classes += 1;
-        if (s === "present") agg[k].attendance_count += 1;
-      });
     });
 
     return agg;
@@ -1258,26 +1236,12 @@ export default function App() {
     };
 
     setSubjects(prev => prev.map(sub => {
-      const subNameLower = sub.name.toLowerCase();
-      const subType = getType(sub.name);
+      const subNameLower = sub.name.toLowerCase().trim();
 
-      // 1. Exact name match first
       if (agg[subNameLower]) {
         return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
       }
-
-      // 2. Alias match — only if the DB key has the same type as this subject
-      const keys = getNormalizedSubjectKeys(sub.name);
-      for (const k of keys) {
-        if (!agg[k]) continue;
-        if (subType) {
-          const keyType = getType(k);
-          if (keyType && keyType !== subType) continue;
-          if (!keyType) continue; // skip plain base-name keys for typed subjects
-        }
-        return { ...sub, attendanceCount: agg[k].attendance_count, totalClasses: agg[k].total_classes };
-      }
-      return sub;
+      return { ...sub, attendanceCount: 0, totalClasses: 0 };
     }));
   };
 
