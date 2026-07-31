@@ -796,6 +796,18 @@ export default function App() {
       }
 
       targetSubjectName = getStandardizedSubjectName(targetSubjectName);
+
+      // If multiple classes for this exact subject exist today, append time slot for database uniqueness
+      if (schedMatch && schedMatch.time) {
+        const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
+        if (slotOnly) {
+          const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
+          if (sameSubClasses.length > 1) {
+            targetSubjectName = `${targetSubjectName} (${slotOnly})`;
+          }
+        }
+      }
+
       const isToday = dateStr === getTodayDateStr();
 
       // Check if already marked with this exact status (ignore duplicate click)
@@ -1274,27 +1286,25 @@ export default function App() {
     const map: Record<string, AttendanceStatus> = {};
     if (data) {
       data.forEach(row => {
-        const rowSubName = (row.subject ?? "").trim();
-        if (!rowSubName || !row.status) return;
-        const rowType = getType(rowSubName);
+        const slotMatch = rowSubName.match(/\(([^)]+)\)$/);
+        const rowSlot = slotMatch ? slotMatch[1].trim() : null;
+        const cleanRowName = slotMatch ? rowSubName.replace(/\s*\([^)]+\)$/, "").trim() : rowSubName;
 
         map[rowSubName.toLowerCase().trim()] = row.status as AttendanceStatus;
-        const keys = getNormalizedSubjectKeys(rowSubName);
-        keys.forEach(k => {
-          // Skip plain base-name keys when the row has a type suffix —
-          // prevents "OOD - Theory" status bleeding into Lab card lookups.
-          if (rowType && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
-          map[k] = row.status as AttendanceStatus;
-        });
+        map[cleanRowName.toLowerCase().trim()] = row.status as AttendanceStatus;
+        const keys = getNormalizedSubjectKeys(cleanRowName);
 
-        // Map to subject IDs — only match subjects whose type matches the row's type
+        // Map to subject IDs — match subjects whose type and slot match the row
         const listToSearch = subjectsList && subjectsList.length > 0 ? subjectsList : subjects;
         listToSearch.forEach(s => {
           const sType = getType(s.name);
-          // If both have types, they must match (Theory ≠ Lab)
           if (rowType && sType && rowType !== sType) return;
+          if (rowSlot && s.time) {
+            const sSlot = (s.time || "").split(/\s*\(/)[0].trim();
+            if (!isSlotMatch(sSlot, rowSlot) && !isSlotMatch(s.time, rowSlot)) return;
+          }
           const sKeys = getNormalizedSubjectKeys(s.name);
-          if (keys.some(k => sKeys.includes(k))) {
+          if (keys.some(k => sKeys.includes(k)) || s.name.toLowerCase().trim() === cleanRowName.toLowerCase().trim()) {
             map[s.id] = row.status as AttendanceStatus;
           }
         });
