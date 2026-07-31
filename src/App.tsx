@@ -428,14 +428,12 @@ export default function App() {
           return !isAlien;
         });
 
-        // If alien subjects were filtered out or if Sem 2 user profile needs reset to exact subjects
-        const isSem2 = userSemNum === 2;
-        const sem2NeedsReset = isSem2 && (validSubjects.length !== defaultNames.length || !defaultNames.every(d => storedSubjects.includes(d)));
+        // Check if user's stored subjects match the current profile semester
+        const semHasChanged = storedSubjects.some(s => !defaultNames.some(d => getStandardizedSubjectName(d) === getStandardizedSubjectName(s)));
 
-        if (validSubjects.length !== storedSubjects.length || sem2NeedsReset) {
-          const merged = isSem2 ? defaultNames : Array.from(new Set([...validSubjects, ...defaultNames]));
-          supabase.from("profiles").update({ subjects: merged }).eq("id", u.id).then(() => {});
-          rawSubjectNames = merged;
+        if (validSubjects.length !== storedSubjects.length || semHasChanged) {
+          rawSubjectNames = defaultNames;
+          supabase.from("profiles").update({ subjects: defaultNames }).eq("id", u.id).then(() => {});
         } else {
           rawSubjectNames = storedSubjects;
         }
