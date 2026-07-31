@@ -59,14 +59,14 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "10-12": "Lab-Digital Logic Design-G2 [ECE-Deptt] / Lab-CS205 DAA-G1 [Prof Manoj Kumar] [Computer Network Lab]",
           "1-2": "TH-CS205 DAA [Prof Manoj Kumar]",
           "2-3": "TH-Operating System Design CS207 [Dr Prashant G S] [AB4-205]",
-          "3-4": "TH-Digital Logic Design [ECE-Deptt]",
           "4-5": "Tutorial-CS209 Software Engineering G2 [Ms. Neha Kumari]"
         },
         "WED": {
           "9-10": "TH-Software Engineering CS209C [Prof Rahul Katarya] [AB4-203]",
           "10-1": "Lab-Operating System Design CS207-A1/G1 [Dr Prashant G S] [Computation Lab] / Lab-Object Oriented Design CS203-G3 [Ms Anukriti Kaushal] [BDA Lab] / Lab-CS205 DAA-G2 [Prof Manoj Kumar] [Computer Network Lab]",
           "2-3": "TH-Object Oriented Design CS203 [Ms. Anukriti Kaushal]",
-          "3-4": "TH-Digital Logic Design [ECE-Deptt]"
+          "3-4": "TH-Digital Logic Design [ECE-Deptt]",
+          "4-5": "TH-Operating System Design CS207 [Ms. Anukriti Kaushal]"
         },
         "THUR": {
           "10-11": "TH-CS205 DAA [Prof Manoj Kumar]",
@@ -94,11 +94,10 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "4-5": "TH-CS209 SE [Prof Daya Gupta]"
         },
         "TUE": {
-          "10-11": "TH-CS203 OOPC [Dr Manoj Sethi]",
-          "11-12": "TH-Digital Logic Design [ECE-Deptt]",
-          "12-1": "Tutorial-CS209 Software Engineering G2 [Ms. Shreya Shukla] [AB4-201]",
-          "2-3": "TH-CS205 DAA [Dr. Sanjay Kumar] [AB4-203]",
-          "3-4": "TH-CS203 OOPC [Dr Manoj Sethi] [AB4-203]"
+          "11-12": "TH-CS203 OOPC [Dr Manoj Sethi]",
+          "12-1": "TH-Digital Logic Design [ECE-Deptt]",
+          "2-3": "TH-CS205 DAA [Dr. Sanjay Kumar] [AB4-203] [⚠️ VERIFY]",
+          "3-4": "TH-CS203 OOPC [Dr Manoj Sethi] [AB4-203] [⚠️ VERIFY]"
         },
         "WED": {
           "9-10": "TH-Digital Logic Design [ECE-Deptt]",
@@ -114,10 +113,10 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "2-4": "Lab-Operating System Design CS207-A2/G2 [Dr Rohit Beniwal] [CA Lab] / Lab-Object Oriented Design CS203-A2/G1 [Ms. Neeraj Sagar] [A1 Lab] / Lab-Digital Logic Design-G3 [ECE Department]"
         },
         "FRI": {
-          "9-11": "Lab-CS205 DAA-G3 [Dr. Sanjay Kumar] [Computer Network Lab]",
-          "11-12": "TH-Digital Logic Design [ECE-Deptt]",
-          "12-1": "TH-CS209 SE [Prof Daya Gupta]",
-          "1-2": "Tutorial-CS209 Software Engineering G1 [Ms. Shreya Shukla] [AB4-221]",
+          "8-10": "Lab-CS205 DAA-G3 [Dr. Sanjay Kumar] [Computer Network Lab]",
+          "10-11": "TH-Digital Logic Design [ECE-Deptt]",
+          "11-12": "TH-CS209 SE [Prof Daya Gupta]",
+          "12-1": "Tutorial-CS209 Software Engineering G1 [Ms. Shreya Shukla] [AB4-221]",
           "2-3": "TH-CS207 OS [Dr. Rohit Beniwal]",
           "3-4": "Tutorial-CS209 Software Engineering G3 [Ms. Shreya Shukla]"
         }
@@ -131,7 +130,7 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "10-11": "TH-CS203 Oops [Dr. Gunjan Chugh]",
           "11-12": "TH-CS207 OS [Dr. Minni Jain]",
           "12-1": "TH-Digital Logic Design [ECE-Deptt]",
-          "2-4": "TH-CS209 SE [Prof Daya Gupta] [AB4-515]"
+          "2-3": "TH-CS209 SE [Prof Daya Gupta] [AB4-515]"
         },
         "TUE": {
           "10-11": "TH-CS207 OS [Dr. Minni Jain]",
@@ -157,7 +156,7 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "1-2": "TH-CS209 SE [Prof Daya Gupta]",
           "2-3": "TH-CS205 DAA [Prof. Manoj Kumar]",
           "3-4": "TH-CS201 Digital Logic Design [ECE-Deptt]",
-          "2-4_lab": "Lab-Operating System Design CS207-A3/G3 [Dr Minni Jain] [BDA Lab] / Lab-Object Oriented Design CS203-G1 [Dr Gunjan Chugh] [A1 Lab] / Lab-CS205 DAA-G1 [Dr. Gautam Kumar Jha] [Computer Network Lab]"
+          "2-4": "Lab-Operating System Design CS207-A3/G3 [Dr Minni Jain] [BDA Lab] / Lab-Object Oriented Design CS203-G1 [Dr Gunjan Chugh] [A1 Lab] / Lab-CS205 DAA-G1 [Dr. Gautam Kumar Jha] [Computer Network Lab] [⚠️ VERIFY]"
         }
       }
     },
@@ -166,7 +165,7 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
       "timetable": {
         "MON": {
           "10-12": "Lab-Digital Logic Design-G1 [ECE Department] / Lab-CS205 DAA-G2 [Dr N Anand] [Computer Network Lab] / Lab-Object Oriented Design CS203-A4/G3 [Dr Aditi Zear] [ML Lab]",
-          "12-1": "TH-CS207 SE [Dr. Ravin Ahuja] [AB4-303]",
+          "12-1": "TH-CS209 SE [Dr. Ravin Ahuja] [AB4-303]",
           "2-3": "TH-CS203 Oops [Dr. Aditi Zear]",
           "3-4": "TH-CS207 OS [Dr. Nipun Bansal]"
         },
@@ -192,10 +191,9 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
         "FRI": {
           "9-10": "Tutorial-CS209 Software Engineering G2 [Ms Kiran Bala] [AB4-203]",
           "10-11": "TH-CS205 DAA [Dr N Anand] [AB4-203]",
-          "11-12": "TH-CS207 SE [Dr. Ravin Ahuja] [AB4-303]",
+          "11-12": "TH-CS209 SE [Dr. Ravin Ahuja] [AB4-303]",
           "12-1": "TH-CS203 Oops [Dr. Aditi Zear]",
-          "2-3": "Tutorial-CS209 Software Engineering G1 [Ms. Kiran Bala] [AB4-205]",
-          "3-4": "Lab-Operating System Design CS207-A4/G3 [Dr. Nipun Bansal] [IPM Lab] / Lab-Object Oriented Design CS203-G2 [Dr Aditi Zear] [DBMS Lab]"
+          "2-4": "Lab-Operating System Design CS207-A4/G3 [Dr. Nipun Bansal] [IPM Lab] / Lab-Object Oriented Design CS203-G2 [Dr Aditi Zear] [DBMS Lab]"
         }
       }
     },
@@ -203,14 +201,14 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
       "room": "AB4-303",
       "timetable": {
         "MON": {
-          "9-10": "TH-Software Engineering CS209C [Mr. Pooja Kamboj]",
+          "9-10": "TH-Software Engineering CS209C [Ms. Pooja Kamboj]",
           "10-11": "TH-Digital Logic Design [ECE-Deptt]",
           "11-12": "TH-Object Oriented Design CS203 [Dr Snigdha Agarwal]",
-          "12-1": "Lab-CS205 DAA-G3 [Dr. Yeshwant Singh] [Computer Network Lab]",
+          "12-2": "Lab-CS205 DAA-G3 [Dr. Yeshwant Singh] [Computer Network Lab]",
           "2-4": "Lab-Digital Logic Design-G1 [ECE-Deptt] / Lab-CS205 DAA-G2 [Dr. Yeshwant Singh] [IPM Lab]"
         },
         "TUE": {
-          "9-10": "Tutorial-CS209 Software Engineering G3 [Mr Sankalp Khera] [AB4-221]",
+          "10-11": "Tutorial-CS209 Software Engineering G3 [Mr Sankalp Khera] [AB4-221]",
           "10-12": "Lab-Digital Logic Design-G3 [ECE-Deptt]",
           "1-2": "TH-CS205 DAA [Dr Yeshwant Singh]",
           "2-3": "TH-Operating System Design CS207 [Ms. Gull Kaur]",
@@ -225,16 +223,14 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "4-5": "TH-Operating System Design CS207 [Ms. Gull Kaur]"
         },
         "THUR": {
-          "10-11": "TH-Software Engineering CS209C [Mr. Pooja Kamboj]",
+          "10-11": "TH-Software Engineering CS209C [Ms. Pooja Kamboj]",
           "11-12": "TH-Operating System Design CS207 [Ms. Gull Kaur]",
           "12-1": "TH-CS205 DAA [Dr Yeshwant Singh]",
-          "2-3": "TH-Object Oriented Design CS203 [Dr Snigdha Agarwal]",
-          "3-4": "TH-Digital Logic Design [ECE-Deptt]"
+          "2-4": "TH-Object Oriented Design CS203 [Dr Snigdha Agarwal] / TH-Digital Logic Design [ECE-Deptt]"
         },
         "FRI": {
           "9-10": "TH-Object Oriented Design CS203 [Dr Snigdha Agarwal]",
-          "10-1": "Lab-Operating System Design CS207-A5/G3 [Dr Gull Kaur] [DBMS Lab] / Lab-Object Oriented Design CS203-A5/G2 [Dr. Snigdha Agarwal] [IPM Lab] / Lab-CS205 DAA-G1 [Ms.Poonam Soni] [Computer Network Lab]",
-          "12-1": "TH-Software Engineering CS209C [Mr. Pooja Kamboj]",
+          "10-12": "Lab-Operating System Design CS207-A5/G3 [Dr Gull Kaur] [DBMS Lab] / Lab-Object Oriented Design CS203-A5/G2 [Dr. Snigdha Agarwal] [IPM Lab] / Lab-CS205 DAA-G1 [Ms.Poonam Soni] [Computer Network Lab]",
           "1-2": "TH-Digital Logic Design [ECE-Deptt]"
         }
       }
@@ -271,9 +267,9 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
         },
         "FRI": {
           "10-12": "Lab-CS205 DAA-G2 [Dr. Aditi Zear] [Computer Network Lab] / Lab-CS205 DAA-G3 [Ms. Aanchal] [IOT Lab]",
-          "12-1": "Tutorial-CS209 Software Engineering G3 [Ms.Monika] [AB4-315]",
-          "1-2": "TH-CS203 OOPC [Ms. Anjali Bansal]",
-          "2-3": "TH-CS209 SE [Ms Pooja Kamboj]"
+          "1-2": "TH-CS209 SE [Ms Pooja Kamboj]",
+          "2-3": "TH-CS203 OOPC [Ms. Anjali Bansal]",
+          "3-4": "TH-CS209 SE [Ms Pooja Kamboj]"
         }
       }
     },
@@ -285,14 +281,12 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "10-11": "TH-Digital Logic Design [ECE-Deptt]",
           "11-12": "TH-CS205 DAA [Dr. Neha Gupta]",
           "12-2": "Lab-Operating System Design CS207-A7/G1 [Prof Rajni Jindal] [DBMS Lab] / Lab-Object Oriented Design CS203-G3 [Dr. Snigdha Agrawal] [IPM Lab]",
-          "2-5": "Lab-Digital Logic Design-G1 [ECE-Deptt]"
+          "2-4": "Lab-Digital Logic Design-G1 [ECE-Deptt]"
         },
         "TUE": {
           "10-11": "TH-Object Oriented Design CS203 [Dr. Aditi Zear]",
           "11-12": "TH-Operating System Design CS207 [Prof Rajni Jindal]",
-          "12-2": "Lab-Operating System Design CS207-A7/G2 [Dr.Prashant Giridhar S] [DBMS Lab] / Lab-Object Oriented Design CS203-A7/G1 [Ms. Anjali Bansal] [IPM Lab] / Lab-Digital Logic Design-A7/G3 [ECE-Deptt]",
-          "2-3": "Tutorial-CS209 Software Engineering G1 [Mr Vivek] [AB4-315]",
-          "3-4": "TH-Digital Logic Design [ECE-Deptt]"
+          "12-2": "Lab-Operating System Design CS207-A7/G2 [Dr.Prashant Giridhar S] [DBMS Lab] / Lab-Object Oriented Design CS203-A7/G1 [Ms. Anjali Bansal] [IPM Lab] / Lab-Digital Logic Design-A7/G3 [ECE-Deptt]"
         },
         "WED": {
           "10-11": "TH-Object Oriented Design CS203 [Dr. Aditi Zear]",
@@ -313,7 +307,8 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
           "10-11": "TH-CS205 DAA [Dr. Neha Gupta]",
           "11-12": "TH-Operating System Design CS207 [Prof Rajni Jindal]",
           "12-1": "TH-Digital Logic Design [ECE-Deptt]",
-          "3-4": "Tutorial-CS209 Software Engineering G3 [Mr Vivek] [AB4-106]"
+          "2-4": "Lab-CS209 Software Engineering [Dr. Amrita Sisodia]",
+          "4-5": "Tutorial-CS209 Software Engineering G3 [Mr Vivek] [AB4-106]"
         }
       }
     },
