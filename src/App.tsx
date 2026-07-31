@@ -1396,7 +1396,6 @@ export default function App() {
 
     const daysMap = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
     const targetDayId = daysMap[targetDayIndex];
-    if (targetDayId === "SUN" || targetDayId === "SAT") return subjects;
 
     const isDayMatch = (dbDay: string, tDay: string) => {
       if (!dbDay || !tDay) return false;
