@@ -367,48 +367,48 @@ export default function DashboardPage({
                       </div>
                     </div>
 
-                    {/* Attendance buttons — uses sub.id directly, single row on mobile */}
-                    <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 sm:gap-1.5 shrink-0 overflow-x-auto max-w-full pb-0.5 no-scrollbar">
+                    {/* Attendance buttons — uses sub.id directly, no fuzzy matching */}
+                    <div className="flex flex-wrap gap-1.5 shrink-0">
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "present" ? "clear" : "present")}
-                        className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full font-bold text-[10px] sm:text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm whitespace-nowrap ${
+                        className={`px-3.5 py-1.5 rounded-full font-bold text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
                           isDarkMode
                             ? (currentStatus === "present"
                                 ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 scale-105 shadow-md shadow-[#22c55e]/20"
                                 : "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/40 hover:bg-[#22c55e]/30")
                             : (currentStatus === "present"
-                                ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 scale-105 font-black shadow-md shadow-[#22c55e]/20"
-                                : "bg-[#dcfce7] text-[#15803d] border border-[#22c55e]/60 hover:bg-[#bbf7d0]")
+                                ? "bg-[#dcfce7] text-[#15803d] border border-[#22c55e]/60 ring-2 ring-[#22c55e]/50 scale-105 font-black shadow-sm"
+                                : "bg-[#22c55e] text-white hover:bg-[#16a34a]")
                         }`}
                       >
-                        <CheckCircle className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                        <CheckCircle className="w-3.5 h-3.5" />
                         Present
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "absent" ? "clear" : "absent")}
-                        className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm whitespace-nowrap ${
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
                           isDarkMode
                             ? (currentStatus === "absent"
                                 ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 scale-105 shadow-md shadow-[#ef4444]/20"
                                 : "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/40 hover:bg-[#ef4444]/30")
                             : (currentStatus === "absent"
-                                ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 scale-105 font-black shadow-md shadow-[#ef4444]/20"
-                                : "bg-[#fee2e2] text-[#b91c1c] border border-[#ef4444]/60 hover:bg-[#fca5a5]")
+                                ? "bg-[#fee2e2] text-[#b91c1c] border border-[#ef4444]/60 ring-2 ring-[#ef4444]/50 scale-105 font-black shadow-sm"
+                                : "bg-[#ef4444] text-white hover:bg-[#dc2626]")
                         }`}
                       >
-                        <XCircle className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                        <XCircle className="w-3.5 h-3.5" />
                         Absent
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "miss" ? "clear" : "miss")}
-                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
                           isDarkMode
                             ? (currentStatus === "miss"
                                 ? "bg-[#2d3449] text-white ring-2 ring-outline/40 scale-105"
                                 : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]")
                             : (currentStatus === "miss"
-                                ? "bg-[#f59e0b] text-white ring-2 ring-[#f59e0b]/50 scale-105 font-black shadow-sm"
-                                : "bg-[#fef3c7] text-[#b45309] border border-[#f59e0b]/60 hover:bg-[#fde68a]")
+                                ? "bg-[#fef3c7] text-[#b45309] border border-[#f59e0b]/60 ring-2 ring-[#f59e0b]/50 scale-105 font-black shadow-sm"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300")
                         }`}
                       >
                         <Coffee className="w-3 h-3" />
@@ -416,14 +416,14 @@ export default function DashboardPage({
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "leave" ? "clear" : "leave")}
-                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
                           isDarkMode
                             ? (currentStatus === "leave"
                                 ? "bg-secondary/20 text-secondary ring-2 ring-secondary/40 scale-105"
                                 : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]")
                             : (currentStatus === "leave"
-                                ? "bg-[#3b82f6] text-white ring-2 ring-[#3b82f6]/50 scale-105 font-black shadow-sm"
-                                : "bg-[#dbeafe] text-[#1d4ed8] border border-[#3b82f6]/60 hover:bg-[#bfdbfe]")
+                                ? "bg-[#dbeafe] text-[#1d4ed8] border border-[#3b82f6]/60 ring-2 ring-[#3b82f6]/50 scale-105 font-black shadow-sm"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300")
                         }`}
                       >
                         <Plane className="w-3 h-3" />
@@ -432,11 +432,7 @@ export default function DashboardPage({
                       {currentStatus && (
                         <button
                           onClick={() => onMarkAttendance(sub.id, "clear")}
-                          className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap transition-all ${
-                            isDarkMode
-                              ? "border border-outline-variant/30 text-on-surface-variant hover:bg-surface-variant hover:text-white"
-                              : "border border-gray-300 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
-                          }`}
+                          className="px-3 py-1.5 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:bg-surface-variant hover:text-white transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
                         >
                           Clear
                         </button>
