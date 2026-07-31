@@ -122,6 +122,9 @@ export default function DashboardPage({
     const cleanName = sub.name.toLowerCase().trim();
     if (todayAttendance[cleanName]) return todayAttendance[cleanName];
 
+    const stdName = getStandardizedSubjectName(sub.name).toLowerCase().trim();
+    if (todayAttendance[stdName]) return todayAttendance[stdName];
+
     // Only fall back to base name if THIS card has NO type suffix
     const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(sub.name);
     if (!hasTypeSuffix) {
@@ -366,29 +369,29 @@ export default function DashboardPage({
                     {/* Attendance buttons — uses sub.id directly, no fuzzy matching */}
                     <div className="flex flex-wrap gap-1.5 shrink-0">
                       <button
-                        onClick={() => onMarkAttendance(sub.id, "present")}
+                        onClick={() => onMarkAttendance(sub.id, currentStatus === "present" ? "clear" : "present")}
                         className={`px-3.5 py-1.5 rounded-full font-bold text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
                           currentStatus === "present"
-                            ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 scale-105"
-                            : "bg-[#22c55e] text-white hover:bg-[#16a34a]"
+                            ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 scale-105 shadow-md shadow-[#22c55e]/20"
+                            : "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/40 hover:bg-[#22c55e]/30"
                         }`}
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                         Present
                       </button>
                       <button
-                        onClick={() => onMarkAttendance(sub.id, "absent")}
+                        onClick={() => onMarkAttendance(sub.id, currentStatus === "absent" ? "clear" : "absent")}
                         className={`px-3.5 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
                           currentStatus === "absent"
-                            ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 scale-105"
-                            : "bg-[#ef4444] text-white hover:bg-[#dc2626]"
+                            ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 scale-105 shadow-md shadow-[#ef4444]/20"
+                            : "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/40 hover:bg-[#ef4444]/30"
                         }`}
                       >
                         <XCircle className="w-3.5 h-3.5" />
                         Absent
                       </button>
                       <button
-                        onClick={() => onMarkAttendance(sub.id, "miss")}
+                        onClick={() => onMarkAttendance(sub.id, currentStatus === "miss" ? "clear" : "miss")}
                         className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
                           currentStatus === "miss"
                             ? "bg-[#2d3449] text-white ring-2 ring-outline/40 scale-105"
@@ -399,7 +402,7 @@ export default function DashboardPage({
                         Miss
                       </button>
                       <button
-                        onClick={() => onMarkAttendance(sub.id, "leave")}
+                        onClick={() => onMarkAttendance(sub.id, currentStatus === "leave" ? "clear" : "leave")}
                         className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
                           currentStatus === "leave"
                             ? "bg-secondary/20 text-secondary ring-2 ring-secondary/40 scale-105"

@@ -831,6 +831,9 @@ export default function App() {
               if ((schedMatch as any).rawSubjectId) {
                 next[(schedMatch as any).rawSubjectId] = status;
               }
+              if (schedMatch.name) {
+                next[schedMatch.name.toLowerCase().trim()] = status;
+              }
             }
             targetKeys.forEach(k => {
               if (targetHasSuffix && !/\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(k)) return;
