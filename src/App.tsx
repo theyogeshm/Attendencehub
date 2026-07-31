@@ -486,7 +486,7 @@ export default function App() {
         return t === "tut" ? "tutorial" : (t === "lec" ? "theory" : t);
       };
 
-      const merged = baseSubjects.map(sub => {
+      let merged = baseSubjects.map(sub => {
         const subNameLower = sub.name.toLowerCase().trim();
 
         if (agg[subNameLower]) {
@@ -494,6 +494,15 @@ export default function App() {
         }
         return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
+
+      const seenNames = new Set<string>();
+      merged = merged.filter(s => {
+        const k = s.name.toLowerCase().trim();
+        if (seenNames.has(k)) return false;
+        seenNames.add(k);
+        return true;
+      });
+
       setSubjects(merged);
       resolvedSubjects = merged;
 
@@ -862,18 +871,16 @@ export default function App() {
         };
         const targetType = getComponentType(targetSubjectName);
 
-        let foundMatch = false;
-        const updated = prev.map(sub => {
-          const isIdMatch =
-            sub.id === subjectId ||
-            (schedMatch && sub.id === schedMatch.id);
+        let matchIndex = prev.findIndex(sub =>
+          sub.id === subjectId ||
+          (schedMatch && sub.id === schedMatch.id) ||
+          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim()
+        );
 
-          const isExactNameMatch =
-            sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim();
+        let updated = [...prev];
 
-          if (!isIdMatch && !isExactNameMatch) return sub;
-
-          foundMatch = true;
+        if (matchIndex !== -1) {
+          const sub = updated[matchIndex];
           let newAttended = sub.attendanceCount;
           let newTotal = sub.totalClasses;
 
@@ -906,10 +913,8 @@ export default function App() {
             }
           }
 
-          return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
-        });
-
-        if (!foundMatch && status !== "clear") {
+          updated[matchIndex] = { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
+        } else if (status !== "clear") {
           const newSub: Subject = {
             id: subjectId,
             name: targetSubjectName,
@@ -925,6 +930,15 @@ export default function App() {
           };
           updated.push(newSub);
         }
+
+        // Deduplicate array by clean standardized subject name
+        const seenNames = new Set<string>();
+        updated = updated.filter(s => {
+          const k = s.name.toLowerCase().trim();
+          if (seenNames.has(k)) return false;
+          seenNames.add(k);
+          return true;
+        });
 
         try {
           localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
