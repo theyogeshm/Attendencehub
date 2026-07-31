@@ -120,15 +120,15 @@ export default function DashboardPage({
   return (
     <div className="space-y-6">
       {/* ── STAT CARDS ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Card 1: Attendance */}
-        <div className="glass-card rounded-2xl p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
+        <div className="glass-card rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
           <div className="flex justify-between items-start">
             <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Overall Attendance</span>
             <span className="material-symbols-outlined text-[#82ffc8] text-xl">analytics</span>
           </div>
-          <div className="mt-3">
-            <h3 className={`text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>
+          <div className="mt-2 sm:mt-3">
+            <h3 className={`text-2xl sm:text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>
               {totalHeld > 0 ? `${aggregateAtt.toFixed(1)}%` : "N/A"}
             </h3>
             <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>

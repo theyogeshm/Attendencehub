@@ -207,7 +207,37 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
         </div>
       ) : (
         <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* ── MOBILE COMPACT SUMMARY BAR ── */}
+      <div className="md:hidden glass-card p-2.5 rounded-2xl flex items-center justify-around gap-2 text-center text-xs shadow-sm">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-sm">📚</span>
+          <div className="text-left">
+            <span className="text-[9px] font-bold text-on-surface-variant uppercase block leading-none">Classes</span>
+            <span className="font-extrabold text-xs text-on-surface">{totalClassesAttended}/{totalClassesHeld}</span>
+          </div>
+        </div>
+        <div className="h-6 w-px bg-outline-variant/30 shrink-0" />
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-sm">{subjectsAtRiskCount > 0 ? "⚠️" : "✅"}</span>
+          <div className="text-left">
+            <span className="text-[9px] font-bold text-on-surface-variant uppercase block leading-none">Risk</span>
+            <span className={`font-extrabold text-xs ${subjectsAtRiskCount > 0 ? 'text-error' : 'text-primary'}`}>
+              {subjectsAtRiskCount} {subjectsAtRiskCount === 1 ? 'Subject' : 'Subjects'}
+            </span>
+          </div>
+        </div>
+        <div className="h-6 w-px bg-outline-variant/30 shrink-0" />
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-sm">✅</span>
+          <div className="text-left">
+            <span className="text-[9px] font-bold text-on-surface-variant uppercase block leading-none">Status</span>
+            <span className="font-extrabold text-xs text-[#7bd0ff]">Active</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── DESKTOP STAT CARDS ── */}
+      <div className="hidden md:grid grid-cols-3 gap-4">
         <div className="glass-card p-5 rounded-2xl transition-all hover:border-primary/40 hover:-translate-y-0.5 duration-200">
           <p className="text-[11px] font-bold text-on-surface-variant mb-2 uppercase">TOTAL CLASSES</p>
           <p className="text-3xl font-extrabold text-on-surface tracking-tight">{totalClassesAttended} / {totalClassesHeld}</p>
@@ -501,7 +531,7 @@ function UnifiedSubjectCard(props: UnifiedSubjectCardProps) {
   const getCompRate = (sub?: Subject) => (sub && sub.totalClasses > 0 ? (sub.attendanceCount / sub.totalClasses) * 100 : 0);
 
   return (
-    <div className="glass-card p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between">
+    <div className="glass-card p-3.5 sm:p-5 rounded-2xl hover:border-primary transition-all group relative flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-start mb-3">
           <div>

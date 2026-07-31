@@ -1821,7 +1821,7 @@ export default function App() {
       <main className="lg:pl-[260px] flex-1 flex flex-col min-h-screen transition-colors duration-300">
 
         {/* ── HEADER ── */}
-        <header className={`h-16 border-b flex justify-between items-center px-4 sm:px-6 sticky top-0 z-30 transition-colors duration-300 ${
+        <header className={`h-13 sm:h-16 border-b flex justify-between items-center px-3 sm:px-6 sticky top-0 z-30 transition-colors duration-300 ${
           isDarkMode ? "bg-[#0b1326] border-[#3b4a42]/30" : "bg-white border-[#E5E7EB]"
         }`}>
           <div className="flex items-center gap-2 min-w-0">
@@ -1872,7 +1872,7 @@ export default function App() {
         </header>
 
         {/* ── PAGE CONTENT ── */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 custom-scrollbar pb-24 lg:pb-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 custom-scrollbar pb-20 lg:pb-6">
           <div className="max-w-7xl mx-auto w-full min-w-0">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -1939,7 +1939,7 @@ export default function App() {
         </div>
 
         {/* ── MOBILE BOTTOM NAV (Equidistant 6-Column Grid) ── */}
-        <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t grid grid-cols-6 h-16 w-full items-center ${
+        <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t grid grid-cols-6 h-14 sm:h-16 w-full items-center ${
           isDarkMode ? "bg-[#0b1326]/95 border-[#3b4a42]/30 backdrop-blur-md" : "bg-white/95 border-[#E5E7EB] backdrop-blur-md"
         }`}>
           {navItems.map((nav) => {
