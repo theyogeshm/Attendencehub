@@ -766,6 +766,10 @@ export default function App() {
       return;
     }
     inFlightMarkRef.current.add(lockKey);
+    // Safety auto-release after 1000ms max to prevent permanent lockouts
+    setTimeout(() => {
+      inFlightMarkRef.current.delete(lockKey);
+    }, 1000);
 
     try {
       // 1. Resolve exact subject name (name + type)
@@ -1284,6 +1288,7 @@ export default function App() {
         if (!rowSubName || !row.status) return;
         const rowType = getType(rowSubName);
 
+        map[rowSubName.toLowerCase().trim()] = row.status as AttendanceStatus;
         const keys = getNormalizedSubjectKeys(rowSubName);
         keys.forEach(k => {
           // Skip plain base-name keys when the row has a type suffix —
