@@ -1819,27 +1819,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative hidden md:block">
-              <input
-                type="text"
-                placeholder="Search portal..."
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && globalSearch.trim()) {
-                    navigate(`/resources?q=${encodeURIComponent(globalSearch.trim())}`);
-                    setGlobalSearch("");
-                  }
-                }}
-                className={`text-xs pl-8 pr-4 py-2 w-52 rounded-full border focus:outline-none transition-all ${
-                  isDarkMode
-                    ? "bg-[#171f33] border-[#3b4a42]/40 text-white placeholder-on-surface-variant focus:border-primary"
-                    : "bg-slate-100 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-slate-400"
-                }`}
-              />
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-            </div>
+
 
             {/* Theme toggle */}
             <button
