@@ -117,18 +117,6 @@ export default function AssignmentsPage({
 
   return (
     <div className="space-y-6">
-      
-      {/* Search Filter input wrapper for mobile */}
-      <div className="flex sm:hidden">
-        <input
-          type="text"
-          placeholder="Filter assignments..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-[#171f33] border border-outline-variant rounded-xl p-3 text-xs"
-        />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Left Column: Form (1:1 equal 50% split) */}
