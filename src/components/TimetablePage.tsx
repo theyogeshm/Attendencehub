@@ -755,40 +755,40 @@ export default function TimetablePage({
 
 
   return (
-    <div className="space-y-6 w-full min-w-0">
+    <div className="space-y-3 sm:space-y-6 w-full min-w-0">
       {/* ── HEADER & TITLE ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card p-5 sm:p-6 rounded-3xl border border-outline-variant/40 shadow-lg relative z-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 glass-card p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/40 shadow-lg relative z-20">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-1.5">
+        <div className="relative z-10 space-y-0.5 sm:space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-3 py-1 rounded-full text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
+            <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
               {currentTimetableData.semester}
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
-            <BookOpen className="w-7 h-7 text-primary" />
+          <h1 className="text-lg sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-1.5 sm:gap-2.5">
+            <BookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
             <span>Class Timetable — {sectionMeta.label}</span>
           </h1>
 
-          <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed">
+          <p className="text-[11px] sm:text-sm text-on-surface-variant max-w-xl leading-tight sm:leading-relaxed">
             Official {selectedSemester === 7 ? "Semester 7 (CSE-VII)" : (selectedSemester === 5 ? "Semester 5 (CSE-V)" : "Semester 3")} schedule for {sectionMeta.label} ({sectionData.room}).
           </p>
         </div>
 
         {/* Section Quick Stats & Section Switcher */}
-        <div className="relative z-10 flex items-center gap-3 self-start md:self-auto flex-wrap">
-          <div className="p-3.5 rounded-2xl bg-surface-container/90 border border-outline-variant/40 text-center min-w-[120px]">
-            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Default Room</p>
-            <p className="text-lg font-black text-primary mt-0.5 flex items-center justify-center gap-1">
-              <MapPin className="w-4 h-4 text-primary" />
+        <div className="relative z-10 flex items-center gap-2 sm:gap-3 self-start md:self-auto flex-wrap sm:flex-nowrap w-full sm:w-auto mt-1 sm:mt-0">
+          <div className="p-1.5 sm:p-3.5 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl bg-surface-container/90 border border-outline-variant/40 text-center flex sm:block items-center justify-between sm:justify-center gap-2 shrink-0">
+            <p className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Default Room</p>
+            <p className="text-xs sm:text-lg font-black text-primary sm:mt-0.5 flex items-center justify-center gap-0.5 sm:gap-1">
+              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
               {sectionData.room}
             </p>
           </div>
 
-          <div className="flex flex-col min-w-0 w-full max-w-[220px]">
-            <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
+          <div className="flex flex-col min-w-0 flex-1 sm:flex-initial w-full sm:w-auto max-w-full sm:max-w-[220px]">
+            <label className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block mb-0.5 sm:mb-1">
               Switch Section
             </label>
             <CustomSelect
@@ -801,7 +801,6 @@ export default function TimetablePage({
               onChange={(val) => setSelectedSection(val)}
               isDarkMode={isDarkMode}
             />
-
           </div>
         </div>
       </div>
@@ -842,18 +841,17 @@ export default function TimetablePage({
         </div>
       )}
 
-
       {/* ── CONTROLS: VIEW MODES & SEARCH ── */}
-      <div className="space-y-4">
+      <div className="space-y-2.5 sm:space-y-4">
         {/* View Mode Toggle & Search */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 pt-1 sm:pt-2">
           <div className="flex flex-wrap items-center gap-2">
             {/* Day / Week View Tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
+            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
               <button
                 onClick={() => setViewMode("week")}
                 style={viewMode === "week" ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-extrabold transition-all cursor-pointer ${
                   viewMode === "week"
                     ? "bg-[#00C896] dark:bg-primary shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -864,7 +862,7 @@ export default function TimetablePage({
               <button
                 onClick={() => setViewMode("day")}
                 style={viewMode === "day" ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-extrabold transition-all cursor-pointer ${
                   viewMode === "day"
                     ? "bg-[#00C896] dark:bg-primary shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -875,16 +873,16 @@ export default function TimetablePage({
             </div>
 
             {/* Lab Group Filter Tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
-              <span className="text-[10px] font-bold text-on-surface-variant uppercase px-2">Group:</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
+              <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant uppercase px-1 sm:px-2">Group:</span>
               {(["All", "G1", "G2", "G3"] as const).map((grp) => (
                 <button
                   key={grp}
                   onClick={() => handleSetSelectedLabGroup(grp)}
                   style={selectedLabGroup === grp ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-extrabold transition-all cursor-pointer ${
                     selectedLabGroup === grp
-                      ? "bg-[#00C896] dark:bg-emerald-400 shadow-sm scale-105"
+                      ? "bg-[#00C896] dark:bg-emerald-400 shadow-sm"
                       : "text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
@@ -896,13 +894,13 @@ export default function TimetablePage({
 
           {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-on-surface-variant absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-on-surface-variant absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search subject, faculty, code (e.g. CS301, ML, Yadav)..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-surface-container border border-outline-variant/40 text-xs text-on-surface focus:outline-none focus:border-primary transition-all placeholder:text-on-surface-variant/50"
+              className="w-full pl-8 sm:pl-10 pr-4 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40 text-[11px] sm:text-xs text-on-surface focus:outline-none focus:border-primary transition-all placeholder:text-on-surface-variant/50"
             />
             {searchQuery && (
               <button

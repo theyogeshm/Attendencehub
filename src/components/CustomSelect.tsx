@@ -49,7 +49,7 @@ export default function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full py-2.5 px-4 rounded-2xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shadow-sm flex items-center justify-between gap-2 text-left outline-none ${
+        className={`w-full py-1.5 sm:py-2.5 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm border transition-all cursor-pointer shadow-sm flex items-center justify-between gap-2 text-left outline-none ${
           isDarkMode
             ? "bg-[#131b2e] border-slate-700/60 text-slate-100 hover:border-emerald-500/50 hover:bg-[#1a243b]"
             : "bg-white border-slate-200 text-slate-800 hover:border-emerald-500/50 hover:bg-slate-50"
