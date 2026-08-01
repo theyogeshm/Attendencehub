@@ -730,7 +730,8 @@ export default function App() {
     for (const row of attData) {
       const rawName = (row.subject ?? "").trim();
       if (!rawName) continue;
-      const stdName = getStandardizedSubjectName(rawName);
+      const cleanName = rawName.replace(/\s*\([^)]+\)$/, "").trim();
+      const stdName = getStandardizedSubjectName(cleanName);
       if (!row.date) continue;
 
       const stdLower = stdName.toLowerCase().trim();
@@ -766,24 +767,16 @@ export default function App() {
   };
 
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
-  // ── Attendance handler (5 statuses) ────────────────────────────────────────────
-  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
-    const dateStr = targetDate ?? getTodayDateStr();
-    const lockKey = `${user?.id || 'guest'}_${subjectId}_${dateStr}`;
-    if (inFlightMarkRef.current.has(lockKey)) {
-      return;
-    }
+  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, customDateStr?: string) => {
+    const lockKey = `${subjectId}::${customDateStr || getTodayDateStr()}`;
+    if (inFlightMarkRef.current.has(lockKey)) return;
     inFlightMarkRef.current.add(lockKey);
-    // Safety auto-release after 1000ms max to prevent permanent lockouts
-    setTimeout(() => {
-      inFlightMarkRef.current.delete(lockKey);
-    }, 1000);
 
     try {
-      // 1. Resolve exact subject name (name + type)
+      const dateStr = customDateStr || getTodayDateStr();
       const todaySched = getTodayScheduledSubjects();
-      const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
       let targetSubjectName = "";
+      const schedMatch = todaySched.find(s => s.id === subjectId);
 
       if (schedMatch) {
         targetSubjectName = schedMatch.name;
@@ -817,9 +810,11 @@ export default function App() {
       }
 
       const isToday = dateStr === getTodayDateStr();
+      const cleanTarget = targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim();
+      const stdTargetName = getStandardizedSubjectName(cleanTarget);
+      const targetKeys = getNormalizedSubjectKeys(stdTargetName);
 
       // Check if already marked with this exact status (ignore duplicate click)
-      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
       const prevStatus =
         todayAttendance[subjectId] ||
         (schedMatch ? todayAttendance[schedMatch.id] : undefined) ||
@@ -865,23 +860,13 @@ export default function App() {
         });
       }
 
-      // Instantly update subjects array count in local state
+      // Update local subject counts based on exact state transition
       setSubjects(prev => {
-        // Determine the component type of the TARGET (Theory / Lab / Tutorial / none)
-        const getComponentType = (name: string): string | null => {
-          const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lecture|lec)$/i);
-          if (!m) return null;
-          const t = m[1].toLowerCase();
-          if (t === "tut") return "tutorial";
-          if (t === "lec" || t === "lecture") return "theory";
-          return t;
-        };
-        const targetType = getComponentType(targetSubjectName);
-
         let matchIndex = prev.findIndex(sub =>
           sub.id === subjectId ||
           (schedMatch && sub.id === schedMatch.id) ||
-          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim()
+          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim() ||
+          getStandardizedSubjectName(sub.name).toLowerCase().trim() === stdTargetName.toLowerCase().trim()
         );
 
         let updated = [...prev];
@@ -924,6 +909,9 @@ export default function App() {
               newTotal = Math.max(0, newTotal - 1);
             }
           }
+
+          // Safety cap: attendanceCount can NEVER exceed totalClasses
+          newAttended = Math.min(newAttended, newTotal);
 
           updated[matchIndex] = { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
         } else if (status !== "clear") {
