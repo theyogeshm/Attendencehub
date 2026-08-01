@@ -144,102 +144,104 @@ export default function DashboardPage({
       {/* ── STAT CARDS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Card 1: Attendance */}
-        <div className="glass-card rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Overall Attendance</span>
-            <span className="material-symbols-outlined text-[#82ffc8] text-xl">analytics</span>
+        <div className="glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
+          <div className="flex justify-between items-center gap-1">
+            <span className="text-on-surface-variant text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap truncate">Overall Attendance</span>
+            <span className="material-symbols-outlined text-[#82ffc8] text-lg sm:text-xl shrink-0">analytics</span>
           </div>
-          <div className="mt-2 sm:mt-3">
-            <h3 className={`text-2xl sm:text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>
+          <div className="mt-1 sm:mt-3">
+            <h3 className={`text-xl sm:text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>
               {totalHeld > 0 ? `${aggregateAtt.toFixed(1)}%` : "N/A"}
             </h3>
-            <div className={`w-full h-1.5 rounded-full mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
+            <div className={`w-full h-1 sm:h-1.5 rounded-full mt-1 sm:mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
               <div
                 className={`h-full rounded-full transition-all duration-700 ${isDarkMode ? "bg-gradient-to-r from-primary-container to-secondary" : "bg-[#00C896]"}`}
                 style={{ width: `${Math.min(100, aggregateAtt)}%` }}
               />
             </div>
-            <p className="text-[10px] text-on-surface-variant mt-1.5">Across {subjects.length} subjects</p>
+            <p className="text-[9px] sm:text-[10px] text-on-surface-variant mt-0.5 sm:mt-1.5">Across {subjects.length} subjects</p>
           </div>
         </div>
 
         {/* Card 2: Pending Assignments */}
-        <div className="glass-card rounded-2xl p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Pending Tasks</span>
-            <span className="material-symbols-outlined text-[#7bd0ff] text-xl">assignment</span>
+        <div className="glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
+          <div className="flex justify-between items-center gap-1">
+            <span className="text-on-surface-variant text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap truncate">Pending Tasks</span>
+            <span className="material-symbols-outlined text-[#7bd0ff] text-lg sm:text-xl shrink-0">assignment</span>
           </div>
-          <div className="mt-3">
-            <h3 className="text-3xl font-bold text-on-surface font-sans tracking-tight">
+          <div className="mt-1 sm:mt-3">
+            <h3 className="text-xl sm:text-3xl font-bold text-on-surface font-sans tracking-tight">
               {String(pendingAssignments).padStart(2, "0")}
             </h3>
-            <p className="text-[10px] text-on-surface-variant mt-1.5">Assignments pending</p>
-            <button
-              onClick={() => setActiveTab("assignments")}
-              className="mt-2 text-[10px] text-secondary font-bold hover:underline cursor-pointer"
-            >
-              View all →
-            </button>
+            <div className="flex items-center justify-between mt-0.5 sm:mt-1.5">
+              <p className="text-[9px] sm:text-[10px] text-on-surface-variant">Assignments pending</p>
+              <button
+                onClick={() => setActiveTab("assignments")}
+                className="text-[9px] sm:text-[10px] text-secondary font-bold hover:underline cursor-pointer"
+              >
+                View all →
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Card 3: Next Class */}
-        <div className="glass-card rounded-2xl p-5 flex flex-col justify-between border-l-4 border-primary hover:-translate-y-1 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Next Class</span>
-            <span className="material-symbols-outlined text-tertiary text-xl">schedule</span>
+        <div className="glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between border-l-4 border-primary hover:-translate-y-1 transition-all duration-300">
+          <div className="flex justify-between items-center gap-1">
+            <span className="text-on-surface-variant text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap truncate">Next Class</span>
+            <span className="material-symbols-outlined text-tertiary text-lg sm:text-xl shrink-0">schedule</span>
           </div>
-          <div className="mt-3">
+          <div className="mt-1 sm:mt-3">
           {isLoadingTimetable ? (
-            <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-outline-variant/30 rounded w-3/4"></div>
-              <div className="h-3 bg-outline-variant/20 rounded w-1/2"></div>
+            <div className="animate-pulse space-y-1">
+              <div className="h-3 bg-outline-variant/30 rounded w-3/4"></div>
+              <div className="h-2.5 bg-outline-variant/20 rounded w-1/2"></div>
             </div>
           ) : allMarkedToday ? (
             <>
-              <h4 className="text-sm font-bold text-primary flex items-center gap-1">
+              <h4 className="text-xs sm:text-sm font-bold text-primary flex items-center gap-1">
                 <span>🎉 All Done!</span>
               </h4>
-              <p className="text-[11px] text-on-surface-variant mt-1">All classes marked for today</p>
-              <span className="mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">
+              <p className="text-[9px] sm:text-[11px] text-on-surface-variant mt-0.5 sm:mt-1">All classes marked</p>
+              <span className="mt-0.5 sm:mt-1 inline-block text-[8px] sm:text-[9px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">
                 COMPLETED
               </span>
             </>
           ) : nextClass ? (
             <>
-              <h4 className="text-base font-bold text-on-surface line-clamp-1">{nextClass.name}</h4>
-              <p className="text-[11px] text-primary font-medium mt-1">{nextClass.time || "Next up"}</p>
-              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded ${nextClass.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
+              <h4 className="text-xs sm:text-base font-bold text-on-surface line-clamp-1">{nextClass.name}</h4>
+              <p className="text-[9px] sm:text-[11px] text-primary font-medium mt-0.5 sm:mt-1">{nextClass.time || "Next up"}</p>
+              <span className={`mt-0.5 sm:mt-1 inline-block text-[8px] sm:text-[9px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded ${nextClass.type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
                 {nextClass.type ?? "LEC"}
               </span>
             </>
           ) : todayTimetable.length > 0 ? (
             <>
-              <h4 className="text-base font-bold text-on-surface line-clamp-1">{todayTimetable[0].name}</h4>
-              <p className="text-[11px] text-primary font-medium mt-1">{todayTimetable[0].time || "Next up"}</p>
-              <span className={`mt-1 inline-block text-[9px] font-extrabold px-2 py-0.5 rounded ${todayTimetable[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
+              <h4 className="text-xs sm:text-base font-bold text-on-surface line-clamp-1">{todayTimetable[0].name}</h4>
+              <p className="text-[9px] sm:text-[11px] text-primary font-medium mt-0.5 sm:mt-1">{todayTimetable[0].time || "Next up"}</p>
+              <span className={`mt-0.5 sm:mt-1 inline-block text-[8px] sm:text-[9px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded ${todayTimetable[0].type === "LAB" ? "bg-secondary/10 text-secondary" : "bg-primary/10 text-primary"}`}>
                 {todayTimetable[0].type ?? "LEC"}
               </span>
             </>
           ) : (
             <>
-              <h4 className="text-base font-bold text-on-surface">Not Scheduled</h4>
-              <p className="text-[11px] text-on-surface-variant mt-1">Timetable coming soon</p>
+              <h4 className="text-xs sm:text-base font-bold text-on-surface">Not Scheduled</h4>
+              <p className="text-[9px] sm:text-[11px] text-on-surface-variant mt-0.5 sm:mt-1">Timetable coming soon</p>
             </>
           )}
           </div>
         </div>
 
         {/* Card 4: Academic Week */}
-        <div className="glass-card rounded-2xl p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
-          <div className="flex justify-between items-start">
-            <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Academic Week</span>
-            <span className="material-symbols-outlined text-[#7bd0ff] text-xl">calendar_month</span>
+        <div className="glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
+          <div className="flex justify-between items-center gap-1">
+            <span className="text-on-surface-variant text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap truncate">Academic Week</span>
+            <span className="material-symbols-outlined text-[#7bd0ff] text-lg sm:text-xl shrink-0">calendar_month</span>
           </div>
-          <div className="mt-3">
-            <h3 className={`text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#7bd0ff]" : "text-[#111827]"}`}>Week {academicWeek}</h3>
-            <p className="text-[10px] text-on-surface-variant mt-1.5">
-              {today.toLocaleDateString("en-IN", { weekday: "long", month: "short", day: "numeric" })}
+          <div className="mt-1 sm:mt-3">
+            <h3 className={`text-xl sm:text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#7bd0ff]" : "text-[#111827]"}`}>Week {academicWeek}</h3>
+            <p className="text-[9px] sm:text-[10px] text-on-surface-variant mt-0.5 sm:mt-1.5">
+              {today.toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })}
             </p>
           </div>
         </div>
