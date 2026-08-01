@@ -760,19 +760,19 @@ export default function TimetablePage({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 glass-card p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/40 shadow-lg relative z-20">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-0.5 sm:space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30">
+        <div className="relative z-10 space-y-0.5 sm:space-y-1.5 min-w-0 max-w-full">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30 whitespace-nowrap shrink-0">
               {currentTimetableData.semester}
             </span>
           </div>
 
-          <h1 className="text-lg sm:text-3xl font-black text-on-surface tracking-tight flex items-center gap-1.5 sm:gap-2.5">
-            <BookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
-            <span>Class Timetable — {sectionMeta.label}</span>
+          <h1 className="text-[12px] min-[360px]:text-[13px] min-[400px]:text-[14px] sm:text-3xl font-black text-on-surface tracking-tighter sm:tracking-tight flex items-center gap-1 sm:gap-2.5 max-w-full min-w-0">
+            <BookOpen className="w-4 h-4 sm:w-7 sm:h-7 text-primary shrink-0" />
+            <span className="whitespace-nowrap truncate">Class Timetable — {sectionMeta.label}</span>
           </h1>
 
-          <p className="text-[11px] sm:text-sm text-on-surface-variant max-w-xl leading-tight sm:leading-relaxed">
+          <p className="text-[11px] sm:text-sm text-on-surface-variant max-w-xl leading-tight sm:leading-relaxed truncate sm:whitespace-normal">
             Official {selectedSemester === 7 ? "Semester 7 (CSE-VII)" : (selectedSemester === 5 ? "Semester 5 (CSE-V)" : "Semester 3")} schedule for {sectionMeta.label} ({sectionData.room}).
           </p>
         </div>
