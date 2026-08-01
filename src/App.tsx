@@ -757,17 +757,13 @@ export default function App() {
       const groupKey = `${row.date}::${stdLower}`;
 
       const slotMatch = rawName.match(/\(([^)]+)\)$/);
-      const slotKey = slotMatch ? slotMatch[1].trim() : "default";
+      const slotKey = slotMatch ? slotMatch[1].trim() : (row.id ? `row_${row.id}` : `row_${Math.random()}`);
 
       if (!mapByDateAndSub.has(groupKey)) {
         mapByDateAndSub.set(groupKey, new Map());
       }
 
       const subMap = mapByDateAndSub.get(groupKey)!;
-      // If a slotted row is present, purge any un-slotted default fallback row for the same subject & date
-      if (slotKey !== "default" && subMap.has("default")) {
-        subMap.delete("default");
-      }
       subMap.set(slotKey, { subject: stdName, status: row.status });
     }
 
@@ -2326,6 +2322,7 @@ export default function App() {
                                   onClick={async () => {
                                     if (!attendanceLogDateStr) return;
                                     const nextStatus = isSelected ? "clear" : s;
+                                    setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: nextStatus === "clear" ? undefined : nextStatus } : item));
                                     await handleMarkAttendance(sub.subjectName || sub.subjectId, nextStatus, attendanceLogDateStr);
                                     await fetchLogForDate(attendanceLogDateStr);
                                     if (user) await loadUserData(user);
