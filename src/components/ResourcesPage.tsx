@@ -135,7 +135,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
       </div>
 
       {filteredSubjects.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5">
           {filteredSubjects.map((sub) => {
             const count = countMap[sub.name.toLowerCase().trim()] ?? 0;
             const icon  = getSubjectIcon(sub.name);
@@ -144,38 +144,38 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                 key={sub.id}
                 id={`subject-card-${sub.id}`}
                 onClick={() => navigate(`/resources/${encodeURIComponent(sub.name)}`)}
-                className="group text-left relative glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between cursor-pointer hover:border-primary/60 transition-all duration-300 focus:outline-none focus:border-primary shadow-sm"
+                className="group text-left relative glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between cursor-pointer hover:border-primary/60 transition-all duration-300 focus:outline-none focus:border-primary shadow-sm"
               >
                 <div>
-                  <div className="flex justify-between items-start mb-3 sm:mb-4">
-                    <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
-                      <span className="material-symbols-outlined text-primary text-[20px] sm:text-[22px]">{icon}</span>
+                  <div className="flex justify-between items-start mb-2 sm:mb-4">
+                    <div className="p-1.5 sm:p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
+                      <span className="material-symbols-outlined text-primary text-[18px] sm:text-[22px]">{icon}</span>
                     </div>
-                    <span className="text-[9px] sm:text-[10px] font-bold bg-surface-variant px-2.5 py-0.5 sm:py-1 rounded-full text-on-surface-variant">
+                    <span className="text-[8px] sm:text-[10px] font-bold bg-surface-variant px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-on-surface-variant">
                       {sub.category}
                     </span>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-on-surface mb-1 leading-snug">{sub.name}</h3>
-                  <p className="text-[11px] sm:text-xs text-on-surface-variant mb-4 line-clamp-2 leading-relaxed">
+                  <h3 className="text-xs sm:text-base font-bold text-on-surface mb-0.5 sm:mb-1 leading-tight sm:leading-snug">{sub.name}</h3>
+                  <p className="text-[10px] sm:text-xs text-on-surface-variant mb-2 sm:mb-4 line-clamp-1 sm:line-clamp-2 leading-tight sm:leading-relaxed">
                     {sub.description || "Tap to browse study materials and resources."}
                   </p>
                 </div>
-                <div className="flex items-center justify-between mt-auto pt-2.5 sm:pt-3 border-t border-outline-variant/30">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mt-auto pt-2 sm:pt-3 border-t border-outline-variant/30">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     {loadingCounts ? (
-                      <div className="w-4 h-4 rounded-full border border-outline-variant/50 animate-pulse bg-surface-variant" />
+                      <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-outline-variant/50 animate-pulse bg-surface-variant" />
                     ) : count > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-primary">
-                        <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold">{count}</span>
+                      <span className="inline-flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[11px] font-semibold text-primary">
+                        <span className="w-3.5 h-3.5 sm:w-5 sm:h-5 rounded-full bg-primary/10 flex items-center justify-center text-[8px] sm:text-[9px] font-bold">{count}</span>
                         <span>files available</span>
                       </span>
                     ) : (
-                      <span className="text-[11px] sm:text-xs text-on-surface-variant/70">No files yet</span>
+                      <span className="text-[10px] sm:text-xs text-on-surface-variant/70">No files yet</span>
                     )}
                   </div>
-                  <span className="text-primary font-bold text-xs flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                  <span className="text-primary font-bold text-[11px] sm:text-xs flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
                     <span>Browse</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </span>
                 </div>
                 <div className="absolute inset-0 rounded-2xl ring-1 ring-primary/0 group-hover:ring-primary/20 transition-all duration-300 pointer-events-none" />
