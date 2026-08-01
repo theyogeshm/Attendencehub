@@ -437,48 +437,6 @@ export default function DashboardPage({
           </div>
           )}
 
-          {/* Quick Access Strip */}
-          <div className="pt-4 border-t border-outline-variant">
-            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Quick Access</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <a
-                href="http://www.dtu.ac.in/Web/notices/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass-card px-3 py-3 rounded-xl flex items-center gap-2 hover:border-primary transition-all group"
-              >
-                <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform text-lg">campaign</span>
-                <span className="text-xs font-medium text-on-surface">DTU Notices</span>
-              </a>
-              <a
-                href="https://www.resulthubdtu.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass-card px-3 py-3 rounded-xl flex items-center gap-2 hover:border-secondary transition-all group"
-              >
-                <span className="material-symbols-outlined text-secondary group-hover:scale-110 transition-transform text-lg">grade</span>
-                <span className="text-xs font-medium text-on-surface">Result Hub</span>
-              </a>
-              <a
-                href="https://unstop.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass-card px-3 py-3 rounded-xl flex items-center gap-2 hover:border-tertiary transition-all group"
-              >
-                <span className="material-symbols-outlined text-tertiary group-hover:scale-110 transition-transform text-lg">rocket_launch</span>
-                <span className="text-xs font-medium text-on-surface">Unstop</span>
-              </a>
-              <a
-                href="https://leetcode.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass-card px-3 py-3 rounded-xl flex items-center gap-2 hover:border-primary transition-all group"
-              >
-                <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform text-lg">terminal</span>
-                <span className="text-xs font-medium text-on-surface">Leetcode</span>
-              </a>
-            </div>
-          </div>
         </div>
 
         {/* RIGHT: Calendar + Timetable Preview */}
