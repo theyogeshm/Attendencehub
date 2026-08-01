@@ -1290,9 +1290,20 @@ export default function App() {
       return t === "tut" ? "tutorial" : (t === "lec" ? "theory" : t);
     };
 
+    const isSlotMatch = (slotA: string, slotB: string): boolean => {
+      if (!slotA || !slotB) return false;
+      const cleanA = slotA.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      const cleanB = slotB.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      return cleanA.includes(cleanB) || cleanB.includes(cleanA);
+    };
+
     const map: Record<string, AttendanceStatus> = {};
     if (data) {
       data.forEach(row => {
+        const rowSubName = (row.subject ?? "").trim();
+        if (!rowSubName || !row.status) return;
+        const rowType = getType(rowSubName);
+
         const slotMatch = rowSubName.match(/\(([^)]+)\)$/);
         const rowSlot = slotMatch ? slotMatch[1].trim() : null;
         const cleanRowName = slotMatch ? rowSubName.replace(/\s*\([^)]+\)$/, "").trim() : rowSubName;
