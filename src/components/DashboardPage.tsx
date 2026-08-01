@@ -427,14 +427,6 @@ export default function DashboardPage({
                         <Plane className="w-3 h-3" />
                         Leave
                       </button>
-                      {currentStatus && (
-                        <button
-                          onClick={() => onMarkAttendance(sub.id, "clear")}
-                          className="px-3 py-1.5 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:bg-surface-variant hover:text-white transition-all text-[10px] active:scale-95 flex items-center gap-1 cursor-pointer"
-                        >
-                          Clear
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
