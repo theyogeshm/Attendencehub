@@ -1052,21 +1052,40 @@ export default function App() {
     const newAttended = Math.max(0, attended);
     const newTotal    = Math.max(0, total);
 
-    const targetSub = subjects.find(s => s.id === id);
+    const cleanId = id.replace(/-(theory|lab|tut)$/i, "");
+    let targetSub = subjects.find(s => s.id === id || s.id === cleanId);
+    if (!targetSub) {
+      targetSub = subjects.find(s => s.name.toLowerCase().trim() === id.toLowerCase().trim());
+    }
 
     setSubjects(prev => {
-      const updated = prev.map(sub => sub.id === id ? { ...sub, attendanceCount: newAttended, totalClasses: newTotal } : sub);
+      let found = false;
+      const updated = prev.map(sub => {
+        if (sub.id === id || sub.id === cleanId || (targetSub && sub.id === targetSub.id)) {
+          found = true;
+          return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
+        }
+        return sub;
+      });
+
+      if (!found && targetSub) {
+        updated.push({ ...targetSub, attendanceCount: newAttended, totalClasses: newTotal });
+      }
+
       try {
         localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
       } catch { /* ignore */ }
       return updated;
     });
 
-    if (user && targetSub) {
-      const deltaTotal = newTotal - targetSub.totalClasses;
-      const deltaAttended = newAttended - targetSub.attendanceCount;
+    if (user && (targetSub || id)) {
+      const subName = targetSub ? targetSub.name : id;
+      const stdName = getStandardizedSubjectName(subName);
+      const prevAttended = targetSub ? targetSub.attendanceCount : 0;
+      const prevTotal = targetSub ? targetSub.totalClasses : 0;
+      const deltaTotal = newTotal - prevTotal;
+      const deltaAttended = newAttended - prevAttended;
       const todayStr = getTodayDateStr();
-      const stdName = getStandardizedSubjectName(targetSub.name);
 
       if (deltaTotal < 0 || deltaAttended < 0) {
         // UNDO operation: delete latest attendance record for this subject
@@ -1098,7 +1117,6 @@ export default function App() {
           date: todayStr,
         });
       }
-      await refreshAttendanceCounts(user);
     }
   };
 
