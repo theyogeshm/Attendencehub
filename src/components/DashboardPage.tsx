@@ -368,66 +368,66 @@ export default function DashboardPage({
                     </div>
 
                     {/* Attendance buttons — uses sub.id directly, no fuzzy matching */}
-                    <div className="flex flex-wrap gap-1.5 shrink-0">
+                    <div className="flex flex-nowrap sm:flex-wrap w-full sm:w-auto items-center gap-1 sm:gap-1.5 shrink-0">
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "present" ? "clear" : "present")}
-                        className={`px-3.5 py-1.5 rounded-full font-bold text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
+                        className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3.5 py-1.5 rounded-full font-bold text-[10px] sm:text-xs active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer shadow-sm ${
                           isDarkMode
                             ? (currentStatus === "present"
-                                ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 scale-105 shadow-md shadow-[#22c55e]/20"
+                                ? "bg-[#22c55e] text-white ring-2 ring-[#22c55e]/50 shadow-md shadow-[#22c55e]/20"
                                 : "bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/40 hover:bg-[#22c55e]/30")
                             : (currentStatus === "present"
-                                ? "bg-[#dcfce7] text-[#15803d] border border-[#22c55e]/60 ring-2 ring-[#22c55e]/50 scale-105 font-black shadow-sm"
+                                ? "bg-[#dcfce7] text-[#15803d] border border-[#22c55e]/60 ring-2 ring-[#22c55e]/50 font-black shadow-sm"
                                 : "bg-[#22c55e] text-white hover:bg-[#16a34a]")
                         }`}
                       >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Present
+                        <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                        <span>Present</span>
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "absent" ? "clear" : "absent")}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-sm ${
+                        className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer shadow-sm ${
                           isDarkMode
                             ? (currentStatus === "absent"
-                                ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 scale-105 shadow-md shadow-[#ef4444]/20"
+                                ? "bg-[#ef4444] text-white ring-2 ring-[#ef4444]/50 shadow-md shadow-[#ef4444]/20"
                                 : "bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/40 hover:bg-[#ef4444]/30")
                             : (currentStatus === "absent"
-                                ? "bg-[#fee2e2] text-[#b91c1c] border border-[#ef4444]/60 ring-2 ring-[#ef4444]/50 scale-105 font-black shadow-sm"
+                                ? "bg-[#fee2e2] text-[#b91c1c] border border-[#ef4444]/60 ring-2 ring-[#ef4444]/50 font-black shadow-sm"
                                 : "bg-[#ef4444] text-white hover:bg-[#dc2626]")
                         }`}
                       >
-                        <XCircle className="w-3.5 h-3.5" />
-                        Absent
+                        <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                        <span>Absent</span>
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "miss" ? "clear" : "miss")}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                        className={`flex-1 sm:flex-initial justify-center px-1.5 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer ${
                           isDarkMode
                             ? (currentStatus === "miss"
-                                ? "bg-[#2d3449] text-white ring-2 ring-outline/40 scale-105"
+                                ? "bg-[#2d3449] text-white ring-2 ring-outline/40"
                                 : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]")
                             : (currentStatus === "miss"
-                                ? "bg-[#fef3c7] text-[#b45309] border border-[#f59e0b]/60 ring-2 ring-[#f59e0b]/50 scale-105 font-black shadow-sm"
+                                ? "bg-[#fef3c7] text-[#b45309] border border-[#f59e0b]/60 ring-2 ring-[#f59e0b]/50 font-black shadow-sm"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300")
                         }`}
                       >
-                        <Coffee className="w-3 h-3" />
-                        Miss
+                        <Coffee className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                        <span>Miss</span>
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "leave" ? "clear" : "leave")}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                        className={`flex-1 sm:flex-initial justify-center px-1.5 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer ${
                           isDarkMode
                             ? (currentStatus === "leave"
-                                ? "bg-secondary/20 text-secondary ring-2 ring-secondary/40 scale-105"
+                                ? "bg-secondary/20 text-secondary ring-2 ring-secondary/40"
                                 : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]")
                             : (currentStatus === "leave"
-                                ? "bg-[#dbeafe] text-[#1d4ed8] border border-[#3b82f6]/60 ring-2 ring-[#3b82f6]/50 scale-105 font-black shadow-sm"
+                                ? "bg-[#dbeafe] text-[#1d4ed8] border border-[#3b82f6]/60 ring-2 ring-[#3b82f6]/50 font-black shadow-sm"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300")
                         }`}
                       >
-                        <Plane className="w-3 h-3" />
-                        Leave
+                        <Plane className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                        <span>Leave</span>
                       </button>
                     </div>
                   </div>
