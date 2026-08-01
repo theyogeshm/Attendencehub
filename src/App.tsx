@@ -820,7 +820,12 @@ export default function App() {
 
       // Check if already marked with this exact status (ignore duplicate click)
       const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
-      const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
+      const prevStatus =
+        todayAttendance[subjectId] ||
+        (schedMatch ? todayAttendance[schedMatch.id] : undefined) ||
+        todayAttendance[targetSubjectName.toLowerCase().trim()] ||
+        (targetKeys[0] ? todayAttendance[targetKeys[0]] : undefined);
+
       if (prevStatus === status && status !== "clear") {
         return;
       }
@@ -845,11 +850,15 @@ export default function App() {
             if (schedMatch) {
               delete next[schedMatch.id];
             }
+            delete next[targetSubjectName.toLowerCase().trim()];
+            targetKeys.forEach(k => delete next[k]);
           } else {
             next[subjectId] = status;
             if (schedMatch) {
               next[schedMatch.id] = status;
             }
+            next[targetSubjectName.toLowerCase().trim()] = status;
+            targetKeys.forEach(k => { next[k] = status; });
           }
 
           return next;
@@ -892,6 +901,9 @@ export default function App() {
           } else if (status === "present") {
             if (prevStatus === "absent" || prevStatus === "miss") {
               newAttended += 1;
+            } else if (prevStatus === "leave") {
+              newAttended += 1;
+              newTotal += 1;
             } else if (prevStatus !== "present") {
               newAttended += 1;
               newTotal += 1;
@@ -899,6 +911,8 @@ export default function App() {
           } else if (status === "absent" || status === "miss") {
             if (prevStatus === "present") {
               newAttended = Math.max(0, newAttended - 1);
+            } else if (prevStatus === "leave") {
+              newTotal += 1;
             } else if (prevStatus !== "absent" && prevStatus !== "miss") {
               newTotal += 1;
             }
