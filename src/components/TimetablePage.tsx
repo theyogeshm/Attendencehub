@@ -915,7 +915,7 @@ export default function TimetablePage({
 
         {/* Day Selector (Shown when viewMode === 'day') */}
         {viewMode === "day" && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 custom-scrollbar max-w-full min-w-0">
             {DAYS_OF_WEEK.map((day) => {
               const isSelected = activeDay === day.id;
               const isToday = defaultDayId === day.id;
@@ -924,7 +924,7 @@ export default function TimetablePage({
                 <button
                   key={day.id}
                   onClick={() => setActiveDay(day.id)}
-                  className={`px-5 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border ${
+                  className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 sm:gap-2 border shrink-0 ${
                     isSelected
                       ? "bg-primary/20 text-primary border-primary"
                       : "bg-surface-container/50 text-on-surface-variant border-outline-variant/30 hover:bg-surface-variant"
@@ -932,7 +932,7 @@ export default function TimetablePage({
                 >
                   <span>{day.label}</span>
                   {isToday && (
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse shrink-0" />
                   )}
                 </button>
               );
@@ -945,15 +945,15 @@ export default function TimetablePage({
 
       {/* 1. DAY VIEW MODE */}
       {viewMode === "day" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span>
+        <div className="space-y-3 sm:space-y-4 w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap min-w-0">
+            <h3 className="text-sm sm:text-base font-bold text-on-surface flex items-center gap-1.5 truncate">
+              <Calendar className="w-4 h-4 text-primary shrink-0" />
+              <span className="truncate">
                 {DAYS_OF_WEEK.find((d) => d.id === activeDay)?.label}'s Schedule
               </span>
             </h3>
-            <span className="text-xs text-on-surface-variant font-mono">
+            <span className="text-[11px] sm:text-xs text-on-surface-variant font-mono shrink-0">
               Room: {sectionData.room}
             </span>
           </div>
@@ -970,13 +970,13 @@ export default function TimetablePage({
 
             if (filteredSlots.length === 0) {
               return (
-                <div className="glass-card p-8 rounded-2xl text-center space-y-3 border border-outline-variant/30">
-                  <p className="text-sm font-bold text-on-surface-variant">
+                <div className="glass-card p-6 sm:p-8 rounded-2xl text-center space-y-2.5 border border-outline-variant/30 w-full min-w-0">
+                  <p className="text-xs sm:text-sm font-bold text-on-surface-variant">
                     {searchQuery
                       ? `No classes matching "${searchQuery}" on ${activeDay}`
                       : "No classes scheduled for this day!"}
                   </p>
-                  <p className="text-xs text-on-surface-variant/70">
+                  <p className="text-[11px] sm:text-xs text-on-surface-variant/70">
                     Enjoy your free day or prepare for upcoming lab submissions.
                   </p>
                 </div>
@@ -984,22 +984,22 @@ export default function TimetablePage({
             }
 
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full min-w-0">
                 {filteredSlots.map(([timeSlot, rawVal]) => {
                   const rawText = getSlotRawText(rawVal, activeDay, timeSlot);
 
                   return (
                     <div
                       key={timeSlot}
-                      className="glass-card p-4 sm:p-5 rounded-2xl border border-outline-variant/40 hover:border-primary/50 transition-all flex flex-col justify-between space-y-4 group relative"
+                      className="glass-card p-3.5 sm:p-5 rounded-2xl border border-outline-variant/40 hover:border-primary/50 transition-all flex flex-col justify-between space-y-3 sm:space-y-4 group relative w-full min-w-0 overflow-hidden"
                     >
                       {/* Slot Header */}
-                      <div className="flex items-center justify-between border-b border-outline-variant/30 pb-2.5">
-                        <span className="text-xs font-mono font-bold text-primary flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {timeSlot}
+                      <div className="flex items-center justify-between gap-2 border-b border-outline-variant/30 pb-2.5 min-w-0">
+                        <span className="text-xs font-mono font-bold text-primary flex items-center gap-1 shrink-0">
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          <span>{timeSlot}</span>
                         </span>
-                        <span className="text-[10px] text-on-surface-variant font-mono">
+                        <span className="text-[10px] text-on-surface-variant font-mono truncate text-right">
                           {sectionMeta.label}
                         </span>
                       </div>
