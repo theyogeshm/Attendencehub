@@ -72,15 +72,6 @@ export default function App() {
     return true; // no cache → show spinner (first-ever login)
   });
 
-  // Safety guard: ensure authLoading is NEVER stuck as true
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAuthLoading(false);
-      setInitialAuthDone(true);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
   // ── Navigation ────────────────────────────────────────────────────────────
   const location = useLocation();
   const navigate = useNavigate();
@@ -287,9 +278,9 @@ export default function App() {
   // ── Load user data from Supabase ──────────────────────────────────────────
   // backgroundRefresh=true → cache already applied, don't show loading screen,
   //                          just quietly update state when fetch completes.
-  const loadUserData = async (u: User, backgroundRefresh = true) => {
+  const loadUserData = async (u: User, backgroundRefresh = false) => {
     // ── Step 1: apply cached data instantly (zero-latency render) ─────────────
-    if (backgroundRefresh || !authLoading) {
+    if (backgroundRefresh) {
       try {
         const raw = localStorage.getItem(SESSION_CACHE_KEY);
         if (raw) {
@@ -306,7 +297,7 @@ export default function App() {
           }
         }
       } catch { /* ignore bad cache */ }
-      // Don't show loading screen — data already rendered
+      // Don't show loading screen — data already rendered from cache
     } else {
       setAuthLoading(true);
     }
@@ -494,21 +485,10 @@ export default function App() {
       };
 
       let merged = baseSubjects.map(sub => {
-        const stdSub = getStandardizedSubjectName(sub.name).toLowerCase().trim();
-        const keys = getNormalizedSubjectKeys(sub.name);
+        const subNameLower = sub.name.toLowerCase().trim();
 
-        let found = agg[stdSub] || agg[sub.name.toLowerCase().trim()];
-        if (!found) {
-          for (const k of keys) {
-            if (agg[k]) {
-              found = agg[k];
-              break;
-            }
-          }
-        }
-
-        if (found) {
-          return { ...sub, attendanceCount: found.attendance_count, totalClasses: found.total_classes };
+        if (agg[subNameLower]) {
+          return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
         }
         return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
@@ -757,13 +737,17 @@ export default function App() {
       const groupKey = `${row.date}::${stdLower}`;
 
       const slotMatch = rawName.match(/\(([^)]+)\)$/);
-      const slotKey = slotMatch ? slotMatch[1].trim() : (row.id ? `row_${row.id}` : `row_${Math.random()}`);
+      const slotKey = slotMatch ? slotMatch[1].trim() : "default";
 
       if (!mapByDateAndSub.has(groupKey)) {
         mapByDateAndSub.set(groupKey, new Map());
       }
 
       const subMap = mapByDateAndSub.get(groupKey)!;
+      // If a slotted row is present, purge any un-slotted default fallback row for the same subject & date
+      if (slotKey !== "default" && subMap.has("default")) {
+        subMap.delete("default");
+      }
       subMap.set(slotKey, { subject: stdName, status: row.status });
     }
 
@@ -796,9 +780,9 @@ export default function App() {
     }, 1000);
 
     try {
-      // 1. Resolve exact subject name (name + type) for the specified date
-      const targetSched = getScheduledSubjectsForDate(dateStr);
-      const schedMatch = targetSched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId || s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+      // 1. Resolve exact subject name (name + type)
+      const todaySched = getTodayScheduledSubjects();
+      const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
       let targetSubjectName = "";
 
       if (schedMatch) {
@@ -825,7 +809,7 @@ export default function App() {
       if (schedMatch && schedMatch.time) {
         const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
         if (slotOnly) {
-          const sameSubClasses = targetSched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
+          const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
           if (sameSubClasses.length > 1) {
             targetSubjectName = `${targetSubjectName} (${slotOnly})`;
           }
@@ -834,13 +818,11 @@ export default function App() {
 
       const isToday = dateStr === getTodayDateStr();
 
-      // Check if already marked with this exact status for today (ignore duplicate click)
-      if (isToday) {
-        const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
-        const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
-        if (prevStatus === status && status !== "clear") {
-          return;
-        }
+      // Check if already marked with this exact status (ignore duplicate click)
+      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+      const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
+      if (prevStatus === status && status !== "clear") {
+        return;
       }
 
       const labels: Record<AttendanceStatus, string> = {
@@ -857,22 +839,18 @@ export default function App() {
       if (isToday) {
         setTodayAttendance(prev => {
           const next = { ...prev };
-          const keys = [
-            subjectId,
-            subjectId.split("_")[0],
-            targetSubjectName.toLowerCase().trim(),
-            getStandardizedSubjectName(targetSubjectName).toLowerCase().trim(),
-            ...getNormalizedSubjectKeys(targetSubjectName)
-          ];
-          if (schedMatch) keys.push(schedMatch.id, (schedMatch as any).rawSubjectId, schedMatch.name.toLowerCase().trim());
 
-          keys.forEach(k => {
-            if (status === "clear") {
-              delete next[k];
-            } else {
-              next[k] = status;
+          if (status === "clear") {
+            delete next[subjectId];
+            if (schedMatch) {
+              delete next[schedMatch.id];
             }
-          });
+          } else {
+            next[subjectId] = status;
+            if (schedMatch) {
+              next[schedMatch.id] = status;
+            }
+          }
 
           return next;
         });
@@ -891,16 +869,11 @@ export default function App() {
         };
         const targetType = getComponentType(targetSubjectName);
 
-        const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
-        const stdTarget = getStandardizedSubjectName(targetSubjectName).toLowerCase().trim();
-
-        let matchIndex = prev.findIndex(sub => {
-          if (sub.id === subjectId || (schedMatch && sub.id === schedMatch.id)) return true;
-          const subStd = getStandardizedSubjectName(sub.name).toLowerCase().trim();
-          if (subStd === stdTarget) return true;
-          const subKeys = getNormalizedSubjectKeys(sub.name);
-          return subKeys.some(sk => targetKeys.includes(sk));
-        });
+        let matchIndex = prev.findIndex(sub =>
+          sub.id === subjectId ||
+          (schedMatch && sub.id === schedMatch.id) ||
+          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim()
+        );
 
         let updated = [...prev];
 
@@ -971,93 +944,73 @@ export default function App() {
         return updated;
       });
 
-      // ── Step 2: Background Persistence (Supabase for logged in, localStorage for guest) ───
-      if (user) {
-        const { data: dateRows, error: selectErr } = await supabase
-          .from("attendance")
-          .select("*")
+      // ── Clear entry from Supabase if clear ──────────────────────────────────
+      if (status === "clear") {
+        if (!user) return;
+        const { error: delErr } = await supabase.from("attendance")
+          .delete()
           .eq("user_id", user.id)
+          .eq("subject", targetSubjectName)
           .eq("date", dateStr);
 
-        if (selectErr) {
-          console.error("Supabase select error:", selectErr);
-        }
-
-        const stdTargetName = getStandardizedSubjectName(targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim());
-        const targetKeys = getNormalizedSubjectKeys(stdTargetName);
-
-        // Match existing rows for this subject
-        const matchingRows = (dateRows || []).filter(r => {
-          const rClean = (r.subject || "").replace(/\s*\([^)]+\)$/, "").trim();
-          const rStd = getStandardizedSubjectName(rClean);
-          if (rStd.toLowerCase().trim() === stdTargetName.toLowerCase().trim()) return true;
-          const rKeys = getNormalizedSubjectKeys(rClean);
-          return targetKeys.some(tk => rKeys.includes(tk));
-        });
-
-        let saveErr: any = null;
-
-        if (status === "clear") {
-          if (matchingRows.length > 0) {
-            const idsToDelete = matchingRows.map(r => r.id);
-            const { error: delErr } = await supabase.from("attendance").delete().in("id", idsToDelete);
-            saveErr = delErr;
-          }
+        if (delErr) {
+          showToast("Failed to clear attendance.", "error");
         } else {
-          if (matchingRows.length > 0) {
-            const primaryId = matchingRows[0].id;
-            const { error: updateErr } = await supabase
-              .from("attendance")
-              .update({ status, subject: stdTargetName })
-              .eq("id", primaryId);
-            saveErr = updateErr;
-
-            if (matchingRows.length > 1) {
-              const duplicateIds = matchingRows.slice(1).map(r => r.id);
-              await supabase.from("attendance").delete().in("id", duplicateIds);
-            }
-          } else {
-            const { error: insertErr } = await supabase
-              .from("attendance")
-              .insert({
-                user_id: user.id,
-                subject: stdTargetName,
-                date: dateStr,
-                status: status,
-              });
-            saveErr = insertErr;
-          }
+          await fetchTodayAttendance(user, subjects);
+          await refreshAttendanceCounts(user);
         }
+        return;
+      }
 
-        if (saveErr) {
-          console.error("Supabase attendance save error:", saveErr);
-          showToast("Failed to save attendance. Please try again.", "error");
-        }
+      if (!user) return;
+
+      // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
+      const { data: existing } = await supabase
+        .from("attendance")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("subject", targetSubjectName)
+        .eq("date", dateStr);
+
+      let saveErr = null;
+      if (existing && existing.length > 0) {
+        const { error: updateErr } = await supabase
+          .from("attendance")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .eq("subject", targetSubjectName)
+          .eq("date", dateStr);
+        saveErr = updateErr;
       } else {
-        // Guest user local storage single source of truth
-        let logs: any[] = [];
-        try {
-          const raw = localStorage.getItem("ATTENDANCE_HUB_LOGS");
-          logs = raw ? JSON.parse(raw) : [];
-        } catch { logs = []; }
+        const { error: insertErr } = await supabase
+          .from("attendance")
+          .insert({
+            user_id: user.id,
+            subject: targetSubjectName,
+            date: dateStr,
+            status: status,
+          });
 
-        const stdTargetName = getStandardizedSubjectName(targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim());
-        const matchIdx = logs.findIndex(r => r.date === dateStr && getStandardizedSubjectName((r.subject || "").replace(/\s*\([^)]+\)$/, "").trim()).toLowerCase() === stdTargetName.toLowerCase());
-
-        if (status === "clear") {
-          if (matchIdx !== -1) logs.splice(matchIdx, 1);
+        if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
+          const { error: retryUpdateErr } = await supabase
+            .from("attendance")
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq("user_id", user.id)
+            .eq("subject", targetSubjectName)
+            .eq("date", dateStr);
+          saveErr = retryUpdateErr;
         } else {
-          if (matchIdx !== -1) {
-            logs[matchIdx].status = status;
-            logs[matchIdx].subject = stdTargetName;
-          } else {
-            logs.push({ id: `local-${Date.now()}`, user_id: "guest", subject: stdTargetName, date: dateStr, status });
-          }
+          saveErr = insertErr;
         }
+      }
 
-        try {
-          localStorage.setItem("ATTENDANCE_HUB_LOGS", JSON.stringify(logs));
-        } catch { /* ignore */ }
+      if (saveErr) {
+        console.error("Supabase attendance save error:", saveErr);
+        showToast("Failed to save attendance. Please try again.", "error");
+        await fetchTodayAttendance(user, subjects);
+      } else {
+        await fetchTodayAttendance(user, subjects);
+        await refreshAttendanceCounts(user);
       }
     } catch (err) {
       console.error("Attendance save exception:", err);
@@ -1072,40 +1025,21 @@ export default function App() {
     const newAttended = Math.max(0, attended);
     const newTotal    = Math.max(0, total);
 
-    const cleanId = id.replace(/-(theory|lab|tut)$/i, "");
-    let targetSub = subjects.find(s => s.id === id || s.id === cleanId);
-    if (!targetSub) {
-      targetSub = subjects.find(s => s.name.toLowerCase().trim() === id.toLowerCase().trim());
-    }
+    const targetSub = subjects.find(s => s.id === id);
 
     setSubjects(prev => {
-      let found = false;
-      const updated = prev.map(sub => {
-        if (sub.id === id || sub.id === cleanId || (targetSub && sub.id === targetSub.id)) {
-          found = true;
-          return { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
-        }
-        return sub;
-      });
-
-      if (!found && targetSub) {
-        updated.push({ ...targetSub, attendanceCount: newAttended, totalClasses: newTotal });
-      }
-
+      const updated = prev.map(sub => sub.id === id ? { ...sub, attendanceCount: newAttended, totalClasses: newTotal } : sub);
       try {
         localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
       } catch { /* ignore */ }
       return updated;
     });
 
-    if (user && (targetSub || id)) {
-      const subName = targetSub ? targetSub.name : id;
-      const stdName = getStandardizedSubjectName(subName);
-      const prevAttended = targetSub ? targetSub.attendanceCount : 0;
-      const prevTotal = targetSub ? targetSub.totalClasses : 0;
-      const deltaTotal = newTotal - prevTotal;
-      const deltaAttended = newAttended - prevAttended;
+    if (user && targetSub) {
+      const deltaTotal = newTotal - targetSub.totalClasses;
+      const deltaAttended = newAttended - targetSub.attendanceCount;
       const todayStr = getTodayDateStr();
+      const stdName = getStandardizedSubjectName(targetSub.name);
 
       if (deltaTotal < 0 || deltaAttended < 0) {
         // UNDO operation: delete latest attendance record for this subject
@@ -1137,6 +1071,7 @@ export default function App() {
           date: todayStr,
         });
       }
+      await refreshAttendanceCounts(user);
     }
   };
 
@@ -1323,23 +1258,12 @@ export default function App() {
     };
 
     setSubjects(prev => prev.map(sub => {
-      const stdSub = getStandardizedSubjectName(sub.name).toLowerCase().trim();
-      const keys = getNormalizedSubjectKeys(sub.name);
+      const subNameLower = sub.name.toLowerCase().trim();
 
-      let found = agg[stdSub] || agg[sub.name.toLowerCase().trim()];
-      if (!found) {
-        for (const k of keys) {
-          if (agg[k]) {
-            found = agg[k];
-            break;
-          }
-        }
+      if (agg[subNameLower]) {
+        return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
       }
-
-      if (found) {
-        return { ...sub, attendanceCount: found.attendance_count, totalClasses: found.total_classes };
-      }
-      return sub;
+      return { ...sub, attendanceCount: 0, totalClasses: 0 };
     }));
   };
 
@@ -1409,33 +1333,25 @@ export default function App() {
 
   // ── Fetch attendance for a specific date from Supabase ───────────────────
   const fetchLogForDate = async (dateStr: string) => {
+    if (!user) return;
     setLogLoading(true);
-    let fetched: any[] = [];
 
-    if (user) {
-      const { data, error } = await supabase
-        .from("attendance")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", dateStr);
-      if (!error && data) fetched = data;
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("date", dateStr);
+
+    if (error) {
+
     } else {
-      try {
-        const raw = localStorage.getItem("ATTENDANCE_HUB_LOGS");
-        const logs = raw ? JSON.parse(raw) : [];
-        fetched = logs.filter((r: any) => r.date === dateStr);
-      } catch { fetched = []; }
-    }
+      const fetched = data ?? [];
       const targetSubjects = getScheduledSubjectsForDate(dateStr);
 
       const entries: LogEntry[] = targetSubjects.map(sub => {
-        const subStd = getStandardizedSubjectName(sub.name);
-        const subKeys = getNormalizedSubjectKeys(subStd);
+        const subKeys = getNormalizedSubjectKeys(sub.name);
         const row = fetched.find(r => {
-          const rClean = (r.subject ?? "").replace(/\s*\([^)]+\)$/, "").trim();
-          const rStd = getStandardizedSubjectName(rClean);
-          if (rStd.toLowerCase().trim() === subStd.toLowerCase().trim()) return true;
-          const rKeys = getNormalizedSubjectKeys(rClean);
+          const rKeys = getNormalizedSubjectKeys(r.subject ?? "");
           return rKeys.some(rk => subKeys.includes(rk));
         });
 
@@ -1449,6 +1365,7 @@ export default function App() {
         };
       });
       setLogSubjects(entries);
+    }
     setLogLoading(false);
   };
 
@@ -1770,16 +1687,14 @@ export default function App() {
     const uniqueDayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
     const seenKeys = new Set<string>();
 
-    dayList.forEach((item, idx) => {
+    dayList.forEach(item => {
       const slotOnly = (item.time || "").split(/\s*\(/)[0].trim();
       const key = `${item.name.toLowerCase().trim()}_${slotOnly}`;
       if (!seenKeys.has(key)) {
         seenKeys.add(key);
-        const baseId = item.rawSubjectId || item.id;
-        const cleanSlot = slotOnly.replace(/[^a-z0-9]/g, "");
         uniqueDayList.push({
           ...item,
-          id: `${baseId}_${cleanSlot || idx}`,
+          id: `${item.rawSubjectId || item.id}_${slotOnly.replace(/[^a-z0-9]/g, "-")}`,
         });
       }
     });
@@ -2314,40 +2229,33 @@ export default function App() {
                             )}
                           </div>
                           <div className="flex gap-1 items-center flex-shrink-0">
-                            {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => {
-                              const isSelected = sub.status === s;
-                              return (
-                                <button
-                                  key={s}
-                                  onClick={async () => {
-                                    if (!attendanceLogDateStr) return;
-                                    const nextStatus = isSelected ? "clear" : s;
-                                    setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: nextStatus === "clear" ? undefined : nextStatus } : item));
-                                    await handleMarkAttendance(sub.subjectName || sub.subjectId, nextStatus, attendanceLogDateStr);
-                                    await fetchLogForDate(attendanceLogDateStr);
-                                    if (user) await loadUserData(user);
-                                  }}
-                                  className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
-                                    isSelected
-                                      ? (s === "present" ? "bg-primary text-[#002114] border-primary font-black shadow-sm"
-                                        : s === "absent"  ? "bg-error text-white border-error font-black shadow-sm"
-                                        : s === "miss"    ? "bg-yellow-500 text-black border-yellow-500 font-black shadow-sm"
-                                        :                   "bg-blue-500 text-white border-blue-500 font-black shadow-sm")
-                                      : (s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary hover:text-[#002114]"
-                                        : s === "absent"  ? "border-error/30 text-error bg-[#131b2e] hover:bg-error hover:text-white"
-                                        : s === "miss"    ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500 hover:text-black"
-                                        :                   "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500 hover:text-white")
-                                  }`}
-                                  title={isSelected ? `Unmark ${s}` : `Mark ${s}`}
-                                >
-                                  {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
-                                </button>
-                              );
-                            })}
-                            {marked && (
+                            {!marked ? (
+                              <>
+                                {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => (
+                                  <button
+                                    key={s}
+                                    onClick={async () => {
+                                      if (!attendanceLogDateStr) return;
+                                      await handleMarkAttendance(sub.subjectId, s, attendanceLogDateStr);
+                                      await fetchLogForDate(attendanceLogDateStr);
+                                      loadUserData(user!);
+                                    }}
+                                    className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
+                                      s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary hover:text-[#002114]"
+                                      : s === "absent" ? "border-error/30 text-error bg-[#131b2e] hover:bg-error hover:text-white"
+                                      : s === "miss"   ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500 hover:text-black"
+                                      :                  "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500 hover:text-white"
+                                    }`}
+                                    title={`Mark ${s}`}
+                                  >
+                                    {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
+                                  </button>
+                                ))}
+                              </>
+                            ) : (
                               <button
                                 onClick={() => setConfirmDeleteLog({ subjectName: sub.subjectName })}
-                                className="text-[10px] font-bold border border-error/50 text-error px-1.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1 ml-0.5"
+                                className="text-[10px] font-bold border border-error/50 text-error px-2 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
                                 title="Delete this record for this date"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
