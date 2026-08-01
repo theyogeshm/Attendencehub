@@ -373,7 +373,7 @@ export default function App() {
 
       // 2 & 3. Fetch Attendance and Assignments IN PARALLEL (also with timeout)
       const parallelFetch = Promise.all([
-        supabase.from("attendance").select("*").eq("user_id", u.id),
+        supabase.from("attendance").select("*").eq("user_id", u.id).order("created_at", { ascending: true }),
         supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
       ]);
       const parallelResult = await Promise.race([parallelFetch, timeout]);
@@ -846,50 +846,52 @@ export default function App() {
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, customDateStr?: string) => {
     const dateStr = customDateStr || getTodayDateStr();
-    const lockKey = `${subjectId}::${dateStr}`;
+
+    // Resolve subject name first to generate a canonical lock key
+    const todaySched = getTodayScheduledSubjects();
+    let targetSubjectName = "";
+    const schedMatch = todaySched.find(s => s.id === subjectId);
+
+    if (schedMatch) {
+      targetSubjectName = schedMatch.name;
+    } else {
+      let currentSub = subjects.find(s => s.id === subjectId);
+      if (!currentSub) {
+        currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+      }
+      if (!currentSub && subjectId.startsWith("sub-")) {
+        const slug = subjectId.replace(/^sub-/, "");
+        currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
+      }
+      if (currentSub) {
+        targetSubjectName = currentSub.name;
+      } else {
+        targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
+      }
+    }
+
+    targetSubjectName = getStandardizedSubjectName(targetSubjectName);
+
+    if (schedMatch && schedMatch.time) {
+      const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
+      if (slotOnly) {
+        const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
+        if (sameSubClasses.length > 1) {
+          targetSubjectName = `${targetSubjectName} (${slotOnly})`;
+        }
+      }
+    }
+
+    const cleanTarget = targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim();
+    const stdTargetName = getStandardizedSubjectName(cleanTarget);
+    const targetKeys = getNormalizedSubjectKeys(stdTargetName);
+
+    // Canonical lock key prevents double submissions regardless of how subjectId was formatted
+    const lockKey = `${user?.id || 'guest'}::${stdTargetName.toLowerCase().trim()}::${dateStr}`;
     if (inFlightMarkRef.current.has(lockKey)) return;
     inFlightMarkRef.current.add(lockKey);
 
     try {
-      const todaySched = getTodayScheduledSubjects();
-      let targetSubjectName = "";
-      const schedMatch = todaySched.find(s => s.id === subjectId);
-
-      if (schedMatch) {
-        targetSubjectName = schedMatch.name;
-      } else {
-        let currentSub = subjects.find(s => s.id === subjectId);
-        if (!currentSub) {
-          currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
-        }
-        if (!currentSub && subjectId.startsWith("sub-")) {
-          const slug = subjectId.replace(/^sub-/, "");
-          currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
-        }
-        if (currentSub) {
-          targetSubjectName = currentSub.name;
-        } else {
-          targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
-        }
-      }
-
-      targetSubjectName = getStandardizedSubjectName(targetSubjectName);
-
-      // If multiple classes for this exact subject exist today, append time slot for database uniqueness
-      if (schedMatch && schedMatch.time) {
-        const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
-        if (slotOnly) {
-          const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
-          if (sameSubClasses.length > 1) {
-            targetSubjectName = `${targetSubjectName} (${slotOnly})`;
-          }
-        }
-      }
-
-      const cleanTarget = targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim();
-      const stdTargetName = getStandardizedSubjectName(cleanTarget);
-      const targetKeys = getNormalizedSubjectKeys(stdTargetName);
-
       const labels: Record<AttendanceStatus, string> = {
         present: "✅ Present marked",
         absent:  "❌ Absent marked",
@@ -917,9 +919,9 @@ export default function App() {
         }
       } else {
         if (matchIdx !== -1) {
-          updatedLogs[matchIdx] = { ...updatedLogs[matchIdx], status, subject: targetSubjectName };
+          updatedLogs[matchIdx] = { ...updatedLogs[matchIdx], status, subject: stdTargetName };
         } else {
-          updatedLogs.push({ id: `temp-${Date.now()}`, user_id: user?.id || "guest", subject: targetSubjectName, date: dateStr, status });
+          updatedLogs.push({ id: `temp-${Date.now()}`, user_id: user?.id || "guest", subject: stdTargetName, date: dateStr, status });
         }
       }
 
@@ -952,7 +954,7 @@ export default function App() {
             const primaryId = matchingRows[0].id;
             await supabase
               .from("attendance")
-              .update({ status, subject: targetSubjectName, updated_at: new Date().toISOString() })
+              .update({ status, subject: stdTargetName, updated_at: new Date().toISOString() })
               .eq("id", primaryId);
 
             if (matchingRows.length > 1) {
@@ -962,11 +964,24 @@ export default function App() {
           } else {
             await supabase.from("attendance").insert({
               user_id: user.id,
-              subject: targetSubjectName,
+              subject: stdTargetName,
               date: dateStr,
               status: status,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             });
           }
+        }
+
+        // Fresh post-write fetch to ensure complete database parity
+        const { data: freshAtt } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (freshAtt && freshAtt.length >= 0) {
+          syncAttendanceLogs(freshAtt);
         }
       }
     } catch (err) {
