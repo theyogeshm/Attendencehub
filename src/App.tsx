@@ -143,10 +143,6 @@ export default function App() {
   };
 
   // ── Today's attendance status per subject (dashboard button highlights) ────
-  const [attendanceLogs, setAttendanceLogs] = useState<Array<{ id?: string; user_id?: string; subject: string; date: string; status: AttendanceStatus }>>(() => {
-    return safeLocalStorageGet<Array<{ id?: string; user_id?: string; subject: string; date: string; status: AttendanceStatus }>>("ATTENDANCE_HUB_LOGS", []);
-  });
-
   const [todayAttendance, setTodayAttendance] = useState<Record<string, AttendanceStatus>>(() => {
     return safeLocalStorageGet<Record<string, AttendanceStatus>>("ATTENDANCE_HUB_TODAY_ATTENDANCE", {});
   });
@@ -373,7 +369,7 @@ export default function App() {
 
       // 2 & 3. Fetch Attendance and Assignments IN PARALLEL (also with timeout)
       const parallelFetch = Promise.all([
-        supabase.from("attendance").select("*").eq("user_id", u.id).order("created_at", { ascending: true }),
+        supabase.from("attendance").select("*").eq("user_id", u.id),
         supabase.from("assignments").select("*").eq("user_id", u.id).order("created_at", { ascending: false })
       ]);
       const parallelResult = await Promise.race([parallelFetch, timeout]);
@@ -489,18 +485,17 @@ export default function App() {
       };
 
       let merged = baseSubjects.map(sub => {
-        const subKeys = getNormalizedSubjectKeys(sub.name);
-        const matched = subKeys.map(k => agg[k]).find(Boolean);
+        const subNameLower = sub.name.toLowerCase().trim();
 
-        if (matched) {
-          return { ...sub, attendanceCount: matched.attendance_count, totalClasses: matched.total_classes };
+        if (agg[subNameLower]) {
+          return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
         }
         return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
 
       const seenNames = new Set<string>();
       merged = merged.filter(s => {
-        const k = getStandardizedSubjectName(s.name).toLowerCase().trim();
+        const k = s.name.toLowerCase().trim();
         if (seenNames.has(k)) return false;
         seenNames.add(k);
         return true;
@@ -509,7 +504,7 @@ export default function App() {
       setSubjects(merged);
       resolvedSubjects = merged;
 
-      syncAttendanceLogs(attData || []);
+      fetchTodayAttendance(u, resolvedSubjects);
 
       // Process assignments
       const asgData = asgRes.data;
@@ -636,19 +631,13 @@ export default function App() {
   };
 
   const handleResetAllAttendance = async () => {
-    // Instantly clear local in-memory logs, todayAttendance, and subject counts (0ms)
-    syncAttendanceLogs([]);
-
-    if (user) {
-      const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
-      if (error) {
-        showToast("Failed to reset attendance", "error");
-        await loadUserData(user);
-      } else {
-        showToast("All attendance data cleared successfully.", "success");
-      }
+    if (!user) return;
+    const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
+    if (error) {
+      showToast("Failed to reset attendance", "error");
     } else {
       showToast("All attendance data cleared successfully.", "success");
+      loadUserData(user);
     }
   };
 
@@ -717,6 +706,11 @@ export default function App() {
       const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
       keys.add("cloud computing" + typeSuffix);
     }
+    if (clean.includes("advance web technology") || clean.includes("web technology") || clean.includes("cs421")) {
+      const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+      keys.add("advance web technology" + typeSuffix);
+      keys.add("advanced web technology" + typeSuffix);
+    }
     if (clean.includes("big data analytics") || clean.includes("big data") || clean.includes("cs423")) {
       const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
       keys.add("big data analytics" + typeSuffix);
@@ -736,8 +730,7 @@ export default function App() {
     for (const row of attData) {
       const rawName = (row.subject ?? "").trim();
       if (!rawName) continue;
-      const cleanName = rawName.replace(/\s*\([^)]+\)$/, "").trim();
-      const stdName = getStandardizedSubjectName(cleanName);
+      const stdName = getStandardizedSubjectName(rawName);
       if (!row.date) continue;
 
       const stdLower = stdName.toLowerCase().trim();
@@ -760,138 +753,78 @@ export default function App() {
 
     mapByDateAndSub.forEach(subMap => {
       subMap.forEach(({ subject, status }) => {
+        const stdNameLower = subject.toLowerCase().trim();
         const s = (status ?? "").toLowerCase();
-        const keys = getNormalizedSubjectKeys(subject);
 
-        keys.forEach(k => {
-          if (!agg[k]) agg[k] = { attendance_count: 0, total_classes: 0 };
-          if (s !== "leave") agg[k].total_classes += 1;
-          if (s === "present") agg[k].attendance_count += 1;
-        });
+        if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
+        if (s !== "leave") agg[stdNameLower].total_classes += 1;
+        if (s === "present") agg[stdNameLower].attendance_count += 1;
       });
     });
 
     return agg;
   };
 
-  // ── Unified Single Source of Truth Synchronization Engine ───────────────────
-  const syncAttendanceLogs = (newLogs: Array<{ id?: string; user_id?: string; subject: string; date: string; status: AttendanceStatus }>) => {
-    setAttendanceLogs(newLogs);
-    try {
-      localStorage.setItem("ATTENDANCE_HUB_LOGS", JSON.stringify(newLogs));
-    } catch { /* ignore */ }
-
-    const todayStr = getTodayDateStr();
-    const todayRows = newLogs.filter(r => r.date === todayStr);
-
-    // 1. Build todayAttendance map for today's status badges & card sorting
-    const map: Record<string, AttendanceStatus> = {};
-    todayRows.forEach(row => {
-      const rowSubName = (row.subject ?? "").trim();
-      if (!rowSubName || !row.status) return;
-
-      const slotMatch = rowSubName.match(/\(([^)]+)\)$/);
-      const cleanRowName = slotMatch ? rowSubName.replace(/\s*\([^)]+\)$/, "").trim() : rowSubName;
-      const stdRowName = getStandardizedSubjectName(cleanRowName);
-      const st = row.status as AttendanceStatus;
-
-      map[rowSubName.toLowerCase().trim()] = st;
-      map[cleanRowName.toLowerCase().trim()] = st;
-      map[stdRowName.toLowerCase().trim()] = st;
-
-      const keys = getNormalizedSubjectKeys(stdRowName);
-      keys.forEach(k => { map[k] = st; });
-
-      const todaySched = getTodayScheduledSubjects();
-      todaySched.forEach(s => {
-        const sStd = getStandardizedSubjectName(s.name);
-        const sKeys = getNormalizedSubjectKeys(sStd);
-        if (keys.some(k => sKeys.includes(k)) || sStd.toLowerCase().trim() === stdRowName.toLowerCase().trim()) {
-          map[s.id] = st;
-        }
-      });
-    });
-
-    setTodayAttendance(map);
-    try {
-      localStorage.setItem("ATTENDANCE_HUB_TODAY_ATTENDANCE", JSON.stringify(map));
-    } catch { /* ignore */ }
-
-    // 2. Build aggregate subject counts across ALL historical records
-    const agg = buildAttendanceAggregates(newLogs);
-
-    // 3. Update subjects array cleanly
-    setSubjects(prev => {
-      const updated = prev.map(sub => {
-        const subKeys = getNormalizedSubjectKeys(sub.name);
-        const matched = subKeys.map(k => agg[k]).find(Boolean);
-
-        if (matched) {
-          return {
-            ...sub,
-            attendanceCount: matched.attendance_count,
-            totalClasses: matched.total_classes,
-          };
-        }
-        return { ...sub, attendanceCount: 0, totalClasses: 0 };
-      });
-
-      try {
-        localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
-      } catch { /* ignore */ }
-      return updated;
-    });
-  };
-
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
-  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, customDateStr?: string) => {
-    const dateStr = customDateStr || getTodayDateStr();
-
-    // Resolve subject name first to generate a canonical lock key
-    const todaySched = getTodayScheduledSubjects();
-    let targetSubjectName = "";
-    const schedMatch = todaySched.find(s => s.id === subjectId);
-
-    if (schedMatch) {
-      targetSubjectName = schedMatch.name;
-    } else {
-      let currentSub = subjects.find(s => s.id === subjectId);
-      if (!currentSub) {
-        currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
-      }
-      if (!currentSub && subjectId.startsWith("sub-")) {
-        const slug = subjectId.replace(/^sub-/, "");
-        currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
-      }
-      if (currentSub) {
-        targetSubjectName = currentSub.name;
-      } else {
-        targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
-      }
+  // ── Attendance handler (5 statuses) ────────────────────────────────────────────
+  const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, targetDate?: string) => {
+    const dateStr = targetDate ?? getTodayDateStr();
+    const lockKey = `${user?.id || 'guest'}_${subjectId}_${dateStr}`;
+    if (inFlightMarkRef.current.has(lockKey)) {
+      return;
     }
-
-    targetSubjectName = getStandardizedSubjectName(targetSubjectName);
-
-    if (schedMatch && schedMatch.time) {
-      const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
-      if (slotOnly) {
-        const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
-        if (sameSubClasses.length > 1) {
-          targetSubjectName = `${targetSubjectName} (${slotOnly})`;
-        }
-      }
-    }
-
-    const cleanTarget = targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim();
-    const stdTargetName = getStandardizedSubjectName(cleanTarget);
-    const targetKeys = getNormalizedSubjectKeys(stdTargetName);
-
-    // Canonical lock key prevents double submissions regardless of how subjectId was formatted
-    const lockKey = `${user?.id || 'guest'}::${stdTargetName.toLowerCase().trim()}::${dateStr}`;
-    if (inFlightMarkRef.current.has(lockKey)) return;
     inFlightMarkRef.current.add(lockKey);
+    // Safety auto-release after 1000ms max to prevent permanent lockouts
+    setTimeout(() => {
+      inFlightMarkRef.current.delete(lockKey);
+    }, 1000);
 
     try {
+      // 1. Resolve exact subject name (name + type)
+      const todaySched = getTodayScheduledSubjects();
+      const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
+      let targetSubjectName = "";
+
+      if (schedMatch) {
+        targetSubjectName = schedMatch.name;
+      } else {
+        let currentSub = subjects.find(s => s.id === subjectId);
+        if (!currentSub) {
+          currentSub = subjects.find(s => s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
+        }
+        if (!currentSub && subjectId.startsWith("sub-")) {
+          const slug = subjectId.replace(/^sub-/, "");
+          currentSub = subjects.find(s => s.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === slug);
+        }
+        if (currentSub) {
+          targetSubjectName = currentSub.name;
+        } else {
+          targetSubjectName = subjectId.replace(/^sub-/, "").replace(/-+/g, " ").trim();
+        }
+      }
+
+      targetSubjectName = getStandardizedSubjectName(targetSubjectName);
+
+      // If multiple classes for this exact subject exist today, append time slot for database uniqueness
+      if (schedMatch && schedMatch.time) {
+        const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
+        if (slotOnly) {
+          const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
+          if (sameSubClasses.length > 1) {
+            targetSubjectName = `${targetSubjectName} (${slotOnly})`;
+          }
+        }
+      }
+
+      const isToday = dateStr === getTodayDateStr();
+
+      // Check if already marked with this exact status (ignore duplicate click)
+      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+      const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
+      if (prevStatus === status && status !== "clear") {
+        return;
+      }
+
       const labels: Record<AttendanceStatus, string> = {
         present: "✅ Present marked",
         absent:  "❌ Absent marked",
@@ -900,100 +833,184 @@ export default function App() {
         clear:   "🗑️ Cleared",
       };
 
+      // ── Instant 0ms Local UI Update ─────────────────────────────────────────
       showToast(labels[status] || "Attendance updated");
 
-      // ── Step 1: Instant 0ms In-Memory Update ────────────────────────────────
-      const updatedLogs = [...attendanceLogs];
-      const matchIdx = updatedLogs.findIndex(r => {
-        if (r.date !== dateStr) return false;
-        const rClean = (r.subject || "").replace(/\s*\([^)]+\)$/, "").trim();
-        const rStd = getStandardizedSubjectName(rClean);
-        if (rStd.toLowerCase().trim() === stdTargetName.toLowerCase().trim()) return true;
-        const rKeys = getNormalizedSubjectKeys(rClean);
-        return targetKeys.some(tk => rKeys.includes(tk));
+      if (isToday) {
+        setTodayAttendance(prev => {
+          const next = { ...prev };
+
+          if (status === "clear") {
+            delete next[subjectId];
+            if (schedMatch) {
+              delete next[schedMatch.id];
+            }
+          } else {
+            next[subjectId] = status;
+            if (schedMatch) {
+              next[schedMatch.id] = status;
+            }
+          }
+
+          return next;
+        });
+      }
+
+      // Instantly update subjects array count in local state
+      setSubjects(prev => {
+        // Determine the component type of the TARGET (Theory / Lab / Tutorial / none)
+        const getComponentType = (name: string): string | null => {
+          const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lecture|lec)$/i);
+          if (!m) return null;
+          const t = m[1].toLowerCase();
+          if (t === "tut") return "tutorial";
+          if (t === "lec" || t === "lecture") return "theory";
+          return t;
+        };
+        const targetType = getComponentType(targetSubjectName);
+
+        let matchIndex = prev.findIndex(sub =>
+          sub.id === subjectId ||
+          (schedMatch && sub.id === schedMatch.id) ||
+          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim()
+        );
+
+        let updated = [...prev];
+
+        if (matchIndex !== -1) {
+          const sub = updated[matchIndex];
+          let newAttended = sub.attendanceCount;
+          let newTotal = sub.totalClasses;
+
+          if (status === "clear") {
+            if (prevStatus === "present") {
+              newAttended = Math.max(0, newAttended - 1);
+              newTotal = Math.max(0, newTotal - 1);
+            } else if (prevStatus === "absent" || prevStatus === "miss") {
+              newTotal = Math.max(0, newTotal - 1);
+            }
+          } else if (status === "present") {
+            if (prevStatus === "absent" || prevStatus === "miss") {
+              newAttended += 1;
+            } else if (prevStatus !== "present") {
+              newAttended += 1;
+              newTotal += 1;
+            }
+          } else if (status === "absent" || status === "miss") {
+            if (prevStatus === "present") {
+              newAttended = Math.max(0, newAttended - 1);
+            } else if (prevStatus !== "absent" && prevStatus !== "miss") {
+              newTotal += 1;
+            }
+          } else if (status === "leave") {
+            if (prevStatus === "present") {
+              newAttended = Math.max(0, newAttended - 1);
+              newTotal = Math.max(0, newTotal - 1);
+            } else if (prevStatus === "absent" || prevStatus === "miss") {
+              newTotal = Math.max(0, newTotal - 1);
+            }
+          }
+
+          updated[matchIndex] = { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
+        } else if (status !== "clear") {
+          const newSub: Subject = {
+            id: subjectId,
+            name: targetSubjectName,
+            code: schedMatch?.code || "CS200",
+            prof: schedMatch?.prof || "",
+            time: schedMatch?.time || "",
+            room: schedMatch?.room || "",
+            attendanceCount: status === "present" ? 1 : 0,
+            totalClasses: (status === "present" || status === "absent" || status === "miss") ? 1 : 0,
+            category: "Core",
+            description: targetSubjectName,
+            type: targetSubjectName.toLowerCase().includes("lab") ? "LAB" : "LEC",
+          };
+          updated.push(newSub);
+        }
+
+        // Deduplicate array by clean standardized subject name
+        const seenNames = new Set<string>();
+        updated = updated.filter(s => {
+          const k = s.name.toLowerCase().trim();
+          if (seenNames.has(k)) return false;
+          seenNames.add(k);
+          return true;
+        });
+
+        try {
+          localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
+        } catch { /* ignore */ }
+        return updated;
       });
 
+      // ── Clear entry from Supabase if clear ──────────────────────────────────
       if (status === "clear") {
-        if (matchIdx !== -1) {
-          updatedLogs.splice(matchIdx, 1);
-        }
-      } else {
-        if (matchIdx !== -1) {
-          updatedLogs[matchIdx] = { ...updatedLogs[matchIdx], status, subject: stdTargetName };
+        if (!user) return;
+        const { error: delErr } = await supabase.from("attendance")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("subject", targetSubjectName)
+          .eq("date", dateStr);
+
+        if (delErr) {
+          showToast("Failed to clear attendance.", "error");
         } else {
-          updatedLogs.push({ id: `temp-${Date.now()}`, user_id: user?.id || "guest", subject: stdTargetName, date: dateStr, status });
+          await fetchTodayAttendance(user, subjects);
+          await refreshAttendanceCounts(user);
+        }
+        return;
+      }
+
+      if (!user) return;
+
+      // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
+      const { data: existing } = await supabase
+        .from("attendance")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("subject", targetSubjectName)
+        .eq("date", dateStr);
+
+      let saveErr = null;
+      if (existing && existing.length > 0) {
+        const { error: updateErr } = await supabase
+          .from("attendance")
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .eq("subject", targetSubjectName)
+          .eq("date", dateStr);
+        saveErr = updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from("attendance")
+          .insert({
+            user_id: user.id,
+            subject: targetSubjectName,
+            date: dateStr,
+            status: status,
+          });
+
+        if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
+          const { error: retryUpdateErr } = await supabase
+            .from("attendance")
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq("user_id", user.id)
+            .eq("subject", targetSubjectName)
+            .eq("date", dateStr);
+          saveErr = retryUpdateErr;
+        } else {
+          saveErr = insertErr;
         }
       }
 
-      // Synchronously recalculate todayAttendance, card positions, and subject counts AT 0ms!
-      syncAttendanceLogs(updatedLogs);
-
-      // ── Step 2: Asynchronous Supabase Persistence ─────────────────────────
-      if (user) {
-        const { data: dateRows, error: fetchErr } = await supabase
-          .from("attendance")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("date", dateStr);
-
-        if (fetchErr) {
-          console.error("Failed to fetch dateRows from Supabase:", fetchErr);
-        }
-
-        const matchingRows = (dateRows || []).filter(r => {
-          const rClean = (r.subject || "").replace(/\s*\([^)]+\)$/, "").trim();
-          const rStd = getStandardizedSubjectName(rClean);
-          if (rStd.toLowerCase().trim() === stdTargetName.toLowerCase().trim()) return true;
-          const rKeys = getNormalizedSubjectKeys(rClean);
-          return targetKeys.some(tk => rKeys.includes(tk));
-        });
-
-        let writeErr: any = null;
-
-        if (status === "clear") {
-          if (matchingRows.length > 0) {
-            const idsToDelete = matchingRows.map(r => r.id);
-            const { error: delErr } = await supabase.from("attendance").delete().in("id", idsToDelete);
-            writeErr = delErr;
-          }
-        } else {
-          if (matchingRows.length > 0) {
-            const primaryId = matchingRows[0].id;
-            const { error: upErr } = await supabase
-              .from("attendance")
-              .update({ status, subject: stdTargetName })
-              .eq("id", primaryId);
-            writeErr = upErr;
-
-            if (matchingRows.length > 1) {
-              const duplicateIds = matchingRows.slice(1).map(r => r.id);
-              await supabase.from("attendance").delete().in("id", duplicateIds);
-            }
-          } else {
-            const { error: insErr } = await supabase.from("attendance").insert({
-              user_id: user.id,
-              subject: stdTargetName,
-              date: dateStr,
-              status: status,
-            });
-            writeErr = insErr;
-          }
-        }
-
-        if (writeErr) {
-          console.error("Supabase attendance write failed:", writeErr);
-          showToast(`Cloud save error: ${writeErr.message || "Failed"}`, "error");
-        } else {
-          // Fresh post-write fetch to ensure complete database parity
-          const { data: freshAtt } = await supabase
-            .from("attendance")
-            .select("*")
-            .eq("user_id", user.id);
-
-          if (freshAtt && freshAtt.length >= 0) {
-            syncAttendanceLogs(freshAtt);
-          }
-        }
+      if (saveErr) {
+        console.error("Supabase attendance save error:", saveErr);
+        showToast("Failed to save attendance. Please try again.", "error");
+        await fetchTodayAttendance(user, subjects);
+      } else {
+        await fetchTodayAttendance(user, subjects);
+        await refreshAttendanceCounts(user);
       }
     } catch (err) {
       console.error("Attendance save exception:", err);
@@ -1241,11 +1258,10 @@ export default function App() {
     };
 
     setSubjects(prev => prev.map(sub => {
-      const subKeys = getNormalizedSubjectKeys(sub.name);
-      const matched = subKeys.map(k => agg[k]).find(Boolean);
+      const subNameLower = sub.name.toLowerCase().trim();
 
-      if (matched) {
-        return { ...sub, attendanceCount: matched.attendance_count, totalClasses: matched.total_classes };
+      if (agg[subNameLower]) {
+        return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
       }
       return { ...sub, attendanceCount: 0, totalClasses: 0 };
     }));
@@ -1257,10 +1273,9 @@ export default function App() {
     const todayStr = getTodayDateStr();
     const { data, error } = await supabase
       .from("attendance")
-      .select("subject, status, created_at, updated_at")
+      .select("subject, status")
       .eq("user_id", u.id)
-      .eq("date", todayStr)
-      .order("created_at", { ascending: true });
+      .eq("date", todayStr);
 
     if (error) {
       console.error("Error fetching today attendance from Supabase:", error);
@@ -1292,14 +1307,10 @@ export default function App() {
         const slotMatch = rowSubName.match(/\(([^)]+)\)$/);
         const rowSlot = slotMatch ? slotMatch[1].trim() : null;
         const cleanRowName = slotMatch ? rowSubName.replace(/\s*\([^)]+\)$/, "").trim() : rowSubName;
-        const stdRowName = getStandardizedSubjectName(cleanRowName);
 
         map[rowSubName.toLowerCase().trim()] = row.status as AttendanceStatus;
         map[cleanRowName.toLowerCase().trim()] = row.status as AttendanceStatus;
-        map[stdRowName.toLowerCase().trim()] = row.status as AttendanceStatus;
-
-        const keys = getNormalizedSubjectKeys(stdRowName);
-        keys.forEach(k => { map[k] = row.status as AttendanceStatus; });
+        const keys = getNormalizedSubjectKeys(cleanRowName);
 
         // Map to subject IDs — match subjects whose type and slot match the row
         const listToSearch = subjectsList && subjectsList.length > 0 ? subjectsList : subjects;
@@ -1310,9 +1321,8 @@ export default function App() {
             const sSlot = (s.time || "").split(/\s*\(/)[0].trim();
             if (!isSlotMatch(sSlot, rowSlot) && !isSlotMatch(s.time, rowSlot)) return;
           }
-          const sStd = getStandardizedSubjectName(s.name);
-          const sKeys = getNormalizedSubjectKeys(sStd);
-          if (keys.some(k => sKeys.includes(k)) || sStd.toLowerCase().trim() === stdRowName.toLowerCase().trim()) {
+          const sKeys = getNormalizedSubjectKeys(s.name);
+          if (keys.some(k => sKeys.includes(k)) || s.name.toLowerCase().trim() === cleanRowName.toLowerCase().trim()) {
             map[s.id] = row.status as AttendanceStatus;
           }
         });

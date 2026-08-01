@@ -124,11 +124,6 @@ export default function DashboardPage({
     const stdName = getStandardizedSubjectName(sub.name).toLowerCase().trim();
     if (todayAttendance[stdName]) return todayAttendance[stdName];
 
-    const cleanNoSlot = sub.name.replace(/\s*\([^)]+\)$/, "").trim();
-    const stdNoSlot = getStandardizedSubjectName(cleanNoSlot).toLowerCase().trim();
-    if (todayAttendance[stdNoSlot]) return todayAttendance[stdNoSlot];
-    if (todayAttendance[cleanNoSlot.toLowerCase()]) return todayAttendance[cleanNoSlot.toLowerCase()];
-
     // Only fall back to base name if THIS card has NO type suffix
     const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(sub.name);
     if (!hasTypeSuffix) {
