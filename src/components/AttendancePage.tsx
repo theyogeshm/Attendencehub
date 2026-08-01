@@ -267,14 +267,14 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
             </div>
 
             {/* Filter Pills Bar */}
-            <div className={`flex items-center gap-1 p-1 rounded-2xl border shadow-sm ${
+            <div className={`flex items-center w-full sm:w-auto gap-1 p-1 rounded-2xl border shadow-sm ${
               isDarkMode
                 ? "bg-surface-container border-outline-variant/50"
                 : "bg-slate-100 border-slate-200/80"
             }`}>
               <button
                 onClick={() => setStatusFilter("all")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial w-1/3 sm:w-auto justify-center text-center px-2 sm:px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   statusFilter === "all"
                     ? isDarkMode
                       ? "bg-primary text-[#002114] shadow-sm scale-[1.02]"
@@ -289,7 +289,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
               <button
                 onClick={() => setStatusFilter("safe")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`flex-1 sm:flex-initial w-1/3 sm:w-auto justify-center text-center px-2 sm:px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                   statusFilter === "safe"
                     ? isDarkMode
                       ? "bg-primary/20 text-[#47ffbc] border border-primary/40 shadow-sm scale-[1.02]"
@@ -299,13 +299,13 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                       : "text-slate-700 hover:text-slate-900"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${statusFilter === "safe" ? "bg-[#00C896]" : "bg-emerald-500"}`} />
-                <span>Safe ({safeCount})</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${statusFilter === "safe" ? "bg-[#00C896]" : "bg-emerald-500"}`} />
+                <span className="truncate">Safe ({safeCount})</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter("danger")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`flex-1 sm:flex-initial w-1/3 sm:w-auto justify-center text-center px-2 sm:px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
                   statusFilter === "danger"
                     ? isDarkMode
                       ? "bg-error/20 text-error border border-error/40 shadow-sm scale-[1.02]"
@@ -315,8 +315,8 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
                       : "text-slate-700 hover:text-slate-900"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${statusFilter === "danger" ? "bg-red-500" : "bg-red-400"}`} />
-                <span>At Risk ({dangerCount})</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${statusFilter === "danger" ? "bg-red-500" : "bg-red-400"}`} />
+                <span className="truncate">At Risk ({dangerCount})</span>
               </button>
             </div>
           </div>
