@@ -780,9 +780,9 @@ export default function App() {
     }, 1000);
 
     try {
-      // 1. Resolve exact subject name (name + type)
-      const todaySched = getTodayScheduledSubjects();
-      const schedMatch = todaySched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId);
+      // 1. Resolve exact subject name (name + type) for the specified date
+      const targetSched = getScheduledSubjectsForDate(dateStr);
+      const schedMatch = targetSched.find(s => s.id === subjectId || (s as any).rawSubjectId === subjectId || s.name.toLowerCase().trim() === subjectId.toLowerCase().trim());
       let targetSubjectName = "";
 
       if (schedMatch) {
@@ -809,7 +809,7 @@ export default function App() {
       if (schedMatch && schedMatch.time) {
         const slotOnly = schedMatch.time.split(/\s*\(/)[0].trim();
         if (slotOnly) {
-          const sameSubClasses = todaySched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
+          const sameSubClasses = targetSched.filter(s => getStandardizedSubjectName(s.name) === targetSubjectName);
           if (sameSubClasses.length > 1) {
             targetSubjectName = `${targetSubjectName} (${slotOnly})`;
           }
@@ -1349,9 +1349,13 @@ export default function App() {
       const targetSubjects = getScheduledSubjectsForDate(dateStr);
 
       const entries: LogEntry[] = targetSubjects.map(sub => {
-        const subKeys = getNormalizedSubjectKeys(sub.name);
+        const subStd = getStandardizedSubjectName(sub.name);
+        const subKeys = getNormalizedSubjectKeys(subStd);
         const row = fetched.find(r => {
-          const rKeys = getNormalizedSubjectKeys(r.subject ?? "");
+          const rClean = (r.subject ?? "").replace(/\s*\([^)]+\)$/, "").trim();
+          const rStd = getStandardizedSubjectName(rClean);
+          if (rStd.toLowerCase().trim() === subStd.toLowerCase().trim()) return true;
+          const rKeys = getNormalizedSubjectKeys(rClean);
           return rKeys.some(rk => subKeys.includes(rk));
         });
 
