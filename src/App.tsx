@@ -631,13 +631,28 @@ export default function App() {
   };
 
   const handleResetAllAttendance = async () => {
-    if (!user) return;
-    const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
-    if (error) {
-      showToast("Failed to reset attendance", "error");
+    // Instantly clear local in-memory states so dashboard badges, buttons, and overall stats vanish (0ms)
+    setTodayAttendance({});
+    setSubjects(prev => {
+      const resetList = prev.map(sub => ({ ...sub, attendanceCount: 0, totalClasses: 0 }));
+      try {
+        localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(resetList));
+      } catch { /* ignore */ }
+      return resetList;
+    });
+
+    if (user) {
+      const { error } = await supabase.from("attendance").delete().eq("user_id", user.id);
+      if (error) {
+        showToast("Failed to reset attendance", "error");
+        await loadUserData(user);
+      } else {
+        showToast("All attendance data cleared successfully.", "success");
+        setTodayAttendance({});
+        await refreshAttendanceCounts(user);
+      }
     } else {
       showToast("All attendance data cleared successfully.", "success");
-      loadUserData(user);
     }
   };
 
