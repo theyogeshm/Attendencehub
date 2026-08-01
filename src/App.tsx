@@ -818,11 +818,13 @@ export default function App() {
 
       const isToday = dateStr === getTodayDateStr();
 
-      // Check if already marked with this exact status (ignore duplicate click)
-      const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
-      const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
-      if (prevStatus === status && status !== "clear") {
-        return;
+      // Check if already marked with this exact status for today (ignore duplicate click)
+      if (isToday) {
+        const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+        const prevStatus = todayAttendance[subjectId] || todayAttendance[targetKeys[0]] || todayAttendance[targetSubjectName.toLowerCase().trim()];
+        if (prevStatus === status && status !== "clear") {
+          return;
+        }
       }
 
       const labels: Record<AttendanceStatus, string> = {
@@ -2268,9 +2270,9 @@ export default function App() {
                                   onClick={async () => {
                                     if (!attendanceLogDateStr) return;
                                     const nextStatus = isSelected ? "clear" : s;
-                                    await handleMarkAttendance(sub.subjectId, nextStatus, attendanceLogDateStr);
+                                    await handleMarkAttendance(sub.subjectName || sub.subjectId, nextStatus, attendanceLogDateStr);
                                     await fetchLogForDate(attendanceLogDateStr);
-                                    if (user) loadUserData(user);
+                                    if (user) await loadUserData(user);
                                   }}
                                   className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
                                     isSelected
