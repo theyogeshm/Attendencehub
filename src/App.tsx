@@ -485,17 +485,18 @@ export default function App() {
       };
 
       let merged = baseSubjects.map(sub => {
-        const subNameLower = sub.name.toLowerCase().trim();
+        const subKeys = getNormalizedSubjectKeys(sub.name);
+        const matched = subKeys.map(k => agg[k]).find(Boolean);
 
-        if (agg[subNameLower]) {
-          return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
+        if (matched) {
+          return { ...sub, attendanceCount: matched.attendance_count, totalClasses: matched.total_classes };
         }
         return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
 
       const seenNames = new Set<string>();
       merged = merged.filter(s => {
-        const k = s.name.toLowerCase().trim();
+        const k = getStandardizedSubjectName(s.name).toLowerCase().trim();
         if (seenNames.has(k)) return false;
         seenNames.add(k);
         return true;
@@ -783,6 +784,83 @@ export default function App() {
     return agg;
   };
 
+  // ── Unified Single Source of Truth Synchronization Engine ───────────────────
+  const syncAllAttendanceState = async (u?: User | null) => {
+    let attData: any[] = [];
+
+    if (u) {
+      const { data } = await supabase
+        .from("attendance")
+        .select("subject, status, date, created_at, updated_at")
+        .eq("user_id", u.id)
+        .order("created_at", { ascending: true });
+      attData = data || [];
+    } else {
+      try {
+        const raw = localStorage.getItem("ATTENDANCE_HUB_LOGS");
+        attData = raw ? JSON.parse(raw) : [];
+      } catch { attData = []; }
+    }
+
+    const todayStr = getTodayDateStr();
+    const todayRows = attData.filter(r => r.date === todayStr);
+
+    // 1. Build todayAttendance map for today's status badges
+    const map: Record<string, AttendanceStatus> = {};
+    todayRows.forEach(row => {
+      const rowSubName = (row.subject ?? "").trim();
+      if (!rowSubName || !row.status) return;
+
+      const slotMatch = rowSubName.match(/\(([^)]+)\)$/);
+      const cleanRowName = slotMatch ? rowSubName.replace(/\s*\([^)]+\)$/, "").trim() : rowSubName;
+      const stdRowName = getStandardizedSubjectName(cleanRowName);
+      const st = row.status as AttendanceStatus;
+
+      map[rowSubName.toLowerCase().trim()] = st;
+      map[cleanRowName.toLowerCase().trim()] = st;
+      map[stdRowName.toLowerCase().trim()] = st;
+
+      const keys = getNormalizedSubjectKeys(stdRowName);
+      keys.forEach(k => { map[k] = st; });
+
+      const todaySched = getTodayScheduledSubjects();
+      todaySched.forEach(s => {
+        const sStd = getStandardizedSubjectName(s.name);
+        const sKeys = getNormalizedSubjectKeys(sStd);
+        if (keys.some(k => sKeys.includes(k)) || sStd.toLowerCase().trim() === stdRowName.toLowerCase().trim()) {
+          map[s.id] = st;
+        }
+      });
+    });
+
+    setTodayAttendance(map);
+
+    // 2. Build aggregate subject counts across ALL historical records
+    const agg = buildAttendanceAggregates(attData);
+
+    // 3. Update subjects array cleanly
+    setSubjects(prev => {
+      const updated = prev.map(sub => {
+        const subKeys = getNormalizedSubjectKeys(sub.name);
+        const matched = subKeys.map(k => agg[k]).find(Boolean);
+
+        if (matched) {
+          return {
+            ...sub,
+            attendanceCount: matched.attendance_count,
+            totalClasses: matched.total_classes,
+          };
+        }
+        return { ...sub, attendanceCount: 0, totalClasses: 0 };
+      });
+
+      try {
+        localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
+      } catch { /* ignore */ }
+      return updated;
+    });
+  };
+
   // ── Attendance handler (5 statuses) ────────────────────────────────────────────
   const handleMarkAttendance = async (subjectId: string, status: AttendanceStatus, customDateStr?: string) => {
     const lockKey = `${subjectId}::${customDateStr || getTodayDateStr()}`;
@@ -881,91 +959,6 @@ export default function App() {
         });
       }
 
-      // Update local subject counts based on exact state transition
-      setSubjects(prev => {
-        let matchIndex = prev.findIndex(sub => {
-          if (sub.id === subjectId || (schedMatch && sub.id === schedMatch.id)) return true;
-          const sKeys = getNormalizedSubjectKeys(sub.name);
-          return targetKeys.some(tk => sKeys.includes(tk));
-        });
-
-        let updated = [...prev];
-
-        if (matchIndex !== -1) {
-          const sub = updated[matchIndex];
-          let newAttended = sub.attendanceCount;
-          let newTotal = sub.totalClasses;
-
-          if (status === "clear") {
-            if (prevStatus === "present") {
-              newAttended = Math.max(0, newAttended - 1);
-              newTotal = Math.max(0, newTotal - 1);
-            } else if (prevStatus === "absent" || prevStatus === "miss") {
-              newTotal = Math.max(0, newTotal - 1);
-            }
-          } else if (status === "present") {
-            if (prevStatus === "absent" || prevStatus === "miss") {
-              newAttended += 1;
-            } else if (prevStatus === "leave") {
-              newAttended += 1;
-              newTotal += 1;
-            } else if (prevStatus !== "present") {
-              newAttended += 1;
-              newTotal += 1;
-            }
-          } else if (status === "absent" || status === "miss") {
-            if (prevStatus === "present") {
-              newAttended = Math.max(0, newAttended - 1);
-            } else if (prevStatus === "leave") {
-              newTotal += 1;
-            } else if (prevStatus !== "absent" && prevStatus !== "miss") {
-              newTotal += 1;
-            }
-          } else if (status === "leave") {
-            if (prevStatus === "present") {
-              newAttended = Math.max(0, newAttended - 1);
-              newTotal = Math.max(0, newTotal - 1);
-            } else if (prevStatus === "absent" || prevStatus === "miss") {
-              newTotal = Math.max(0, newTotal - 1);
-            }
-          }
-
-          // Safety cap: attendanceCount can NEVER exceed totalClasses
-          newAttended = Math.min(newAttended, newTotal);
-
-          updated[matchIndex] = { ...sub, attendanceCount: newAttended, totalClasses: newTotal };
-        } else if (status !== "clear") {
-          const newSub: Subject = {
-            id: subjectId,
-            name: targetSubjectName,
-            code: schedMatch?.code || "CS200",
-            prof: schedMatch?.prof || "",
-            time: schedMatch?.time || "",
-            room: schedMatch?.room || "",
-            attendanceCount: status === "present" ? 1 : 0,
-            totalClasses: (status === "present" || status === "absent" || status === "miss") ? 1 : 0,
-            category: "Core",
-            description: targetSubjectName,
-            type: targetSubjectName.toLowerCase().includes("lab") ? "LAB" : "LEC",
-          };
-          updated.push(newSub);
-        }
-
-        // Deduplicate array by clean standardized subject name
-        const seenNames = new Set<string>();
-        updated = updated.filter(s => {
-          const k = getStandardizedSubjectName(s.name).toLowerCase().trim();
-          if (seenNames.has(k)) return false;
-          seenNames.add(k);
-          return true;
-        });
-
-        try {
-          localStorage.setItem("ATTENDANCE_HUB_SUBJECTS", JSON.stringify(updated));
-        } catch { /* ignore */ }
-        return updated;
-      });
-
       // ── Supabase Single-Record Synchronization ──────────────────────────────
       if (user) {
         // Query all existing rows for this user on this date
@@ -1012,9 +1005,35 @@ export default function App() {
           }
         }
 
-        // Re-fetch clean database aggregates to guarantee 100% database sync
-        await fetchTodayAttendance(user, subjects);
-        await refreshAttendanceCounts(user);
+        // Re-sync all state from the single source of truth in Supabase
+        await syncAllAttendanceState(user);
+      } else {
+        // Guest user local storage single source of truth
+        let logs: any[] = [];
+        try {
+          const raw = localStorage.getItem("ATTENDANCE_HUB_LOGS");
+          logs = raw ? JSON.parse(raw) : [];
+        } catch { logs = []; }
+
+        const stdTargetName = getStandardizedSubjectName(targetSubjectName);
+        const matchIdx = logs.findIndex(r => r.date === dateStr && getStandardizedSubjectName(r.subject || "").toLowerCase() === stdTargetName.toLowerCase());
+
+        if (status === "clear") {
+          if (matchIdx !== -1) logs.splice(matchIdx, 1);
+        } else {
+          if (matchIdx !== -1) {
+            logs[matchIdx].status = status;
+            logs[matchIdx].subject = targetSubjectName;
+          } else {
+            logs.push({ id: `local-${Date.now()}`, user_id: "guest", subject: targetSubjectName, date: dateStr, status });
+          }
+        }
+
+        try {
+          localStorage.setItem("ATTENDANCE_HUB_LOGS", JSON.stringify(logs));
+        } catch { /* ignore */ }
+
+        await syncAllAttendanceState(null);
       }
     } catch (err) {
       console.error("Attendance save exception:", err);
