@@ -401,32 +401,32 @@ export default function DashboardPage({
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "miss" ? "clear" : "miss")}
-                        className={`flex-1 sm:flex-initial justify-center px-1.5 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer ${
+                        className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer shadow-sm ${
                           isDarkMode
                             ? (currentStatus === "miss"
-                                ? "bg-[#2d3449] text-white ring-2 ring-outline/40"
-                                : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]")
+                                ? "bg-[#f59e0b] text-white ring-2 ring-[#f59e0b]/50 shadow-md shadow-[#f59e0b]/20"
+                                : "bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/40 hover:bg-[#f59e0b]/30")
                             : (currentStatus === "miss"
                                 ? "bg-[#fef3c7] text-[#b45309] border border-[#f59e0b]/60 ring-2 ring-[#f59e0b]/50 font-black shadow-sm"
-                                : "bg-gray-200 text-gray-700 hover:bg-gray-300")
+                                : "bg-[#f59e0b] text-white hover:bg-[#d97706]")
                         }`}
                       >
-                        <Coffee className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                        <Coffee className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                         <span>Miss</span>
                       </button>
                       <button
                         onClick={() => onMarkAttendance(sub.id, currentStatus === "leave" ? "clear" : "leave")}
-                        className={`flex-1 sm:flex-initial justify-center px-1.5 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer ${
+                        className={`flex-1 sm:flex-initial justify-center px-2 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-bold active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 cursor-pointer shadow-sm ${
                           isDarkMode
                             ? (currentStatus === "leave"
-                                ? "bg-secondary/20 text-secondary ring-2 ring-secondary/40"
-                                : "border border-outline-variant text-[#bacbbf] hover:bg-[#2d3449]")
+                                ? "bg-[#3b82f6] text-white ring-2 ring-[#3b82f6]/50 shadow-md shadow-[#3b82f6]/20"
+                                : "bg-[#3b82f6]/15 text-[#60a5fa] border border-[#3b82f6]/40 hover:bg-[#3b82f6]/30")
                             : (currentStatus === "leave"
                                 ? "bg-[#dbeafe] text-[#1d4ed8] border border-[#3b82f6]/60 ring-2 ring-[#3b82f6]/50 font-black shadow-sm"
-                                : "bg-gray-200 text-gray-700 hover:bg-gray-300")
+                                : "bg-[#3b82f6] text-white hover:bg-[#2563eb]")
                         }`}
                       >
-                        <Plane className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                        <Plane className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                         <span>Leave</span>
                       </button>
                     </div>
