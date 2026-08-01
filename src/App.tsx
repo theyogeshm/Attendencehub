@@ -754,12 +754,14 @@ export default function App() {
 
     mapByDateAndSub.forEach(subMap => {
       subMap.forEach(({ subject, status }) => {
-        const stdNameLower = subject.toLowerCase().trim();
         const s = (status ?? "").toLowerCase();
+        const keys = getNormalizedSubjectKeys(subject);
 
-        if (!agg[stdNameLower]) agg[stdNameLower] = { attendance_count: 0, total_classes: 0 };
-        if (s !== "leave") agg[stdNameLower].total_classes += 1;
-        if (s === "present") agg[stdNameLower].attendance_count += 1;
+        keys.forEach(k => {
+          if (!agg[k]) agg[k] = { attendance_count: 0, total_classes: 0 };
+          if (s !== "leave") agg[k].total_classes += 1;
+          if (s === "present") agg[k].attendance_count += 1;
+        });
       });
     });
 
@@ -866,12 +868,11 @@ export default function App() {
 
       // Update local subject counts based on exact state transition
       setSubjects(prev => {
-        let matchIndex = prev.findIndex(sub =>
-          sub.id === subjectId ||
-          (schedMatch && sub.id === schedMatch.id) ||
-          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim() ||
-          getStandardizedSubjectName(sub.name).toLowerCase().trim() === stdTargetName.toLowerCase().trim()
-        );
+        let matchIndex = prev.findIndex(sub => {
+          if (sub.id === subjectId || (schedMatch && sub.id === schedMatch.id)) return true;
+          const sKeys = getNormalizedSubjectKeys(sub.name);
+          return targetKeys.some(tk => sKeys.includes(tk));
+        });
 
         let updated = [...prev];
 
@@ -938,7 +939,7 @@ export default function App() {
         // Deduplicate array by clean standardized subject name
         const seenNames = new Set<string>();
         updated = updated.filter(s => {
-          const k = s.name.toLowerCase().trim();
+          const k = getStandardizedSubjectName(s.name).toLowerCase().trim();
           if (seenNames.has(k)) return false;
           seenNames.add(k);
           return true;
@@ -1246,11 +1247,8 @@ export default function App() {
     };
 
     setSubjects(prev => prev.map(sub => {
-      const cleanSub = sub.name.replace(/\s*\([^)]+\)$/, "").trim();
-      const stdSubLower = getStandardizedSubjectName(cleanSub).toLowerCase().trim();
-      const subNameLower = sub.name.toLowerCase().trim();
-
-      const matched = agg[stdSubLower] || agg[subNameLower] || agg[cleanSub.toLowerCase().trim()];
+      const subKeys = getNormalizedSubjectKeys(sub.name);
+      const matched = subKeys.map(k => agg[k]).find(Boolean);
 
       if (matched) {
         return { ...sub, attendanceCount: matched.attendance_count, totalClasses: matched.total_classes };
