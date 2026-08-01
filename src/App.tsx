@@ -72,6 +72,15 @@ export default function App() {
     return true; // no cache → show spinner (first-ever login)
   });
 
+  // Safety guard: ensure authLoading is NEVER stuck as true
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAuthLoading(false);
+      setInitialAuthDone(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // ── Navigation ────────────────────────────────────────────────────────────
   const location = useLocation();
   const navigate = useNavigate();
@@ -278,9 +287,9 @@ export default function App() {
   // ── Load user data from Supabase ──────────────────────────────────────────
   // backgroundRefresh=true → cache already applied, don't show loading screen,
   //                          just quietly update state when fetch completes.
-  const loadUserData = async (u: User, backgroundRefresh = false) => {
+  const loadUserData = async (u: User, backgroundRefresh = true) => {
     // ── Step 1: apply cached data instantly (zero-latency render) ─────────────
-    if (backgroundRefresh) {
+    if (backgroundRefresh || !authLoading) {
       try {
         const raw = localStorage.getItem(SESSION_CACHE_KEY);
         if (raw) {
@@ -297,7 +306,7 @@ export default function App() {
           }
         }
       } catch { /* ignore bad cache */ }
-      // Don't show loading screen — data already rendered from cache
+      // Don't show loading screen — data already rendered
     } else {
       setAuthLoading(true);
     }
@@ -485,10 +494,21 @@ export default function App() {
       };
 
       let merged = baseSubjects.map(sub => {
-        const subNameLower = sub.name.toLowerCase().trim();
+        const stdSub = getStandardizedSubjectName(sub.name).toLowerCase().trim();
+        const keys = getNormalizedSubjectKeys(sub.name);
 
-        if (agg[subNameLower]) {
-          return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
+        let found = agg[stdSub] || agg[sub.name.toLowerCase().trim()];
+        if (!found) {
+          for (const k of keys) {
+            if (agg[k]) {
+              found = agg[k];
+              break;
+            }
+          }
+        }
+
+        if (found) {
+          return { ...sub, attendanceCount: found.attendance_count, totalClasses: found.total_classes };
         }
         return { ...sub, attendanceCount: 0, totalClasses: 0 };
       });
