@@ -976,7 +976,7 @@ export default function App() {
       if (existing && existing.length > 0) {
         const { error: updateErr } = await supabase
           .from("attendance")
-          .update({ status, updated_at: new Date().toISOString() })
+          .update({ status })
           .eq("user_id", user.id)
           .eq("subject", targetSubjectName)
           .eq("date", dateStr);
@@ -994,7 +994,7 @@ export default function App() {
         if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
           const { error: retryUpdateErr } = await supabase
             .from("attendance")
-            .update({ status, updated_at: new Date().toISOString() })
+            .update({ status })
             .eq("user_id", user.id)
             .eq("subject", targetSubjectName)
             .eq("date", dateStr);
@@ -2229,33 +2229,39 @@ export default function App() {
                             )}
                           </div>
                           <div className="flex gap-1 items-center flex-shrink-0">
-                            {!marked ? (
-                              <>
-                                {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => (
-                                  <button
-                                    key={s}
-                                    onClick={async () => {
-                                      if (!attendanceLogDateStr) return;
-                                      await handleMarkAttendance(sub.subjectId, s, attendanceLogDateStr);
-                                      await fetchLogForDate(attendanceLogDateStr);
-                                      loadUserData(user!);
-                                    }}
-                                    className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
-                                      s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary hover:text-[#002114]"
-                                      : s === "absent" ? "border-error/30 text-error bg-[#131b2e] hover:bg-error hover:text-white"
-                                      : s === "miss"   ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500 hover:text-black"
-                                      :                  "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500 hover:text-white"
-                                    }`}
-                                    title={`Mark ${s}`}
-                                  >
-                                    {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
-                                  </button>
-                                ))}
-                              </>
-                            ) : (
+                            {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => {
+                              const isSelected = sub.status === s;
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={async () => {
+                                    if (!attendanceLogDateStr) return;
+                                    const nextStatus = isSelected ? "clear" : s;
+                                    await handleMarkAttendance(sub.subjectId, nextStatus, attendanceLogDateStr);
+                                    await fetchLogForDate(attendanceLogDateStr);
+                                    if (user) loadUserData(user);
+                                  }}
+                                  className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
+                                    isSelected
+                                      ? (s === "present" ? "bg-primary text-[#002114] border-primary font-black shadow-sm"
+                                        : s === "absent"  ? "bg-error text-white border-error font-black shadow-sm"
+                                        : s === "miss"    ? "bg-yellow-500 text-black border-yellow-500 font-black shadow-sm"
+                                        :                   "bg-blue-500 text-white border-blue-500 font-black shadow-sm")
+                                      : (s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary hover:text-[#002114]"
+                                        : s === "absent"  ? "border-error/30 text-error bg-[#131b2e] hover:bg-error hover:text-white"
+                                        : s === "miss"    ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500 hover:text-black"
+                                        :                   "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500 hover:text-white")
+                                  }`}
+                                  title={isSelected ? `Unmark ${s}` : `Mark ${s}`}
+                                >
+                                  {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
+                                </button>
+                              );
+                            })}
+                            {marked && (
                               <button
                                 onClick={() => setConfirmDeleteLog({ subjectName: sub.subjectName })}
-                                className="text-[10px] font-bold border border-error/50 text-error px-2 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
+                                className="text-[10px] font-bold border border-error/50 text-error px-1.5 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1 ml-0.5"
                                 title="Delete this record for this date"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
