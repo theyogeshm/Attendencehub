@@ -846,6 +846,8 @@ export default function App() {
               delete next[schedMatch.id];
             }
             delete next[targetSubjectName.toLowerCase().trim()];
+            delete next[stdTargetName.toLowerCase().trim()];
+            delete next[cleanTarget.toLowerCase().trim()];
             targetKeys.forEach(k => delete next[k]);
           } else {
             next[subjectId] = status;
@@ -853,6 +855,8 @@ export default function App() {
               next[schedMatch.id] = status;
             }
             next[targetSubjectName.toLowerCase().trim()] = status;
+            next[stdTargetName.toLowerCase().trim()] = status;
+            next[cleanTarget.toLowerCase().trim()] = status;
             targetKeys.forEach(k => { next[k] = status; });
           }
 
@@ -1242,10 +1246,14 @@ export default function App() {
     };
 
     setSubjects(prev => prev.map(sub => {
+      const cleanSub = sub.name.replace(/\s*\([^)]+\)$/, "").trim();
+      const stdSubLower = getStandardizedSubjectName(cleanSub).toLowerCase().trim();
       const subNameLower = sub.name.toLowerCase().trim();
 
-      if (agg[subNameLower]) {
-        return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
+      const matched = agg[stdSubLower] || agg[subNameLower] || agg[cleanSub.toLowerCase().trim()];
+
+      if (matched) {
+        return { ...sub, attendanceCount: matched.attendance_count, totalClasses: matched.total_classes };
       }
       return { ...sub, attendanceCount: 0, totalClasses: 0 };
     }));
@@ -1257,9 +1265,10 @@ export default function App() {
     const todayStr = getTodayDateStr();
     const { data, error } = await supabase
       .from("attendance")
-      .select("subject, status")
+      .select("subject, status, created_at, updated_at")
       .eq("user_id", u.id)
-      .eq("date", todayStr);
+      .eq("date", todayStr)
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Error fetching today attendance from Supabase:", error);
@@ -1291,10 +1300,14 @@ export default function App() {
         const slotMatch = rowSubName.match(/\(([^)]+)\)$/);
         const rowSlot = slotMatch ? slotMatch[1].trim() : null;
         const cleanRowName = slotMatch ? rowSubName.replace(/\s*\([^)]+\)$/, "").trim() : rowSubName;
+        const stdRowName = getStandardizedSubjectName(cleanRowName);
 
         map[rowSubName.toLowerCase().trim()] = row.status as AttendanceStatus;
         map[cleanRowName.toLowerCase().trim()] = row.status as AttendanceStatus;
-        const keys = getNormalizedSubjectKeys(cleanRowName);
+        map[stdRowName.toLowerCase().trim()] = row.status as AttendanceStatus;
+
+        const keys = getNormalizedSubjectKeys(stdRowName);
+        keys.forEach(k => { map[k] = row.status as AttendanceStatus; });
 
         // Map to subject IDs — match subjects whose type and slot match the row
         const listToSearch = subjectsList && subjectsList.length > 0 ? subjectsList : subjects;
@@ -1305,8 +1318,9 @@ export default function App() {
             const sSlot = (s.time || "").split(/\s*\(/)[0].trim();
             if (!isSlotMatch(sSlot, rowSlot) && !isSlotMatch(s.time, rowSlot)) return;
           }
-          const sKeys = getNormalizedSubjectKeys(s.name);
-          if (keys.some(k => sKeys.includes(k)) || s.name.toLowerCase().trim() === cleanRowName.toLowerCase().trim()) {
+          const sStd = getStandardizedSubjectName(s.name);
+          const sKeys = getNormalizedSubjectKeys(sStd);
+          if (keys.some(k => sKeys.includes(k)) || sStd.toLowerCase().trim() === stdRowName.toLowerCase().trim()) {
             map[s.id] = row.status as AttendanceStatus;
           }
         });
