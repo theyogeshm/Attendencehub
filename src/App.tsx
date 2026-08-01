@@ -861,18 +861,21 @@ export default function App() {
       if (isToday) {
         setTodayAttendance(prev => {
           const next = { ...prev };
+          const keys = [
+            subjectId,
+            targetSubjectName.toLowerCase().trim(),
+            getStandardizedSubjectName(targetSubjectName).toLowerCase().trim(),
+            ...getNormalizedSubjectKeys(targetSubjectName)
+          ];
+          if (schedMatch) keys.push(schedMatch.id, schedMatch.name.toLowerCase().trim());
 
-          if (status === "clear") {
-            delete next[subjectId];
-            if (schedMatch) {
-              delete next[schedMatch.id];
+          keys.forEach(k => {
+            if (status === "clear") {
+              delete next[k];
+            } else {
+              next[k] = status;
             }
-          } else {
-            next[subjectId] = status;
-            if (schedMatch) {
-              next[schedMatch.id] = status;
-            }
-          }
+          });
 
           return next;
         });
@@ -1777,7 +1780,7 @@ export default function App() {
         seenKeys.add(key);
         uniqueDayList.push({
           ...item,
-          id: `${item.rawSubjectId || item.id}_${slotOnly.replace(/[^a-z0-9]/g, "-")}`,
+          id: item.rawSubjectId || item.id,
         });
       }
     });
