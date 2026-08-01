@@ -944,73 +944,97 @@ export default function App() {
         return updated;
       });
 
-      // ── Clear entry from Supabase if clear ──────────────────────────────────
-      if (status === "clear") {
-        if (!user) return;
-        const { error: delErr } = await supabase.from("attendance")
-          .delete()
+      // ── Step 2: Persistence (Supabase for logged in, localStorage for guest) ───
+      if (user) {
+        const { data: dateRows, error: selectErr } = await supabase
+          .from("attendance")
+          .select("*")
           .eq("user_id", user.id)
-          .eq("subject", targetSubjectName)
           .eq("date", dateStr);
 
-        if (delErr) {
-          showToast("Failed to clear attendance.", "error");
+        if (selectErr) {
+          console.error("Supabase select error:", selectErr);
+        }
+
+        const stdTargetName = getStandardizedSubjectName(targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim());
+        const targetKeys = getNormalizedSubjectKeys(stdTargetName);
+
+        // Match existing rows for this subject
+        const matchingRows = (dateRows || []).filter(r => {
+          const rClean = (r.subject || "").replace(/\s*\([^)]+\)$/, "").trim();
+          const rStd = getStandardizedSubjectName(rClean);
+          if (rStd.toLowerCase().trim() === stdTargetName.toLowerCase().trim()) return true;
+          const rKeys = getNormalizedSubjectKeys(rClean);
+          return targetKeys.some(tk => rKeys.includes(tk));
+        });
+
+        let saveErr: any = null;
+
+        if (status === "clear") {
+          if (matchingRows.length > 0) {
+            const idsToDelete = matchingRows.map(r => r.id);
+            const { error: delErr } = await supabase.from("attendance").delete().in("id", idsToDelete);
+            saveErr = delErr;
+          }
+        } else {
+          if (matchingRows.length > 0) {
+            const primaryId = matchingRows[0].id;
+            const { error: updateErr } = await supabase
+              .from("attendance")
+              .update({ status, subject: stdTargetName })
+              .eq("id", primaryId);
+            saveErr = updateErr;
+
+            if (matchingRows.length > 1) {
+              const duplicateIds = matchingRows.slice(1).map(r => r.id);
+              await supabase.from("attendance").delete().in("id", duplicateIds);
+            }
+          } else {
+            const { error: insertErr } = await supabase
+              .from("attendance")
+              .insert({
+                user_id: user.id,
+                subject: stdTargetName,
+                date: dateStr,
+                status: status,
+              });
+            saveErr = insertErr;
+          }
+        }
+
+        if (saveErr) {
+          console.error("Supabase attendance save error:", saveErr);
+          showToast("Failed to save attendance. Please try again.", "error");
+          await fetchTodayAttendance(user, subjects);
         } else {
           await fetchTodayAttendance(user, subjects);
           await refreshAttendanceCounts(user);
         }
-        return;
-      }
-
-      if (!user) return;
-
-      // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
-      const { data: existing } = await supabase
-        .from("attendance")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("subject", targetSubjectName)
-        .eq("date", dateStr);
-
-      let saveErr = null;
-      if (existing && existing.length > 0) {
-        const { error: updateErr } = await supabase
-          .from("attendance")
-          .update({ status })
-          .eq("user_id", user.id)
-          .eq("subject", targetSubjectName)
-          .eq("date", dateStr);
-        saveErr = updateErr;
       } else {
-        const { error: insertErr } = await supabase
-          .from("attendance")
-          .insert({
-            user_id: user.id,
-            subject: targetSubjectName,
-            date: dateStr,
-            status: status,
-          });
+        // Guest user local storage single source of truth
+        let logs: any[] = [];
+        try {
+          const raw = localStorage.getItem("ATTENDANCE_HUB_LOGS");
+          logs = raw ? JSON.parse(raw) : [];
+        } catch { logs = []; }
 
-        if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
-          const { error: retryUpdateErr } = await supabase
-            .from("attendance")
-            .update({ status })
-            .eq("user_id", user.id)
-            .eq("subject", targetSubjectName)
-            .eq("date", dateStr);
-          saveErr = retryUpdateErr;
+        const stdTargetName = getStandardizedSubjectName(targetSubjectName.replace(/\s*\([^)]+\)$/, "").trim());
+        const matchIdx = logs.findIndex(r => r.date === dateStr && getStandardizedSubjectName((r.subject || "").replace(/\s*\([^)]+\)$/, "").trim()).toLowerCase() === stdTargetName.toLowerCase());
+
+        if (status === "clear") {
+          if (matchIdx !== -1) logs.splice(matchIdx, 1);
         } else {
-          saveErr = insertErr;
+          if (matchIdx !== -1) {
+            logs[matchIdx].status = status;
+            logs[matchIdx].subject = stdTargetName;
+          } else {
+            logs.push({ id: `local-${Date.now()}`, user_id: "guest", subject: stdTargetName, date: dateStr, status });
+          }
         }
-      }
 
-      if (saveErr) {
-        console.error("Supabase attendance save error:", saveErr);
-        showToast("Failed to save attendance. Please try again.", "error");
-        await fetchTodayAttendance(user, subjects);
-      } else {
-        await fetchTodayAttendance(user, subjects);
-        await refreshAttendanceCounts(user);
+        try {
+          localStorage.setItem("ATTENDANCE_HUB_LOGS", JSON.stringify(logs));
+        } catch { /* ignore */ }
       }
     } catch (err) {
       console.error("Attendance save exception:", err);
@@ -1333,19 +1357,23 @@ export default function App() {
 
   // ── Fetch attendance for a specific date from Supabase ───────────────────
   const fetchLogForDate = async (dateStr: string) => {
-    if (!user) return;
     setLogLoading(true);
+    let fetched: any[] = [];
 
-    const { data, error } = await supabase
-      .from("attendance")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("date", dateStr);
-
-    if (error) {
-
+    if (user) {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", dateStr);
+      if (!error && data) fetched = data;
     } else {
-      const fetched = data ?? [];
+      try {
+        const raw = localStorage.getItem("ATTENDANCE_HUB_LOGS");
+        const logs = raw ? JSON.parse(raw) : [];
+        fetched = logs.filter((r: any) => r.date === dateStr);
+      } catch { fetched = []; }
+    }
       const targetSubjects = getScheduledSubjectsForDate(dateStr);
 
       const entries: LogEntry[] = targetSubjects.map(sub => {
@@ -1369,7 +1397,6 @@ export default function App() {
         };
       });
       setLogSubjects(entries);
-    }
     setLogLoading(false);
   };
 
