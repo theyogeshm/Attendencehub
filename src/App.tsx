@@ -958,71 +958,53 @@ export default function App() {
         return updated;
       });
 
-      // ── Clear entry from Supabase if clear ──────────────────────────────────
-      if (status === "clear") {
-        if (!user) return;
-        const { error: delErr } = await supabase.from("attendance")
-          .delete()
+      // ── Supabase Single-Record Synchronization ──────────────────────────────
+      if (user) {
+        // Query all existing rows for this user on this date
+        const { data: dateRows } = await supabase
+          .from("attendance")
+          .select("*")
           .eq("user_id", user.id)
-          .eq("subject", targetSubjectName)
           .eq("date", dateStr);
 
-        if (delErr) {
-          showToast("Failed to clear attendance.", "error");
+        const stdTargetName = getStandardizedSubjectName(targetSubjectName);
+
+        // Match rows that correspond to stdTargetName or targetKeys
+        const matchingRows = (dateRows || []).filter(r => {
+          const rStd = getStandardizedSubjectName(r.subject || "");
+          if (rStd.toLowerCase().trim() === stdTargetName.toLowerCase().trim()) return true;
+          const rKeys = getNormalizedSubjectKeys(r.subject || "");
+          return targetKeys.some(tk => rKeys.includes(tk));
+        });
+
+        if (status === "clear") {
+          if (matchingRows.length > 0) {
+            const idsToDelete = matchingRows.map(r => r.id);
+            await supabase.from("attendance").delete().in("id", idsToDelete);
+          }
         } else {
-          await fetchTodayAttendance(user, subjects);
-          await refreshAttendanceCounts(user);
+          if (matchingRows.length > 0) {
+            const primaryId = matchingRows[0].id;
+            await supabase
+              .from("attendance")
+              .update({ status, subject: targetSubjectName, updated_at: new Date().toISOString() })
+              .eq("id", primaryId);
+
+            if (matchingRows.length > 1) {
+              const duplicateIds = matchingRows.slice(1).map(r => r.id);
+              await supabase.from("attendance").delete().in("id", duplicateIds);
+            }
+          } else {
+            await supabase.from("attendance").insert({
+              user_id: user.id,
+              subject: targetSubjectName,
+              date: dateStr,
+              status: status,
+            });
+          }
         }
-        return;
-      }
 
-      if (!user) return;
-
-      // ── Save to Supabase attendance table (Select -> Update or Insert) ────────
-      const { data: existing } = await supabase
-        .from("attendance")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("subject", targetSubjectName)
-        .eq("date", dateStr);
-
-      let saveErr = null;
-      if (existing && existing.length > 0) {
-        const { error: updateErr } = await supabase
-          .from("attendance")
-          .update({ status, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id)
-          .eq("subject", targetSubjectName)
-          .eq("date", dateStr);
-        saveErr = updateErr;
-      } else {
-        const { error: insertErr } = await supabase
-          .from("attendance")
-          .insert({
-            user_id: user.id,
-            subject: targetSubjectName,
-            date: dateStr,
-            status: status,
-          });
-
-        if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
-          const { error: retryUpdateErr } = await supabase
-            .from("attendance")
-            .update({ status, updated_at: new Date().toISOString() })
-            .eq("user_id", user.id)
-            .eq("subject", targetSubjectName)
-            .eq("date", dateStr);
-          saveErr = retryUpdateErr;
-        } else {
-          saveErr = insertErr;
-        }
-      }
-
-      if (saveErr) {
-        console.error("Supabase attendance save error:", saveErr);
-        showToast("Failed to save attendance. Please try again.", "error");
-        await fetchTodayAttendance(user, subjects);
-      } else {
+        // Re-fetch clean database aggregates to guarantee 100% database sync
         await fetchTodayAttendance(user, subjects);
         await refreshAttendanceCounts(user);
       }
