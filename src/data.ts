@@ -104,6 +104,54 @@ export const getStandardizedSubjectName = (name: string): string => {
   return `${base} - Theory`;
 };
 
+export const getNormalizedSubjectKeys = (name: string): string[] => {
+  const clean = name.toLowerCase().trim();
+  if (!clean) return [];
+  const keys = new Set<string>();
+  keys.add(clean);
+
+  const noParens = clean.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  if (noParens && noParens !== clean) keys.add(noParens);
+
+  const baseName = noParens.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
+  if (baseName && baseName !== noParens) keys.add(baseName);
+
+  if (clean.includes("object oriented") || clean.includes("oop") || clean.includes("ood")) {
+    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+    keys.add("object oriented design" + typeSuffix);
+    keys.add("object oriented programming" + typeSuffix);
+    keys.add("object oriented programming (oop)" + typeSuffix);
+    keys.add("object oriented design");
+  }
+  if (clean.includes("algorithm") || clean.includes("daa")) {
+    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+    keys.add("design & analysis of algorithm" + typeSuffix);
+    keys.add("algorithm design and analysis" + typeSuffix);
+    keys.add("algorithm design and analysis (daa)" + typeSuffix);
+    keys.add("design & analysis of algorithm");
+  }
+  if (clean.includes("digital logic") || clean.includes("digital electronics") || clean.includes("dld")) {
+    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+    keys.add("digital logic design" + typeSuffix);
+    keys.add("digital electronics" + typeSuffix);
+    keys.add("digital logic design");
+  }
+  if (clean.includes("operating system") || clean === "os") {
+    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+    keys.add("operating system design" + typeSuffix);
+    keys.add("operating system design (os)" + typeSuffix);
+    keys.add("operating system design");
+  }
+  if (clean.includes("software engineering") || clean === "se") {
+    const typeSuffix = clean.includes("lab") ? " - lab" : clean.includes("theory") ? " - theory" : "";
+    keys.add("software engineering" + typeSuffix);
+    keys.add("software engineering (se)" + typeSuffix);
+    keys.add("software engineering");
+  }
+
+  return Array.from(keys);
+};
+
 // ── Helper: convert a list of subject name strings into Subject objects ───────
 export const subjectNamestoSubjects = (names: string[]): Subject[] =>
   names.map((name, idx) => ({

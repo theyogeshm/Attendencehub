@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Subject, Assignment, AttendanceStatus } from "../types";
-import { getStandardizedSubjectName } from "../data";
+import { getStandardizedSubjectName, getNormalizedSubjectKeys } from "../data";
 import {
   CheckCircle,
   XCircle,
@@ -124,11 +124,9 @@ export default function DashboardPage({
     const stdName = getStandardizedSubjectName(sub.name).toLowerCase().trim();
     if (todayAttendance[stdName]) return todayAttendance[stdName];
 
-    // Only fall back to base name if THIS card has NO type suffix
-    const hasTypeSuffix = /\s*-\s*(theory|lab|tutorial|tut|lec)$/i.test(sub.name);
-    if (!hasTypeSuffix) {
-      const baseName = cleanName.trim();
-      if (todayAttendance[baseName]) return todayAttendance[baseName];
+    const keys = getNormalizedSubjectKeys(sub.name);
+    for (const k of keys) {
+      if (todayAttendance[k]) return todayAttendance[k];
     }
 
     return undefined;

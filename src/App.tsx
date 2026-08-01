@@ -871,11 +871,16 @@ export default function App() {
         };
         const targetType = getComponentType(targetSubjectName);
 
-        let matchIndex = prev.findIndex(sub =>
-          sub.id === subjectId ||
-          (schedMatch && sub.id === schedMatch.id) ||
-          sub.name.toLowerCase().trim() === targetSubjectName.toLowerCase().trim()
-        );
+        const targetKeys = getNormalizedSubjectKeys(targetSubjectName);
+        const stdTarget = getStandardizedSubjectName(targetSubjectName).toLowerCase().trim();
+
+        let matchIndex = prev.findIndex(sub => {
+          if (sub.id === subjectId || (schedMatch && sub.id === schedMatch.id)) return true;
+          const subStd = getStandardizedSubjectName(sub.name).toLowerCase().trim();
+          if (subStd === stdTarget) return true;
+          const subKeys = getNormalizedSubjectKeys(sub.name);
+          return subKeys.some(sk => targetKeys.includes(sk));
+        });
 
         let updated = [...prev];
 
@@ -946,7 +951,7 @@ export default function App() {
         return updated;
       });
 
-      // ── Step 2: Persistence (Supabase for logged in, localStorage for guest) ───
+      // ── Step 2: Background Persistence (Supabase for logged in, localStorage for guest) ───
       if (user) {
         const { data: dateRows, error: selectErr } = await supabase
           .from("attendance")
@@ -1007,10 +1012,6 @@ export default function App() {
         if (saveErr) {
           console.error("Supabase attendance save error:", saveErr);
           showToast("Failed to save attendance. Please try again.", "error");
-          await fetchTodayAttendance(user, subjects);
-        } else {
-          await fetchTodayAttendance(user, subjects);
-          await refreshAttendanceCounts(user);
         }
       } else {
         // Guest user local storage single source of truth
@@ -1284,12 +1285,23 @@ export default function App() {
     };
 
     setSubjects(prev => prev.map(sub => {
-      const subNameLower = sub.name.toLowerCase().trim();
+      const stdSub = getStandardizedSubjectName(sub.name).toLowerCase().trim();
+      const keys = getNormalizedSubjectKeys(sub.name);
 
-      if (agg[subNameLower]) {
-        return { ...sub, attendanceCount: agg[subNameLower].attendance_count, totalClasses: agg[subNameLower].total_classes };
+      let found = agg[stdSub] || agg[sub.name.toLowerCase().trim()];
+      if (!found) {
+        for (const k of keys) {
+          if (agg[k]) {
+            found = agg[k];
+            break;
+          }
+        }
       }
-      return { ...sub, attendanceCount: 0, totalClasses: 0 };
+
+      if (found) {
+        return { ...sub, attendanceCount: found.attendance_count, totalClasses: found.total_classes };
+      }
+      return sub;
     }));
   };
 
