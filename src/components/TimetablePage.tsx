@@ -1,4 +1,4 @@
-/**
+  /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -915,7 +915,7 @@ export default function TimetablePage({
 
         {/* Day Selector (Shown when viewMode === 'day') */}
         {viewMode === "day" && (
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 custom-scrollbar max-w-full min-w-0">
+          <div className="flex items-center w-full sm:w-auto justify-between gap-1 sm:gap-2 pb-1 max-w-full min-w-0">
             {DAYS_OF_WEEK.map((day) => {
               const isSelected = activeDay === day.id;
               const isToday = defaultDayId === day.id;
@@ -924,13 +924,14 @@ export default function TimetablePage({
                 <button
                   key={day.id}
                   onClick={() => setActiveDay(day.id)}
-                  className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 sm:gap-2 border shrink-0 ${
+                  className={`flex-1 sm:flex-initial w-1/5 sm:w-auto text-center justify-center px-1 sm:px-5 py-1.5 sm:py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 sm:gap-2 border shrink-0 ${
                     isSelected
                       ? "bg-primary/20 text-primary border-primary"
                       : "bg-surface-container/50 text-on-surface-variant border-outline-variant/30 hover:bg-surface-variant"
                   }`}
                 >
-                  <span>{day.label}</span>
+                  <span className="sm:hidden">{day.short}</span>
+                  <span className="hidden sm:inline">{day.label}</span>
                   {isToday && (
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse shrink-0" />
                   )}
