@@ -863,11 +863,12 @@ export default function App() {
           const next = { ...prev };
           const keys = [
             subjectId,
+            subjectId.split("_")[0],
             targetSubjectName.toLowerCase().trim(),
             getStandardizedSubjectName(targetSubjectName).toLowerCase().trim(),
             ...getNormalizedSubjectKeys(targetSubjectName)
           ];
-          if (schedMatch) keys.push(schedMatch.id, schedMatch.name.toLowerCase().trim());
+          if (schedMatch) keys.push(schedMatch.id, (schedMatch as any).rawSubjectId, schedMatch.name.toLowerCase().trim());
 
           keys.forEach(k => {
             if (status === "clear") {
@@ -1773,14 +1774,16 @@ export default function App() {
     const uniqueDayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
     const seenKeys = new Set<string>();
 
-    dayList.forEach(item => {
+    dayList.forEach((item, idx) => {
       const slotOnly = (item.time || "").split(/\s*\(/)[0].trim();
       const key = `${item.name.toLowerCase().trim()}_${slotOnly}`;
       if (!seenKeys.has(key)) {
         seenKeys.add(key);
+        const baseId = item.rawSubjectId || item.id;
+        const cleanSlot = slotOnly.replace(/[^a-z0-9]/g, "");
         uniqueDayList.push({
           ...item,
-          id: item.rawSubjectId || item.id,
+          id: `${baseId}_${cleanSlot || idx}`,
         });
       }
     });
