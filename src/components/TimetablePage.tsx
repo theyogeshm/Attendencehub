@@ -842,16 +842,16 @@ export default function TimetablePage({
       )}
 
       {/* ── CONTROLS: VIEW MODES & SEARCH ── */}
-      <div className="space-y-2.5 sm:space-y-4">
+      <div className="space-y-2 sm:space-y-4">
         {/* View Mode Toggle & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 pt-1 sm:pt-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Day / Week View Tabs */}
-            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            {/* Day / Week View Tabs — 50% / 50% equal split on mobile */}
+            <div className="flex items-center w-full sm:w-auto gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40">
               <button
                 onClick={() => setViewMode("week")}
                 style={viewMode === "week" ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
-                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-extrabold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial w-1/2 sm:w-auto text-center justify-center px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                   viewMode === "week"
                     ? "bg-[#00C896] dark:bg-primary shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -862,7 +862,7 @@ export default function TimetablePage({
               <button
                 onClick={() => setViewMode("day")}
                 style={viewMode === "day" ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
-                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-extrabold transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial w-1/2 sm:w-auto text-center justify-center px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                   viewMode === "day"
                     ? "bg-[#00C896] dark:bg-primary shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -872,15 +872,15 @@ export default function TimetablePage({
               </button>
             </div>
 
-            {/* Lab Group Filter Tabs */}
-            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40 self-start">
-              <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant uppercase px-1 sm:px-2">Group:</span>
+            {/* Lab Group Filter Tabs — Equal distribution on mobile */}
+            <div className="flex items-center w-full sm:w-auto justify-between sm:justify-start gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-surface-container border border-outline-variant/40">
+              <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant uppercase px-1 sm:px-2 shrink-0">Group:</span>
               {(["All", "G1", "G2", "G3"] as const).map((grp) => (
                 <button
                   key={grp}
                   onClick={() => handleSetSelectedLabGroup(grp)}
                   style={selectedLabGroup === grp ? { color: isDarkMode ? "#002114" : "#ffffff" } : undefined}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-extrabold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-initial text-center justify-center px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                     selectedLabGroup === grp
                       ? "bg-[#00C896] dark:bg-emerald-400 shadow-sm"
                       : "text-on-surface-variant hover:text-on-surface"
@@ -893,7 +893,7 @@ export default function TimetablePage({
           </div>
 
           {/* Search Bar */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-full sm:max-w-md w-full">
             <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-on-surface-variant absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
