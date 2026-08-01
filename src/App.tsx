@@ -930,11 +930,15 @@ export default function App() {
 
       // ── Step 2: Asynchronous Supabase Persistence ─────────────────────────
       if (user) {
-        const { data: dateRows } = await supabase
+        const { data: dateRows, error: fetchErr } = await supabase
           .from("attendance")
           .select("*")
           .eq("user_id", user.id)
           .eq("date", dateStr);
+
+        if (fetchErr) {
+          console.error("Failed to fetch dateRows from Supabase:", fetchErr);
+        }
 
         const matchingRows = (dateRows || []).filter(r => {
           const rClean = (r.subject || "").replace(/\s*\([^)]+\)$/, "").trim();
@@ -944,44 +948,51 @@ export default function App() {
           return targetKeys.some(tk => rKeys.includes(tk));
         });
 
+        let writeErr: any = null;
+
         if (status === "clear") {
           if (matchingRows.length > 0) {
             const idsToDelete = matchingRows.map(r => r.id);
-            await supabase.from("attendance").delete().in("id", idsToDelete);
+            const { error: delErr } = await supabase.from("attendance").delete().in("id", idsToDelete);
+            writeErr = delErr;
           }
         } else {
           if (matchingRows.length > 0) {
             const primaryId = matchingRows[0].id;
-            await supabase
+            const { error: upErr } = await supabase
               .from("attendance")
-              .update({ status, subject: stdTargetName, updated_at: new Date().toISOString() })
+              .update({ status, subject: stdTargetName })
               .eq("id", primaryId);
+            writeErr = upErr;
 
             if (matchingRows.length > 1) {
               const duplicateIds = matchingRows.slice(1).map(r => r.id);
               await supabase.from("attendance").delete().in("id", duplicateIds);
             }
           } else {
-            await supabase.from("attendance").insert({
+            const { error: insErr } = await supabase.from("attendance").insert({
               user_id: user.id,
               subject: stdTargetName,
               date: dateStr,
               status: status,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
             });
+            writeErr = insErr;
           }
         }
 
-        // Fresh post-write fetch to ensure complete database parity
-        const { data: freshAtt } = await supabase
-          .from("attendance")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true });
+        if (writeErr) {
+          console.error("Supabase attendance write failed:", writeErr);
+          showToast(`Cloud save error: ${writeErr.message || "Failed"}`, "error");
+        } else {
+          // Fresh post-write fetch to ensure complete database parity
+          const { data: freshAtt } = await supabase
+            .from("attendance")
+            .select("*")
+            .eq("user_id", user.id);
 
-        if (freshAtt && freshAtt.length >= 0) {
-          syncAttendanceLogs(freshAtt);
+          if (freshAtt && freshAtt.length >= 0) {
+            syncAttendanceLogs(freshAtt);
+          }
         }
       }
     } catch (err) {
