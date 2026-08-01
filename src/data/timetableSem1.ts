@@ -56,17 +56,14 @@ export const TIMETABLE_SEM_1_DATA: TimetableSem1Data = {
       room: "PB-FF-04",
       timetable: {
         MON: {
-          "9-10": "TH-Computer Aided Engineering Graphics-2 ME105 [Prof. Kapil Kumar] [PB-FF-04]",
-          "10-11": "TH-Computer Aided Engineering Graphics-2 ME105 [Prof. Kapil Kumar] [PB-FF-04]",
-          "11-12": "TH-Mathematics-I AM101 [Dr. Mamta Rani] [PB-FF-04]",
-          "12-1": "TH-Mathematics-I AM101 [Dr. Mamta Rani] [PB-FF-04]",
+          "9-11": "TH-Computer Aided Engineering Graphics-2 ME105 [Prof. Kapil Kumar] [PB-FF-04]",
+          "11-1": "TH-Mathematics-I AM101 [Dr. Mamta Rani] [PB-FF-04]",
           "2-4": "Lab-Programming Fundamentals CO101-G1 [Dr. Anurag Goel] [AB4-B06] / Lab-Web Designing CS103-G2 [Mr. Ravikant Gupta] [AB3-716]",
           "4-6": "Lab-Basic Electronics & Communication Engineering EC101-G1 [CF Lab(PhD2)] / Lab-Basic Electronics & Communication Engineering EC101-G2 [EDC-I Lab(SK)] / Lab-Basic Electronics & Communication Engineering EC101-G3 [BE Lab(RK)]"
         },
         TUE: {
           "12-2": "Lab-Computer Aided Engineering Graphics-2 ME105-G1/G2/G3 [Prof. Kapil Kumar]",
-          "2-3": "TH-Basic Electronics & Communication Engineering EC101 [Prof. O. P. Verma] [PB-FF-04]",
-          "3-4": "TH-Basic Electronics & Communication Engineering EC101 [Prof. O. P. Verma] [PB-FF-04]"
+          "2-4": "TH-Basic Electronics & Communication Engineering EC101 [Prof. O. P. Verma] [PB-FF-04]",
         },
         WED: {
           "10-12": "TH-Programming Fundamentals CO101 [Dr. Anurag Goel] [PB-FF-04]",
