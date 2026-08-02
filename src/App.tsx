@@ -1527,6 +1527,7 @@ export default function App() {
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
 
+    const activeSec = isSem7 ? sem7SecData : secData;
     const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7)
       ? (activeSec?.timetable[targetDayId] || {})
       : {};
