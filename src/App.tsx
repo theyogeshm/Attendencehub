@@ -734,7 +734,7 @@ export default function App() {
       if (!row.date) continue;
 
       const stdLower = stdName.toLowerCase().trim();
-      const groupKey = `${row.date}::${stdLower}`;
+      const groupKey = (row.date && row.date < "2020-01-01") ? `manual_${row.id || Math.random()}` : `${row.date}::${stdLower}`;
 
       const slotMatch = rawName.match(/\(([^)]+)\)$/);
       const slotKey = slotMatch ? slotMatch[1].trim() : "default";
@@ -1061,23 +1061,33 @@ export default function App() {
           await supabase.from("attendance").delete().eq("id", latest[0].id);
         }
       } else if (deltaAttended > 0) {
-        // Manual Present addition — use manual_ timestamp so it does not alter today's dashboard status
+        // Manual Present addition — use valid past DATE string so it satisfies SQL DATE constraints while isolating from today's dashboard status
+        const y = 1970 + Math.floor(Math.random() * 30);
+        const m = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
+        const d = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
+        const pastDateStr = `${y}-${m}-${d}`;
+
         const { error: insertErr } = await supabase.from("attendance").insert({
           user_id: user.id,
           subject: stdName,
           status: "present",
-          date: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          date: pastDateStr,
         });
         if (insertErr) {
           console.error("Manual present insert error:", insertErr);
         }
       } else if (deltaTotal > 0 && deltaAttended === 0) {
-        // Manual Absent addition — use manual_ timestamp so it does not alter today's dashboard status
+        // Manual Absent addition — use valid past DATE string so it satisfies SQL DATE constraints while isolating from today's dashboard status
+        const y = 1970 + Math.floor(Math.random() * 30);
+        const m = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
+        const d = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
+        const pastDateStr = `${y}-${m}-${d}`;
+
         const { error: insertErr } = await supabase.from("attendance").insert({
           user_id: user.id,
           subject: stdName,
           status: "absent",
-          date: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          date: pastDateStr,
         });
         if (insertErr) {
           console.error("Manual absent insert error:", insertErr);
@@ -1258,7 +1268,7 @@ export default function App() {
     if (!u) return;
     const { data: attData } = await supabase
       .from("attendance")
-      .select("subject, status, date")
+      .select("id, subject, status, date")
       .eq("user_id", u.id);
     if (!attData) return;
 
