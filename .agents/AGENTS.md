@@ -22,3 +22,8 @@
 
 5. AMBIGUOUS/UNCLEAR DATA
    - If source data (scanned PDFs, handwritten notes, etc.) is unclear or ambiguous, mark it as "TBD" or "VERIFY" rather than guessing a plausible-sounding value. Never silently resolve ambiguity with a best guess presented as fact.
+
+6. ALWAYS COMMIT AFTER EVERY CHANGE
+   - After every code change (no matter how small), always run: git add <changed files>; git commit -m "<descriptive message>"; git push origin main
+   - Do this automatically — never wait to be asked. Committing is part of completing a task, not a separate step.
+   - Use PowerShell semicolon syntax (;) to chain git commands, never && which is not valid in PowerShell.
