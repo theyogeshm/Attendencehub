@@ -756,9 +756,9 @@ export default function TimetablePage({
 
 
   return (
-    <div className="space-y-3 sm:space-y-6 w-full min-w-0">
+    <div className="space-y-3 sm:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
       {/* ── HEADER & TITLE ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 glass-card p-3.5 sm:p-4 rounded-2xl border border-outline-variant/40 shadow-sm relative z-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 glass-card p-3.5 sm:p-4 rounded-2xl border border-outline-variant/40 shadow-sm relative z-20 overflow-hidden">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 space-y-0.5 sm:space-y-1 min-w-0 max-w-full">
@@ -768,7 +768,7 @@ export default function TimetablePage({
             </span>
           </div>
 
-          <h1 className="text-sm min-[360px]:text-base sm:text-2xl font-bold text-on-surface tracking-tight flex items-center gap-1.5 sm:gap-2 max-w-full min-w-0">
+          <h1 className="text-xs min-[360px]:text-sm sm:text-2xl font-bold text-on-surface tracking-tight flex items-center gap-1.5 sm:gap-2 max-w-full min-w-0">
             <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 text-primary shrink-0" />
             <span className="whitespace-nowrap truncate">Class Timetable — {sectionMeta.label}</span>
           </h1>
@@ -916,7 +916,7 @@ export default function TimetablePage({
 
         {/* Day Selector (Shown when viewMode === 'day') */}
         {viewMode === "day" && (
-          <div className="flex items-center w-full sm:w-auto justify-between gap-1 sm:gap-2 pb-0.5 max-w-full min-w-0">
+          <div className="grid grid-cols-5 gap-1 sm:gap-2 w-full max-w-full min-w-0 pb-0.5">
             {DAYS_OF_WEEK.map((day) => {
               const isSelected = activeDay === day.id;
               const isToday = defaultDayId === day.id;
@@ -925,7 +925,7 @@ export default function TimetablePage({
                 <button
                   key={day.id}
                   onClick={() => setActiveDay(day.id)}
-                  className={`flex-1 sm:flex-initial w-1/5 sm:w-auto text-center justify-center px-1 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 sm:gap-2 border shrink-0 ${
+                  className={`w-full text-center justify-center px-1 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-2 border ${
                     isSelected
                       ? "bg-primary/20 text-primary border-primary"
                       : "bg-surface-container/50 text-on-surface-variant border-outline-variant/30 hover:bg-surface-variant"
