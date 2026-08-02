@@ -2254,63 +2254,90 @@ export default function App() {
                                       return;
                                     }
                                     const stdName = getStandardizedSubjectName(sub.subjectName);
+                                    const subKeys = getNormalizedSubjectKeys(sub.subjectName);
 
-                                    // If already active, toggle/unmark it
-                                    if (isActive) {
-                                      const { error: delErr } = await supabase
+                                    try {
+                                      const { data: existingRows } = await supabase
                                         .from("attendance")
-                                        .delete()
+                                        .select("id, subject")
                                         .eq("user_id", user.id)
-                                        .eq("subject", stdName)
                                         .eq("date", attendanceLogDateStr);
 
-                                      if (delErr) {
-                                        console.error("Delete attendance log error:", delErr);
-                                        showToast("Failed to clear attendance record.", "error");
-                                      } else {
+                                      const existingMatch = existingRows?.find(r => {
+                                        const rKeys = getNormalizedSubjectKeys(r.subject ?? "");
+                                        return rKeys.some(rk => subKeys.includes(rk)) || (r.subject ?? "").toLowerCase().trim() === stdName.toLowerCase().trim();
+                                      });
+
+                                      if (isActive) {
+                                        if (existingMatch) {
+                                          const { error: delErr } = await supabase
+                                            .from("attendance")
+                                            .delete()
+                                            .eq("id", existingMatch.id);
+
+                                          if (delErr) {
+                                            console.error("Delete attendance log error:", delErr);
+                                            showToast("Failed to clear attendance record.", "error");
+                                            return;
+                                          }
+                                        } else {
+                                          await supabase
+                                            .from("attendance")
+                                            .delete()
+                                            .eq("user_id", user.id)
+                                            .eq("subject", stdName)
+                                            .eq("date", attendanceLogDateStr);
+                                        }
+
                                         setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: undefined } : item));
                                         await refreshAttendanceCounts(user);
                                         await fetchTodayAttendance(user, subjects);
                                         showToast("Record cleared");
+                                        return;
                                       }
-                                      return;
-                                    }
 
-                                    // Upsert into Supabase for (user_id, subject, date)
-                                    const { data: existing } = await supabase
-                                      .from("attendance")
-                                      .select("id")
-                                      .eq("user_id", user.id)
-                                      .eq("subject", stdName)
-                                      .eq("date", attendanceLogDateStr);
+                                      let saveErr = null;
+                                      if (existingMatch) {
+                                        const { error: uErr } = await supabase
+                                          .from("attendance")
+                                          .update({ status: s, updated_at: new Date().toISOString() })
+                                          .eq("id", existingMatch.id);
+                                        saveErr = uErr;
+                                      } else {
+                                        const { error: iErr } = await supabase
+                                          .from("attendance")
+                                          .insert({
+                                            user_id: user.id,
+                                            subject: stdName,
+                                            date: attendanceLogDateStr,
+                                            status: s,
+                                          });
 
-                                    let saveErr = null;
-                                    if (existing && existing.length > 0) {
-                                      const { error: uErr } = await supabase
-                                        .from("attendance")
-                                        .update({ status: s, updated_at: new Date().toISOString() })
-                                        .eq("id", existing[0].id);
-                                      saveErr = uErr;
-                                    } else {
-                                      const { error: iErr } = await supabase
-                                        .from("attendance")
-                                        .insert({
-                                          user_id: user.id,
-                                          subject: stdName,
-                                          date: attendanceLogDateStr,
-                                          status: s,
-                                        });
-                                      saveErr = iErr;
-                                    }
+                                        if (iErr && (iErr.code === "23505" || iErr.message?.includes("duplicate"))) {
+                                          const { error: retryErr } = await supabase
+                                            .from("attendance")
+                                            .update({ status: s, updated_at: new Date().toISOString() })
+                                            .eq("user_id", user.id)
+                                            .eq("subject", stdName)
+                                            .eq("date", attendanceLogDateStr);
+                                          saveErr = retryErr;
+                                        } else {
+                                          saveErr = iErr;
+                                        }
+                                      }
 
-                                    if (saveErr) {
-                                      console.error("Attendance log save error:", saveErr);
-                                      showToast("Failed to save attendance record.", "error");
-                                    } else {
-                                      setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: s } : item));
-                                      await refreshAttendanceCounts(user);
-                                      await fetchTodayAttendance(user, subjects);
-                                      showToast("Attendance updated");
+                                      if (saveErr) {
+                                        console.error("Attendance log save error:", saveErr);
+                                        showToast("Failed to save attendance record.", "error");
+                                      } else {
+                                        setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: s } : item));
+                                        await refreshAttendanceCounts(user);
+                                        await fetchTodayAttendance(user, subjects);
+                                        showToast("Attendance updated");
+                                      }
+                                    } catch (err) {
+                                      console.error("Attendance log exception:", err);
+                                      showToast("Failed to save attendance.", "error");
                                     }
                                   }}
                                   className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition-all ${
