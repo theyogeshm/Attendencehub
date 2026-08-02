@@ -165,8 +165,7 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
       "timetable": {
         "MON": {
           "10-12": "Lab-Digital Logic Design-G1 [ECE Department] / Lab-CS205 DAA-G2 [Dr N Anand] [Computer Network Lab] / Lab-Object Oriented Design CS203-A4/G3 [Dr Aditi Zear] [ML Lab]",
-          "12-1": "TH-CS209 SE [Dr. Ravin Ahuja] [AB4-303]",
-          "2-3": "TH-CS203 Oops [Dr. Aditi Zear]",
+          "12-1": "TH-CS209 SE [Dr Ravin Ahuja][AB4-303]",          "2-3": "TH-CS203 Oops [Dr. Aditi Zear]",
           "3-4": "TH-CS207 OS [Dr. Nipun Bansal]"
         },
         "TUE": {

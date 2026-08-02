@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // ── Read credentials from environment variables (never hardcode) ───────────
-// Set these in .env (local) or Vercel Environment Variables (production).
+// Set these in .env (local) or hosting environment variables (production).
 // See .env.example for the full list of required variables.
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
