@@ -628,8 +628,18 @@ function UnifiedSubjectCard(props: UnifiedSubjectCardProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <button 
+          {/* Manual count display: attended/total with % */}
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+              Manual Adjust
+            </span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isSafe ? (isDarkMode ? "bg-primary/20 text-primary" : "bg-[#D1FAE5] text-[#065F46]") : (isDarkMode ? "bg-error/20 text-error" : "bg-[#FEE2E2] text-[#991B1B]")}`}>
+              {currentAttended}/{currentTotal} · {attendanceRate.toFixed(0)}% · {isSafe ? "Safe" : "Danger"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* + button: adds 1 to attended AND total (forgot to mark on dashboard) */}
+            <button
               onClick={() => {
                 if (mergeAttendance) {
                   allComponents.forEach(c => onUpdateSubjectHours(c.id, c.attendanceCount + 1, c.totalClasses + 1));
@@ -637,44 +647,32 @@ function UnifiedSubjectCard(props: UnifiedSubjectCardProps) {
                   onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount + 1, activeSub.totalClasses + 1);
                 }
               }}
-              className="py-2 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
-              title="Mark Present (+1 Attended, +1 Total)"
+              className="py-2.5 px-3 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-base shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
+              title="Add class attended (+1 Attended, +1 Total) — for when you forgot to mark on dashboard"
             >
-              <span>Present</span>
+              <span>+</span>
             </button>
-            <button 
-              onClick={() => {
-                if (mergeAttendance) {
-                  allComponents.forEach(c => onUpdateSubjectHours(c.id, c.attendanceCount, c.totalClasses + 1));
-                } else {
-                  onUpdateSubjectHours(activeSub.id, activeSub.attendanceCount, activeSub.totalClasses + 1);
-                }
-              }}
-              className="py-2 px-3 rounded-full bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold text-xs shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer"
-              title="Mark Absent (+1 Missed, +1 Total)"
-            >
-              <span>Absent</span>
-            </button>
-            <button 
+            {/* - button: removes 1 from attended only, total unchanged (correction) */}
+            <button
               onClick={() => {
                 if (mergeAttendance) {
                   allComponents.forEach(c => {
-                    if (c.totalClasses > 0) {
-                      onUpdateSubjectHours(c.id, Math.max(0, c.attendanceCount - 1), Math.max(0, c.totalClasses - 1));
+                    if (c.attendanceCount > 0) {
+                      onUpdateSubjectHours(c.id, Math.max(0, c.attendanceCount - 1), c.totalClasses);
                     }
                   });
-                } else if (activeSub.totalClasses > 0) {
-                  onUpdateSubjectHours(activeSub.id, Math.max(0, activeSub.attendanceCount - 1), Math.max(0, activeSub.totalClasses - 1));
+                } else if (activeSub.attendanceCount > 0) {
+                  onUpdateSubjectHours(activeSub.id, Math.max(0, activeSub.attendanceCount - 1), activeSub.totalClasses);
                 }
               }}
-              className={`py-2 px-3 rounded-full font-bold text-xs shadow-md transition-all duration-150 flex items-center justify-center gap-1 ${
-                currentTotal > 0
-                  ? "bg-[#64748b] hover:bg-[#475569] text-white hover:shadow-lg active:scale-95 cursor-pointer"
-                  : "bg-[#475569] text-white/90 cursor-not-allowed opacity-90"
+              className={`py-2.5 px-3 rounded-full font-black text-base shadow-md transition-all duration-150 flex items-center justify-center gap-1 ${
+                currentAttended > 0
+                  ? "bg-[#ef4444] hover:bg-[#dc2626] text-white hover:shadow-lg active:scale-95 cursor-pointer"
+                  : "bg-[#dc2626]/50 text-white/60 cursor-not-allowed opacity-70"
               }`}
-              title="Undo last mark"
+              title="Correct attended count (-1 Attended, total unchanged) — for fixing a wrong mark"
             >
-              <span>Undo</span>
+              <span>−</span>
             </button>
           </div>
         </div>
