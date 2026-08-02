@@ -162,13 +162,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               .trim();
             const rStd = getStandardizedBaseName(rRawBase);
 
-            return (
-              rStd.toLowerCase() === decStd.toLowerCase() ||
-              rStd.toLowerCase() === decodedName.toLowerCase() ||
-              rRawBase.toLowerCase() === decodedName.toLowerCase() ||
-              rRawBase.toLowerCase().includes(decodedName.toLowerCase()) ||
-              decodedName.toLowerCase().includes(rRawBase.toLowerCase())
-            );
+            return rRawBase.length > 0 &&
+              rStd.toLowerCase() === decStd.toLowerCase();
           });
 
           if (matchingRows.length > 0) {

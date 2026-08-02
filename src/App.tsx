@@ -154,10 +154,11 @@ export default function App() {
   const [editProfile, setEditProfile] = useState<StudentProfile>(profile);
 
   // ── Selected Lab Group (G1 / G2 / G3 / All) ──────────────────────────────
-  const [selectedLabGroup, setSelectedLabGroup] = useState<"All" | "G1" | "G2" | "G3">(() => {
-    return (localStorage.getItem("dtu_selected_lab_group") as any) || "All";
+  const LAB_GROUPS = ["All", "G1", "G2", "G3"] as const;
+  const [selectedLabGroup, setSelectedLabGroup] = useState<(typeof LAB_GROUPS)[number]>(() => {
+    const saved = localStorage.getItem("dtu_selected_lab_group");
+    return LAB_GROUPS.includes(saved as any) ? (saved as (typeof LAB_GROUPS)[number]) : "All";
   });
-
   useEffect(() => {
     localStorage.setItem("dtu_selected_lab_group", selectedLabGroup);
   }, [selectedLabGroup]);
@@ -743,12 +744,14 @@ export default function App() {
         mapByDateAndSub.set(groupKey, new Map());
       }
 
-      const subMap = mapByDateAndSub.get(groupKey)!;
       // If a slotted row is present, purge any un-slotted default fallback row for the same subject & date
-      if (slotKey !== "default" && subMap.has("default")) {
+      if (slotKey === "default" && [...subMap.keys()].some(k => k !== "default")) {
+        continue;
+      }
+      if (slotKey !== "default") {
         subMap.delete("default");
       }
-      subMap.set(slotKey, { subject: stdName, status: row.status });
+      subMap.set(slotKey, { subject: stdName, status: row.status });      subMap.set(slotKey, { subject: stdName, status: row.status });
     }
 
     mapByDateAndSub.forEach(subMap => {
@@ -1603,24 +1606,10 @@ export default function App() {
           }
         }
 
-        // 3. Fallback matching
-        if (!matched) {
-          matched = subjects.find(s => s.name.toLowerCase().trim().includes(baseLower));
-        }
-
         if (matched) {
-          // Always show the component-qualified name (Theory/Lab/Tutorial) so there are no ambiguous plain cards
           const displayType = parsed.isLab ? "LAB" : (parsed.isTutorial ? "TUT" : "LEC");
-          const baseNameClean = (matched.name || parsed.splitSubjectName).replace(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i, "").trim();
-          const displayName = parsed.isTutorial
-            ? `${baseNameClean} - Tutorial`
-            : parsed.isLab
-            ? `${baseNameClean} - Lab`
-            : `${baseNameClean} - Theory`;
-
           dayList.push({
             ...matched,
-            name: displayName,
             rawSubjectId: matched.id,
             time: `${cleanSlot} (${parsed.room || activeSec?.room || ""})`,
             prof: parsed.faculty || matched.prof,
@@ -2252,39 +2241,95 @@ export default function App() {
                               <p className="text-[10px] text-on-surface-variant mt-0.5 opacity-60">Not marked yet</p>
                             )}
                           </div>
-                          <div className="flex gap-1 items-center flex-shrink-0">
-                            {!marked ? (
-                              <>
-                                {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => (
-                                  <button
-                                    key={s}
-                                    onClick={async () => {
-                                      if (!attendanceLogDateStr) return;
-                                      await handleMarkAttendance(sub.subjectId, s, attendanceLogDateStr);
-                                      await fetchLogForDate(attendanceLogDateStr);
-                                      loadUserData(user!);
-                                    }}
-                                    className={`text-[9px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition-all ${
-                                      s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary hover:text-[#002114]"
-                                      : s === "absent" ? "border-error/30 text-error bg-[#131b2e] hover:bg-error hover:text-white"
-                                      : s === "miss"   ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500 hover:text-black"
-                                      :                  "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500 hover:text-white"
-                                    }`}
-                                    title={`Mark ${s}`}
-                                  >
-                                    {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
-                                  </button>
-                                ))}
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => setConfirmDeleteLog({ subjectName: sub.subjectName })}
-                                className="text-[10px] font-bold border border-error/50 text-error px-2 py-1 bg-error/10 rounded-lg cursor-pointer hover:bg-error hover:text-white transition-all flex items-center gap-1"
-                                title="Delete this record for this date"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                          <div className="flex gap-1.5 items-center flex-shrink-0">
+                            {(["present", "absent", "miss", "leave"] as AttendanceStatus[]).map(s => {
+                              const isActive = sub.status === s;
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={async () => {
+                                    if (!attendanceLogDateStr) return;
+                                    if (!user) {
+                                      showToast("Please log in to save attendance.", "error");
+                                      return;
+                                    }
+                                    const stdName = getStandardizedSubjectName(sub.subjectName);
+
+                                    // If already active, toggle/unmark it
+                                    if (isActive) {
+                                      const { error: delErr } = await supabase
+                                        .from("attendance")
+                                        .delete()
+                                        .eq("user_id", user.id)
+                                        .eq("subject", stdName)
+                                        .eq("date", attendanceLogDateStr);
+
+                                      if (delErr) {
+                                        console.error("Delete attendance log error:", delErr);
+                                        showToast("Failed to clear attendance record.", "error");
+                                      } else {
+                                        setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: undefined } : item));
+                                        await refreshAttendanceCounts(user);
+                                        await fetchTodayAttendance(user, subjects);
+                                        showToast("Record cleared");
+                                      }
+                                      return;
+                                    }
+
+                                    // Upsert into Supabase for (user_id, subject, date)
+                                    const { data: existing } = await supabase
+                                      .from("attendance")
+                                      .select("id")
+                                      .eq("user_id", user.id)
+                                      .eq("subject", stdName)
+                                      .eq("date", attendanceLogDateStr);
+
+                                    let saveErr = null;
+                                    if (existing && existing.length > 0) {
+                                      const { error: uErr } = await supabase
+                                        .from("attendance")
+                                        .update({ status: s, updated_at: new Date().toISOString() })
+                                        .eq("id", existing[0].id);
+                                      saveErr = uErr;
+                                    } else {
+                                      const { error: iErr } = await supabase
+                                        .from("attendance")
+                                        .insert({
+                                          user_id: user.id,
+                                          subject: stdName,
+                                          date: attendanceLogDateStr,
+                                          status: s,
+                                        });
+                                      saveErr = iErr;
+                                    }
+
+                                    if (saveErr) {
+                                      console.error("Attendance log save error:", saveErr);
+                                      showToast("Failed to save attendance record.", "error");
+                                    } else {
+                                      setLogSubjects(prev => prev.map(item => item.subjectId === sub.subjectId ? { ...item, status: s } : item));
+                                      await refreshAttendanceCounts(user);
+                                      await fetchTodayAttendance(user, subjects);
+                                      showToast("Attendance updated");
+                                    }
+                                  }}
+                                  className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer transition-all ${
+                                    isActive
+                                      ? s === "present" ? "border-primary text-[#002114] bg-primary font-black shadow-md scale-105"
+                                        : s === "absent"  ? "border-error text-white bg-error font-black shadow-md scale-105"
+                                        : s === "miss"    ? "border-yellow-400 text-black bg-yellow-400 font-black shadow-md scale-105"
+                                        :                   "border-blue-500 text-white bg-blue-500 font-black shadow-md scale-105"
+                                      : s === "present" ? "border-primary/30 text-primary bg-[#131b2e] hover:bg-primary/20"
+                                        : s === "absent"  ? "border-error/30 text-error bg-[#131b2e] hover:bg-error/20"
+                                        : s === "miss"    ? "border-yellow-500/30 text-yellow-400 bg-[#131b2e] hover:bg-yellow-500/20"
+                                        :                   "border-blue-400/30 text-blue-400 bg-[#131b2e] hover:bg-blue-500/20"
+                                  }`}
+                                  title={`Mark ${s}`}
+                                >
+                                  {s === "present" ? "P" : s === "absent" ? "A" : s === "miss" ? "M" : "L"}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
