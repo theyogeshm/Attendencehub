@@ -316,19 +316,48 @@ export default function TimetablePage({
     ? TIMETABLE_SEM_5_DATA
     : TIMETABLE_SEM_3_DATA;
 
-  // Section selection - defaults to user's section
-  const [selectedSection, setSelectedSection] = useState<string>(() => {
-    const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
-    if (saved && (currentTimetableData?.sections as any)?.[saved]) return saved;
-    const normalizedUserSection = (userSection || "").toUpperCase().trim();
-    const formattedSec = selectedSemester === 1
-      ? (normalizedUserSection.startsWith("A0") ? normalizedUserSection : `A0${normalizedUserSection.replace(/\D+/g, "") || "1"}`)
-      : selectedSemester === 7
-      ? (normalizedUserSection || "E7")
-      : (normalizedUserSection.startsWith("A") ? normalizedUserSection : `A${normalizedUserSection}`);
-    const match = currentSectionOptions?.find((s) => s.id === formattedSec || s.id === normalizedUserSection);
-    return match ? match.id : (currentSectionOptions?.[0]?.id || (selectedSemester === 1 ? "A01" : selectedSemester === 7 ? "E7" : "A1"));
-  });
+  // Section selection - strictly defaults to user's section from profile
+  const computeDefaultSection = useMemo(() => {
+    const raw = (userSection || "").toUpperCase().trim();
+    if (!raw) return currentSectionOptions[0]?.id || "A1";
+
+    const numOnly = raw.replace(/\D+/g, "");
+    let formattedSec = raw;
+    if (selectedSemester === 1) {
+      if (numOnly) {
+        const num = parseInt(numOnly, 10);
+        formattedSec = num < 10 ? `A0${num}` : `A${num}`;
+      } else if (!raw.startsWith("A0")) {
+        formattedSec = `A0${raw.replace(/^A/, "")}`;
+      }
+    } else if (selectedSemester === 7) {
+      if (numOnly && !raw.startsWith("E")) {
+        formattedSec = `E${numOnly}`;
+      }
+    } else {
+      if (numOnly && !raw.startsWith("A")) {
+        formattedSec = `A${numOnly}`;
+      }
+    }
+
+    const match = currentSectionOptions.find(
+      (s) =>
+        s.id.toUpperCase() === formattedSec.toUpperCase() ||
+        s.id.toUpperCase() === raw.toUpperCase() ||
+        (numOnly && s.id.replace(/\D+/g, "") === numOnly)
+    );
+    return match ? match.id : (currentSectionOptions[0]?.id || "A1");
+  }, [userSection, selectedSemester, currentSectionOptions]);
+
+  const [selectedSection, setSelectedSection] = useState<string>(computeDefaultSection);
+  const [hasManuallySwitched, setHasManuallySwitched] = useState<boolean>(false);
+
+  // Sync selectedSection with user's profile section whenever userSection or semester updates
+  useEffect(() => {
+    if (!hasManuallySwitched) {
+      setSelectedSection(computeDefaultSection);
+    }
+  }, [computeDefaultSection, hasManuallySwitched]);
 
   const [activeDay, setActiveDay] = useState<string>(defaultDayId);
   const [viewMode, setViewMode] = useState<"day" | "week">("week");
@@ -758,8 +787,10 @@ export default function TimetablePage({
   return (
     <div className="space-y-3 sm:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
       {/* ── HEADER & TITLE ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 glass-card p-3.5 sm:p-4 rounded-2xl border border-outline-variant/40 shadow-sm relative z-20 overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 glass-card p-3.5 sm:p-4 rounded-2xl border border-outline-variant/40 shadow-sm relative z-20">
+        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+        </div>
 
         <div className="relative z-10 space-y-0.5 sm:space-y-1 min-w-0 max-w-full">
           <div className="flex items-center gap-2">
@@ -799,7 +830,10 @@ export default function TimetablePage({
                 label: sec.label,
                 badge: (sec as any).room || sectionData.room,
               }))}
-              onChange={(val) => setSelectedSection(val)}
+              onChange={(val) => {
+                setSelectedSection(val);
+                setHasManuallySwitched(true);
+              }}
               isDarkMode={isDarkMode}
             />
           </div>

@@ -68,6 +68,8 @@ This document lists all existing features in the project along with their status
 - [x] Lab Group Filter (All, G1, G2, G3) (working)
 - [x] Timetable Search bar (filtering by subject, code, teacher, room) (working)
 - [x] Real-time Supabase custom admin timetable overrides subscription (`timetable` table) (working)
+- [x] Mobile-friendly Section Switcher dropdown with touch event optimization (`CustomSelect.tsx`) (working)
+- [x] Automatic user profile section timetable default selection (`TimetablePage.tsx`) (working)
 
 ## Academic Resources (`ResourcesPage.tsx` & `SubjectResourcesPage.tsx`)
 - [x] Subject Resources Grid with search filtering (working)
