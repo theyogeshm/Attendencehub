@@ -1041,29 +1041,8 @@ export default function App() {
       const todayStr = getTodayDateStr();
       const stdName = getStandardizedSubjectName(targetSub.name);
 
-      if (deltaAttended < 0 && deltaTotal === 0) {
-        // CORRECTION: remove 1 from attended only (total stays same).
-        // Delete the latest "present" record for this subject.
-        const { data: latest } = await supabase
-          .from("attendance")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("subject", stdName)
-          .eq("status", "present")
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (latest && latest.length > 0) {
-          const { error: delErr } = await supabase
-            .from("attendance")
-            .delete()
-            .eq("id", latest[0].id);
-          if (delErr) {
-            showToast("Failed to save correction. Please try again.", "error");
-          }
-        }
-      } else if (deltaTotal < 0 || deltaAttended < 0) {
-        // UNDO: delete latest record regardless of status
+      if (deltaTotal < 0 || deltaAttended < 0) {
+        // UNDO operation: delete latest attendance record for this subject
         const { data: latest } = await supabase
           .from("attendance")
           .select("id")
