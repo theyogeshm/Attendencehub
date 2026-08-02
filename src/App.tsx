@@ -990,6 +990,7 @@ export default function App() {
             subject: targetSubjectName,
             date: dateStr,
             status: status,
+            semester: profile.semester,
           });
 
         if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
@@ -1073,6 +1074,7 @@ export default function App() {
           subject: stdName,
           status: "present",
           date: pastDateStr,
+          semester: profile.semester,
         });
         if (insertErr) {
           console.error("Manual present insert error:", insertErr);
@@ -1089,6 +1091,7 @@ export default function App() {
           subject: stdName,
           status: "absent",
           date: pastDateStr,
+          semester: profile.semester,
         });
         if (insertErr) {
           console.error("Manual absent insert error:", insertErr);
@@ -1267,13 +1270,19 @@ export default function App() {
   //    aggregate counts WITHOUT touching todayAttendance (so button highlights stay) ─
   const refreshAttendanceCounts = async (u: User) => {
     if (!u) return;
+    const currentSemNum = parseSemesterNumber(profile.semester);
     const { data: attData } = await supabase
       .from("attendance")
-      .select("id, subject, status, date")
+      .select("id, subject, status, date, semester")
       .eq("user_id", u.id);
     if (!attData) return;
 
-    const agg = buildAttendanceAggregates(attData);
+    const semFiltered = attData.filter(r => {
+      if (!r.semester) return true; // legacy un-tagged rows
+      return parseSemesterNumber(r.semester) === currentSemNum;
+    });
+
+    const agg = buildAttendanceAggregates(semFiltered);
 
     const getType = (name: string): string | null => {
       const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
@@ -1296,9 +1305,10 @@ export default function App() {
   const fetchTodayAttendance = async (u: User, subjectsList: Subject[] = subjects) => {
     if (!u) return;
     const todayStr = getTodayDateStr();
+    const currentSemNum = parseSemesterNumber(profile.semester);
     const { data, error } = await supabase
       .from("attendance")
-      .select("subject, status")
+      .select("subject, status, semester")
       .eq("user_id", u.id)
       .eq("date", todayStr);
 
@@ -1306,6 +1316,8 @@ export default function App() {
       console.error("Error fetching today attendance from Supabase:", error);
       return;
     }
+
+    const filteredData = (data ?? []).filter(r => !r.semester || parseSemesterNumber(r.semester) === currentSemNum);
 
     // Helper: extract the component type (theory/lab/tutorial/null)
     const getType = (name: string): string | null => {
@@ -1323,8 +1335,8 @@ export default function App() {
     };
 
     const map: Record<string, AttendanceStatus> = {};
-    if (data) {
-      data.forEach(row => {
+    if (filteredData) {
+      filteredData.forEach(row => {
         const rowSubName = (row.subject ?? "").trim();
         if (!rowSubName || !row.status) return;
         const rowType = getType(rowSubName);
@@ -1360,6 +1372,7 @@ export default function App() {
   const fetchLogForDate = async (dateStr: string) => {
     if (!user) return;
     setLogLoading(true);
+    const currentSemNum = parseSemesterNumber(profile.semester);
 
     const { data, error } = await supabase
       .from("attendance")
@@ -1370,7 +1383,7 @@ export default function App() {
     if (error) {
 
     } else {
-      const fetched = data ?? [];
+      const fetched = (data ?? []).filter(r => !r.semester || parseSemesterNumber(r.semester) === currentSemNum);
       const targetSubjects = getScheduledSubjectsForDate(dateStr);
 
       const entries: LogEntry[] = targetSubjects.map(sub => {
@@ -1514,10 +1527,8 @@ export default function App() {
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
       : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
 
-    const activeSec = isSem7 ? sem7SecData : secData;
-    const effectiveDayId = (targetDayId === "SAT" || targetDayId === "SUN") ? "MON" : targetDayId;
     const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7)
-      ? (activeSec?.timetable[targetDayId] || activeSec?.timetable[effectiveDayId] || {})
+      ? (activeSec?.timetable[targetDayId] || {})
       : {};
 
     const dayList: (Subject & { timeOrder?: number; rawSubjectId?: string })[] = [];
