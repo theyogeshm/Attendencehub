@@ -21,6 +21,7 @@ import {
   Layers,
   ChevronDown,
   Check,
+  X,
 } from "lucide-react";
 import { Subject } from "../types";
 import { parseSemesterNumber } from "../data";
