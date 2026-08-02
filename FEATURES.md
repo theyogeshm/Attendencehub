@@ -65,7 +65,7 @@ This document lists all existing features in the project along with their status
 - [x] Semester 7 official timetable grid (`timetableSem7.ts`) (working)
 - [ ] Semesters 2, 4, 6, 8 official timetables (broken/incomplete — awaiting official release)
 - [x] View Mode Switcher: Full Week Grid vs Day-by-Day View (working)
-- [x] Lab Group Filter (All, G1, G2, G3) (working)
+- [x] Lab Group Filter (All, G1, G2, G3 — strictly showing only selected group's lab classes) (working)
 - [x] Timetable Search bar (filtering by subject, code, teacher, room) (working)
 - [x] Real-time Supabase custom admin timetable overrides subscription (`timetable` table) (working)
 - [x] Mobile-friendly Section Switcher dropdown with touch event optimization (`CustomSelect.tsx`) (working)

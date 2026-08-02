@@ -576,6 +576,25 @@ export default function TimetablePage({
     );
   };
 
+  const isSlotMatchingGroup = (rawText: string) => {
+    if (!rawText) return false;
+    if (selectedLabGroup === "All") return true;
+
+    if (rawText.includes(" / ")) {
+      const parts = rawText.split(" / ");
+      return parts.some((part) => {
+        const parsed = parseTimetableEntry(part, sectionData.room);
+        return parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup);
+      });
+    }
+
+    const parsed = parseTimetableEntry(rawText, sectionData.room);
+    if (!parsed.group) {
+      return true;
+    }
+    return parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup);
+  };
+
   // Render combined lab session formatting
   const renderSlotContent = (rawText: string) => {
     if (!rawText) return null;
@@ -583,6 +602,15 @@ export default function TimetablePage({
 
     if (isCombinedLab) {
       const parts = rawText.split(" / ");
+      const displayParts = selectedLabGroup === "All"
+        ? parts
+        : parts.filter((part) => {
+            const parsed = parseTimetableEntry(part, sectionData.room);
+            return parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup);
+          });
+
+      if (displayParts.length === 0) return null;
+
       return (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
@@ -590,7 +618,7 @@ export default function TimetablePage({
               style={isDarkMode ? undefined : { backgroundColor: "#00C896", color: "#ffffff" }}
               className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shadow-sm dark:bg-emerald-500/15 dark:text-emerald-400 dark:border dark:border-emerald-500/30"
             >
-              Combined Lab Session ({parts.length} Groups)
+              {selectedLabGroup === "All" ? `Combined Lab Session (${parts.length} Groups)` : `Lab Session (${selectedLabGroup})`}
             </span>
             {selectedLabGroup !== "All" && (
               <span className="text-[9px] font-bold text-emerald-400 font-mono">
@@ -599,7 +627,7 @@ export default function TimetablePage({
             )}
           </div>
           <div className="space-y-1.5">
-            {parts.map((part, idx) => {
+            {displayParts.map((part, idx) => {
               const parsed = parseTimetableEntry(part, sectionData.room);
               const isUserGrpMatch =
                 selectedLabGroup !== "All" &&
@@ -658,6 +686,9 @@ export default function TimetablePage({
     }
 
     const parsed = parseTimetableEntry(rawText, sectionData.room);
+    if (selectedLabGroup !== "All" && parsed.group && parsed.group !== selectedLabGroup) {
+      return null;
+    }
     const isUserGrpMatch =
       selectedLabGroup !== "All" &&
       (parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup));
@@ -1000,6 +1031,7 @@ export default function TimetablePage({
 
             const filteredSlots = slots.filter(([timeSlotKey, rawVal]) => {
               const rawText = getSlotRawText(rawVal, activeDay, timeSlotKey);
+              if (!isSlotMatchingGroup(rawText)) return false;
               if (!searchQuery) return true;
               return rawText.toLowerCase().includes(searchQuery.toLowerCase());
             });
@@ -1062,6 +1094,7 @@ export default function TimetablePage({
 
               const filtered = slotsArray.filter(([timeSlotKey, rawVal]) => {
                 const rawText = getSlotRawText(rawVal, day.id, timeSlotKey);
+                if (!isSlotMatchingGroup(rawText)) return false;
                 if (!searchQuery) return true;
                 return rawText.toLowerCase().includes(searchQuery.toLowerCase());
               });
