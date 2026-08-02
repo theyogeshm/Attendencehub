@@ -98,7 +98,6 @@ export default function CustomSelect({
                 type="button"
                 key={opt.value}
                 onClick={handleSelect}
-                onTouchEnd={handleSelect}
                 className={`w-full text-left px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm cursor-pointer transition-all flex items-center justify-between gap-2 mb-0.5 outline-none ${
                   isSelected
                     ? isDarkMode
