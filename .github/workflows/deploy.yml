@@ -1,21 +1,15 @@
-# ── DTU Hub — GitHub Pages + Vercel Deploy ─────────────────────────────────
+# ── DTU Hub — GitHub Pages Deploy ─────────────────────────────────────────────
 # Triggered on every push to main.
-# Builds the Vite app with production env vars from GitHub Secrets,
-# deploys the dist/ folder to the gh-pages branch (GitHub Pages),
-# AND triggers a Vercel production deployment if VERCEL_TOKEN is set.
+# Builds the Vite app with production env vars from GitHub Secrets/Variables,
+# and deploys the dist/ folder to the gh-pages branch (GitHub Pages).
 #
-# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+# Required GitHub Secrets / Variables (Settings → Secrets and variables → Actions):
 #   VITE_SUPABASE_URL      — your Supabase project URL
 #   VITE_SUPABASE_ANON_KEY — your Supabase anon/public key
 #   VITE_ADMIN_EMAIL       — admin Google account email
 #   VITE_APP_URL           — https://www.attendancehub.me
-#
-# Optional (for Vercel deployment — get from Vercel dashboard):
-#   VERCEL_TOKEN           — Vercel personal access token
-#   VERCEL_ORG_ID          — Vercel team/org ID (from .vercel/project.json)
-#   VERCEL_PROJECT_ID      — Vercel project ID (from .vercel/project.json)
 
-name: Deploy to GitHub Pages + Vercel
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -63,14 +57,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           force_orphan: true    # keep gh-pages branch clean (no history bloat)
-
-      # 6. Deploy to Vercel (production) — only runs if VERCEL_TOKEN secret is set
-      - name: Deploy to Vercel
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: ./
