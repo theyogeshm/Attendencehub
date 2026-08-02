@@ -46,6 +46,7 @@ This document lists all existing features in the project along with their status
 - [x] Component Filter Tabs (All, Theory, Lab, Tutorial) (working)
 - [x] Unified Subject Cards grouping Theory, Lab, and Tutorial components (working)
 - [x] Manual attendance adjustment buttons: Present (+1/+1), Absent (+0/+1), Undo (-1/-1), Extra (+1/+0) (working)
+- [x] Isolated manual attendance adjustments using unique timestamp identifiers separate from today's dashboard status (working)
 - [x] Detailed Subject Attendance History Modal (working)
 - [x] Bulk Attendance actions (Mark all present / absent for today) (working)
 
@@ -54,7 +55,7 @@ This document lists all existing features in the project along with their status
 - [x] P / A / M / L buttons to mark/unmark attendance for specific dates (working)
 - [x] Instant 0ms local status update and background Supabase sync (working)
 - [x] Record deletion for specific date entries (working)
-- [x] Synchronized real-time state across Dashboard, Attendance Page, Analytics, and Calendar (working)
+- [x] Synchronized real-time state across Dashboard, Attendance Page, Analytics, and Calendar (Dashboard tracks today's date attendance, Attendance Page tracks total count across all dates) (working)
 
 ## Timetable (`TimetablePage.tsx`)
 - [x] Semester 1 official timetable grid (`timetableSem1.ts`) (working)
