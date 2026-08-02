@@ -1,3 +1,15 @@
+## CRITICAL AGENT RULE - HIGHEST PRIORITY
+Before writing a SINGLE line of code:
+1. Open and read FEATURES.md completely
+2. Find every feature marked [x] that your change touches
+3. Your change must ONLY add - never remove existing behavior
+4. If fixing bug A accidentally removes feature B, fix B first
+5. After change, re-read FEATURES.md and verify every [x] 
+   still works exactly as before
+6. If any [x] feature breaks, revert and try again
+
+NO EXCEPTIONS. Even for small 1-line fixes.
+
 # DTU HUB / AttendanceHub — Feature Registry
 
 This document lists all existing features in the project along with their status.
