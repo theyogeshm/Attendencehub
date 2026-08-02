@@ -1061,23 +1061,30 @@ export default function App() {
           await supabase.from("attendance").delete().eq("id", latest[0].id);
         }
       } else if (deltaAttended > 0) {
-        // Manual Present addition
-        await supabase.from("attendance").insert({
+        // Manual Present addition — use manual_ timestamp so it does not alter today's dashboard status
+        const { error: insertErr } = await supabase.from("attendance").insert({
           user_id: user.id,
           subject: stdName,
           status: "present",
-          date: todayStr,
+          date: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         });
+        if (insertErr) {
+          console.error("Manual present insert error:", insertErr);
+        }
       } else if (deltaTotal > 0 && deltaAttended === 0) {
-        // Manual Absent addition
-        await supabase.from("attendance").insert({
+        // Manual Absent addition — use manual_ timestamp so it does not alter today's dashboard status
+        const { error: insertErr } = await supabase.from("attendance").insert({
           user_id: user.id,
           subject: stdName,
           status: "absent",
-          date: todayStr,
+          date: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         });
+        if (insertErr) {
+          console.error("Manual absent insert error:", insertErr);
+        }
       }
       await refreshAttendanceCounts(user);
+      await fetchTodayAttendance(user, subjects);
     }
     inFlightMarkRef.current.delete(lockKey);
   };
