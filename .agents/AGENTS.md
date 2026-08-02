@@ -27,3 +27,7 @@
    - After every code change (no matter how small), always run: git add <changed files>; git commit -m "<descriptive message>"; git push origin main
    - Do this automatically — never wait to be asked. Committing is part of completing a task, not a separate step.
    - Use PowerShell semicolon syntax (;) to chain git commands, never && which is not valid in PowerShell.
+
+7. BROWSER TESTING DISCIPLINE
+   - Never launch or open browser subagents/tools automatically on your own.
+   - Only use browser testing if the user explicitly requests you to open or test in the browser.
