@@ -1022,6 +1022,12 @@ export default function App() {
 
   // ── Attendance adjustment (from attendance page) ──────────────────────────
   const handleUpdateSubjectHours = async (id: string, attended: number, total: number) => {
+    // Prevent rapid double-clicks from inserting duplicate Supabase records
+    const lockKey = `adjust_${user?.id || 'guest'}_${id}`;
+    if (inFlightMarkRef.current.has(lockKey)) return;
+    inFlightMarkRef.current.add(lockKey);
+    setTimeout(() => { inFlightMarkRef.current.delete(lockKey); }, 1500);
+
     const newAttended = Math.max(0, attended);
     const newTotal    = Math.max(0, total);
 
@@ -1073,6 +1079,7 @@ export default function App() {
       }
       await refreshAttendanceCounts(user);
     }
+    inFlightMarkRef.current.delete(lockKey);
   };
 
   // ── Assignments CRUD ──────────────────────────────────────────────────────
