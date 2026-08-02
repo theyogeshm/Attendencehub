@@ -744,14 +744,12 @@ export default function App() {
         mapByDateAndSub.set(groupKey, new Map());
       }
 
+      const subMap = mapByDateAndSub.get(groupKey)!;
       // If a slotted row is present, purge any un-slotted default fallback row for the same subject & date
-      if (slotKey === "default" && [...subMap.keys()].some(k => k !== "default")) {
-        continue;
-      }
-      if (slotKey !== "default") {
+      if (slotKey !== "default" && subMap.has("default")) {
         subMap.delete("default");
       }
-      subMap.set(slotKey, { subject: stdName, status: row.status });      subMap.set(slotKey, { subject: stdName, status: row.status });
+      subMap.set(slotKey, { subject: stdName, status: row.status });
     }
 
     mapByDateAndSub.forEach(subMap => {
