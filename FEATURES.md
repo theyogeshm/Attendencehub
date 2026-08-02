@@ -52,7 +52,7 @@ This document lists all existing features in the project along with their status
 
 ## Calendar Attendance Log Modal
 - [x] Date-specific scheduled class list modal for past dates (working)
-- [x] P / A / M / L buttons to mark/unmark attendance for specific dates (working)
+- [x] P / A / M / L buttons to mark/unmark attendance for specific dates with direct Supabase upsert, status button highlights, error toasts, and subject count sync (working)
 - [x] Instant 0ms local status update and background Supabase sync (working)
 - [x] Record deletion for specific date entries (working)
 - [x] Synchronized real-time state across Dashboard, Attendance Page, Analytics, and Calendar (Dashboard tracks today's date attendance, Attendance Page tracks total count across all dates) (working)
