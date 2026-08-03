@@ -327,11 +327,11 @@ export default function App() {
 
       if (pData) {
         const freshProfile: StudentProfile = {
-          name:     pData.full_name  || u.user_metadata?.full_name || "Student",
-          rollNo:   pData.roll_no    || "2K24/---/---",
-          branch:   pData.branch     || "Computer Science & Engineering",
-          semester: pData.semester   || "2nd Semester",
-          section:  pData.section    || "1",
+          name:     pData.full_name  || u.user_metadata?.full_name || profile.name || "Student",
+          rollNo:   pData.roll_no    || profile.rollNo   || "2K24/CSE/01",
+          branch:   pData.branch     || profile.branch   || "Computer Science & Engineering",
+          semester: pData.semester   || profile.semester || "3rd Semester",
+          section:  pData.section    || profile.section  || "A7",
         };
         setProfile(freshProfile);
 
@@ -1173,6 +1173,15 @@ export default function App() {
 
     setProfile(safeEditProfile);
     setIsEditingProfile(false);
+    try {
+      localStorage.setItem("ATTENDANCE_HUB_PROFILE", JSON.stringify(safeEditProfile));
+      const raw = localStorage.getItem(SESSION_CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        cached.profile = safeEditProfile;
+        localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(cached));
+      }
+    } catch { /* ignore */ }
 
     let newSubjectsList: string[] | null = null;
 

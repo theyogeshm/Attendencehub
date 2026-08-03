@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Calendar,
   Clock,
@@ -349,65 +349,44 @@ export default function TimetablePage({
     return match ? match.id : (currentSectionOptions[0]?.id || "A1");
   }, [userSection, selectedSemester, currentSectionOptions]);
 
-  const [selectedSection, setSelectedSection] = useState<string>(computeDefaultSection);
-  const [hasManuallySwitched, setHasManuallySwitched] = useState<boolean>(false);
-
-  // Sync selectedSection with user's profile section whenever userSection or semester updates
-  useEffect(() => {
-    if (!hasManuallySwitched) {
-      setSelectedSection(computeDefaultSection);
-    }
-  }, [computeDefaultSection, hasManuallySwitched]);
-
-  const [activeDay, setActiveDay] = useState<string>(defaultDayId);
-  const [viewMode, setViewMode] = useState<"day" | "week">("week");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "lecture" | "lab" | "tutorial">("all");
-  const [showElectivePanel, setShowElectivePanel] = useState(false);
-
-  // Elective Overrides for Sem 5 (E1 - E6)
-  const [electiveOverrides, setElectiveOverrides] = useState<Record<string, string>>(() => {
+  // Check if user has explicitly manually selected a section for this semester
+  const getManualSection = useCallback(() => {
     try {
-      const saved = localStorage.getItem("dtu_sem5_elective_overrides");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
+      const saved = localStorage.getItem(`dtu_manual_section_sem${selectedSemester}`);
+      if (saved && currentSectionOptions.some(s => s.id === saved)) {
+        return saved;
+      }
+    } catch { /* ignore */ }
+    return null;
+  }, [selectedSemester, currentSectionOptions]);
+
+  const [selectedSection, setSelectedSection] = useState<string>(() => {
+    return getManualSection() || computeDefaultSection;
   });
 
-  const updateElectiveOverride = (slotKey: string, decSubject: string) => {
-    const next = { ...electiveOverrides, [slotKey]: decSubject };
-    setElectiveOverrides(next);
-    localStorage.setItem("dtu_sem5_elective_overrides", JSON.stringify(next));
-  };
+  const [hasManuallySwitched, setHasManuallySwitched] = useState<boolean>(() => {
+    return !!getManualSection();
+  });
 
-  const handleSaveElectiveOverrides = (overrides: Record<string, string>) => {
-    setElectiveOverrides(overrides);
-    localStorage.setItem("dtu_elective_overrides", JSON.stringify(overrides));
-  };
-
-  // Sync section when sem changes
+  // Sync selectedSection whenever userSection, selectedSemester, or computeDefaultSection changes
   useEffect(() => {
-    const saved = localStorage.getItem(`dtu_timetable_section_sem${selectedSemester}`);
-    if (saved && (currentTimetableData?.sections as any)?.[saved]) {
-      setSelectedSection(saved);
+    const manual = getManualSection();
+    if (manual) {
+      setSelectedSection(manual);
+      setHasManuallySwitched(true);
     } else {
-      const uSec = (userSection || "").toLowerCase();
-      const match = currentSectionOptions?.find(
-        (s) => s.id.toLowerCase() === uSec || s.label.toLowerCase().includes(uSec)
-      );
-      if (match) {
-        setSelectedSection(match.id);
-      } else {
-        setSelectedSection(currentSectionOptions?.[0]?.id || "A1");
-      }
+      setSelectedSection(computeDefaultSection);
+      setHasManuallySwitched(false);
     }
-  }, [userSection, selectedSemester]);
+  }, [userSection, selectedSemester, computeDefaultSection, getManualSection]);
 
-  // Save section selection to localStorage
-  useEffect(() => {
-    localStorage.setItem(`dtu_timetable_section_sem${selectedSemester}`, selectedSection);
-  }, [selectedSection, selectedSemester]);
+  const handleSectionChange = (val: string) => {
+    setSelectedSection(val);
+    setHasManuallySwitched(true);
+    try {
+      localStorage.setItem(`dtu_manual_section_sem${selectedSemester}`, val);
+    } catch { /* ignore */ }
+  };
 
   const sectionData = (currentTimetableData?.sections as any)?.[selectedSection] ||
                       (currentTimetableData?.sections as any)?.[Object.keys(currentTimetableData?.sections || {})[0]] ||
@@ -861,10 +840,7 @@ export default function TimetablePage({
                 label: sec.label,
                 badge: (sec as any).room || sectionData.room,
               }))}
-              onChange={(val) => {
-                setSelectedSection(val);
-                setHasManuallySwitched(true);
-              }}
+              onChange={handleSectionChange}
               isDarkMode={isDarkMode}
             />
           </div>
