@@ -384,62 +384,33 @@ export default function App() {
       const [attRes, asgRes] = parallelResult as Awaited<typeof parallelFetch>;
       const attData = attRes.data;
 
-      // Merge subjects with attendance aggregates
+      // 1. Resolve subjects for user's semester and section
       let resolvedSubjects: Subject[] = [];
-      const userSemNum = parseSemesterNumber(pData.semester);
-      const semSubjects = DTU_CSE_SUBJECTS[userSemNum];
-      const defaultNames = (semSubjects && semSubjects.length > 0) ? semSubjects : [];
+      const userSemNum = parseSemesterNumber(pData.semester || profile.semester);
+      const userSectionStr = pData.section || profile.section || "A1";
 
-      // Detect stale subjects: if stored subjects belong to a DIFFERENT semester, discard them
+      const timetableSubjects = getTimetableSubjectsForSemAndSection(userSemNum, userSectionStr, dbTimetableEntries);
+
+      // Read stored subjects from profiles.subjects (jsonb array in Supabase)
       const storedSubjects: string[] = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
         ? pData.subjects as string[]
         : [];
 
-      let rawSubjectNames: string[];
-      if (storedSubjects.length > 0) {
-        // Collect all subject names from OTHER semesters (both raw and base names)
-        const otherSemSubjects = new Set<string>(); 
-        Object.entries(DTU_CSE_SUBJECTS).forEach(([semKey, semSubs]) => {
-          if (Number(semKey) !== userSemNum) {
-            semSubs.forEach(s => {
-              const lower = s.toLowerCase().trim();
-              const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
-              otherSemSubjects.add(lower);
-              otherSemSubjects.add(baseLower);
-            });
-          }
-        });
+      let rawSubjectNames: string[] = [];
 
-        // Current semester's known subjects (both raw and base names)
-        const currentSemSubjects = new Set<string>();
-        (DTU_CSE_SUBJECTS[userSemNum] || []).forEach(s => {
-          const lower = s.toLowerCase().trim();
-          const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
-          currentSemSubjects.add(lower);
-          currentSemSubjects.add(baseLower);
-        });
-
-        // Keep item if it belongs to current semester, OR if it's not a known subject from another semester
-        const validSubjects = storedSubjects.filter(name => {
-          const lower = name.toLowerCase().trim();
-          const baseLower = lower.replace(/\s*-\s*(theory|lab|tut|lecture|tutorial)$/i, "").trim();
-          if (currentSemSubjects.has(lower) || currentSemSubjects.has(baseLower)) return true;
-          // If it matches another semester's known subject, filter it out as alien/stale
-          const isAlien = otherSemSubjects.has(lower) || otherSemSubjects.has(baseLower);
-          return !isAlien;
-        });
-
-        // Check if user's stored subjects match the current profile semester
-        const semHasChanged = storedSubjects.some(s => !defaultNames.some(d => getStandardizedSubjectName(d) === getStandardizedSubjectName(s)));
-
-        if (validSubjects.length !== storedSubjects.length || semHasChanged) {
-          rawSubjectNames = defaultNames;
-          supabase.from("profiles").update({ subjects: defaultNames }).eq("id", u.id).then(() => {});
-        } else {
-          rawSubjectNames = storedSubjects;
+      if (timetableSubjects.length > 0) {
+        // Priority 1: Timetable-based subjects for user's sem & section
+        rawSubjectNames = timetableSubjects;
+        if (storedSubjects.length === 0) {
+          supabase.from("profiles").update({ subjects: timetableSubjects }).eq("id", u.id).then(() => {});
         }
+      } else if (storedSubjects.length > 0) {
+        // Priority 2: Fallback to profiles.subjects (jsonb array)
+        rawSubjectNames = storedSubjects;
       } else {
-        rawSubjectNames = defaultNames;
+        // Priority 3: Fallback to DTU_CSE_SUBJECTS[userSemNum]
+        const semSubs = DTU_CSE_SUBJECTS[userSemNum];
+        rawSubjectNames = (semSubs && semSubs.length > 0) ? semSubs : [];
       }
 
       let expandedSubjectsList: string[] = [];
@@ -1437,6 +1408,62 @@ export default function App() {
     return h;
   };
 
+  const getTimetableSubjectsForSemAndSection = (semNum: number, sectionStr: string, dbEntries: any[] = []): string[] => {
+    const normSec = (sectionStr || "").toUpperCase().trim().replace(/^SECTION\s*/i, "").replace(/^SEC\s*/i, "");
+    const formattedSec = normSec.startsWith("A") ? normSec : `A${normSec}`;
+    const days = ["MON", "TUE", "WED", "THUR", "FRI"];
+    const subjectsSet = new Set<string>();
+
+    let secData: any = null;
+    if (semNum === 1) {
+      if (TIMETABLE_SEM_1_DATA.sections[formattedSec]) secData = TIMETABLE_SEM_1_DATA.sections[formattedSec];
+      else if (TIMETABLE_SEM_1_DATA.sections[sectionStr]) secData = TIMETABLE_SEM_1_DATA.sections[sectionStr];
+      else secData = TIMETABLE_SEM_1_DATA.sections["A01"];
+    } else if (semNum === 3) {
+      secData = TIMETABLE_SEM_3_DATA.sections[formattedSec] || TIMETABLE_SEM_3_DATA.sections[sectionStr] || TIMETABLE_SEM_3_DATA.sections["A1"];
+    } else if (semNum === 5) {
+      secData = TIMETABLE_SEM_5_DATA.sections[formattedSec] || TIMETABLE_SEM_5_DATA.sections[sectionStr] || TIMETABLE_SEM_5_DATA.sections["A1"];
+    } else if (semNum === 7) {
+      const mapped = normSec.replace(/^[AaBb]/, "E");
+      secData = TIMETABLE_SEM_7_DATA.sections[formattedSec] || TIMETABLE_SEM_7_DATA.sections[mapped] || TIMETABLE_SEM_7_DATA.sections["E7"];
+    }
+
+    if (secData && secData.timetable) {
+      days.forEach(d => {
+        const daySched = secData.timetable[d] || {};
+        Object.values(daySched).forEach(rawVal => {
+          if (!rawVal) return;
+          const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
+          if (!rawText) return;
+          const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
+          parts.forEach(partText => {
+            const parsed = parseTimetableEntry(partText, secData.room || "");
+            if (parsed.splitSubjectName) {
+              subjectsSet.add(parsed.splitSubjectName);
+            }
+          });
+        });
+      });
+    }
+
+    if (dbEntries && dbEntries.length > 0) {
+      dbEntries.forEach(r => {
+        if (Number(r.semester) === semNum) {
+          const rSec = String(r.section || "").trim().toUpperCase().replace(/^SECTION\s*/i, "").replace(/^SEC\s*/i, "");
+          const rFormatted = rSec.startsWith("A") ? rSec : `A${rSec}`;
+          if (rFormatted === formattedSec || rSec === normSec) {
+            const subName = (r.subject_name || r.subject || "").trim();
+            if (subName) {
+              subjectsSet.add(getStandardizedSubjectName(subName));
+            }
+          }
+        }
+      });
+    }
+
+    return Array.from(subjectsSet);
+  };
+
   const getScheduledSubjectsForDate = (dateStr: string): Subject[] => {
     let targetDayIndex = new Date().getDay();
     if (dateStr) {
@@ -1515,8 +1542,6 @@ export default function App() {
       return TIMETABLE_SEM_7_DATA.sections["E7"];
     };
     const sem7SecData = getSem7SecData(profile.section);
-    // Resolve the actual E-section key sem7SecData corresponds to (e.g. "E7", "E8")
-    // Used for DB matching: Admin Panel stores entries with E-section keys, not A-section keys
     const resolvedSem7Section = Object.entries(TIMETABLE_SEM_7_DATA.sections)
       .find(([, v]) => v === sem7SecData)?.[0] || "E7";
 
@@ -1524,7 +1549,7 @@ export default function App() {
       ? getSem1SecData(profile.section)
       : isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
-      : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A3"]);
+      : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A1"]);
 
     const activeSec = isSem7 ? sem7SecData : secData;
     const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7)

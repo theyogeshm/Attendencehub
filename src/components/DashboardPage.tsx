@@ -151,7 +151,7 @@ export default function DashboardPage({
           </div>
           <div className="mt-1 sm:mt-3">
             <h3 className={`text-xl sm:text-3xl font-bold font-sans tracking-tight ${isDarkMode ? "text-[#82ffc8]" : "text-[#111827]"}`}>
-              {totalHeld > 0 ? `${aggregateAtt.toFixed(1)}%` : "N/A"}
+              {totalHeld > 0 ? `${aggregateAtt.toFixed(1)}%` : "0.0%"}
             </h3>
             <div className={`w-full h-1 sm:h-1.5 rounded-full mt-1 sm:mt-2 overflow-hidden ${isDarkMode ? "bg-[#2d3449]" : "bg-[#E5E7EB]"}`}>
               <div
@@ -278,7 +278,7 @@ export default function DashboardPage({
                 </div>
               ))}
             </div>
-          ) : todayTimetable.length === 0 ? (
+          ) : (todayTimetable.length === 0 && subjects.length === 0) ? (
             <div className="glass-card rounded-2xl p-10 text-center">
               <Calendar className="w-12 h-12 mx-auto text-on-surface-variant mb-3 opacity-50" />
               <p className="text-sm font-semibold text-on-surface">Timetable not released yet</p>
@@ -287,7 +287,8 @@ export default function DashboardPage({
           ) : (
             <div className="space-y-3">
               {(() => {
-                const sorted = [...todayTimetable].sort((a, b) => {
+                const listToRender = todayTimetable.length > 0 ? todayTimetable : subjects;
+                const sorted = [...listToRender].sort((a, b) => {
                   const aMarked = !!getSubStatus(a);
                   const bMarked = !!getSubStatus(b);
                   if (aMarked !== bMarked) {

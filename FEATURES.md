@@ -29,7 +29,8 @@ This document lists all existing features in the project along with their status
 - [x] Profile & subject persistence to Supabase `profiles` table and local session cache (working)
 
 ## Dashboard (`DashboardPage.tsx`)
-- [x] Overall Attendance percentage stat card with progress bar (working)
+- [x] Overall Attendance percentage stat card with progress bar (displays 0.0% when 0 classes attended) (working)
+- [x] Timetable-based & profile.subjects fallback resolution for user's semester and section (working)
 - [x] Pending Tasks counter with direct link to Assignments tab (working)
 - [x] Next Class widget calculating first unmarked class today or showing "All Done" status (working)
 - [x] Today's Class Schedule Cards with Present, Absent, Miss, Leave buttons — strictly filtered by section, day of week, and lab group from timetable (working)
