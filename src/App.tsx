@@ -977,7 +977,7 @@ export default function App() {
       if (existing && existing.length > 0) {
         const { error: updateErr } = await supabase
           .from("attendance")
-          .update({ status, updated_at: new Date().toISOString() })
+          .update({ status })
           .eq("user_id", user.id)
           .eq("subject", targetSubjectName)
           .eq("date", dateStr);
@@ -990,13 +990,12 @@ export default function App() {
             subject: targetSubjectName,
             date: dateStr,
             status: status,
-            semester: profile.semester,
           });
 
         if (insertErr && (insertErr.code === "23505" || insertErr.message?.includes("duplicate"))) {
           const { error: retryUpdateErr } = await supabase
             .from("attendance")
-            .update({ status, updated_at: new Date().toISOString() })
+            .update({ status })
             .eq("user_id", user.id)
             .eq("subject", targetSubjectName)
             .eq("date", dateStr);
@@ -1074,7 +1073,6 @@ export default function App() {
           subject: stdName,
           status: "present",
           date: pastDateStr,
-          semester: profile.semester,
         });
         if (insertErr) {
           console.error("Manual present insert error:", insertErr);
@@ -1091,7 +1089,6 @@ export default function App() {
           subject: stdName,
           status: "absent",
           date: pastDateStr,
-          semester: profile.semester,
         });
         if (insertErr) {
           console.error("Manual absent insert error:", insertErr);
@@ -1270,19 +1267,13 @@ export default function App() {
   //    aggregate counts WITHOUT touching todayAttendance (so button highlights stay) ─
   const refreshAttendanceCounts = async (u: User) => {
     if (!u) return;
-    const currentSemNum = parseSemesterNumber(profile.semester);
     const { data: attData } = await supabase
       .from("attendance")
-      .select("id, subject, status, date, semester")
+      .select("id, subject, status, date")
       .eq("user_id", u.id);
     if (!attData) return;
 
-    const semFiltered = attData.filter(r => {
-      if (!r.semester) return true; // legacy un-tagged rows
-      return parseSemesterNumber(r.semester) === currentSemNum;
-    });
-
-    const agg = buildAttendanceAggregates(semFiltered);
+    const agg = buildAttendanceAggregates(attData);
 
     const getType = (name: string): string | null => {
       const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
@@ -1305,10 +1296,9 @@ export default function App() {
   const fetchTodayAttendance = async (u: User, subjectsList: Subject[] = subjects) => {
     if (!u) return;
     const todayStr = getTodayDateStr();
-    const currentSemNum = parseSemesterNumber(profile.semester);
     const { data, error } = await supabase
       .from("attendance")
-      .select("subject, status, semester")
+      .select("subject, status")
       .eq("user_id", u.id)
       .eq("date", todayStr);
 
@@ -1317,7 +1307,7 @@ export default function App() {
       return;
     }
 
-    const filteredData = (data ?? []).filter(r => !r.semester || parseSemesterNumber(r.semester) === currentSemNum);
+    const filteredData = data ?? [];
 
     // Helper: extract the component type (theory/lab/tutorial/null)
     const getType = (name: string): string | null => {
