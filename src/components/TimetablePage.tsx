@@ -388,6 +388,33 @@ export default function TimetablePage({
     } catch { /* ignore */ }
   };
 
+  const [activeDay, setActiveDay] = useState<string>(defaultDayId);
+  const [viewMode, setViewMode] = useState<"day" | "week">("week");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "lecture" | "lab" | "tutorial">("all");
+  const [showElectivePanel, setShowElectivePanel] = useState(false);
+
+  // Elective Overrides for Sem 5 (E1 - E6)
+  const [electiveOverrides, setElectiveOverrides] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("dtu_sem5_elective_overrides");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const updateElectiveOverride = (slotKey: string, decSubject: string) => {
+    const next = { ...electiveOverrides, [slotKey]: decSubject };
+    setElectiveOverrides(next);
+    localStorage.setItem("dtu_sem5_elective_overrides", JSON.stringify(next));
+  };
+
+  const handleSaveElectiveOverrides = (overrides: Record<string, string>) => {
+    setElectiveOverrides(overrides);
+    localStorage.setItem("dtu_elective_overrides", JSON.stringify(overrides));
+  };
+
   const sectionData = (currentTimetableData?.sections as any)?.[selectedSection] ||
                       (currentTimetableData?.sections as any)?.[Object.keys(currentTimetableData?.sections || {})[0]] ||
                       { timetable: {}, room: "AB4-204" };
