@@ -466,7 +466,7 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
       baseSubjectName = "Operating System Design";
     } else if (lower.includes("algorithm") || lower.includes("daa")) {
       baseSubjectName = "Design & Analysis of Algorithm";
-    } else if (lower.includes("software engineering") || lower.includes("se")) {
+    } else if (lower.includes("software engineering") || lower === "se" || /\bse\b/i.test(lower)) {
       baseSubjectName = "Software Engineering";
     } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
       baseSubjectName = "Object Oriented Design";

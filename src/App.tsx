@@ -424,7 +424,7 @@ export default function App() {
           expandedSubjectsList.push("Design & Analysis of Algorithm - Theory", "Design & Analysis of Algorithm - Lab");
         } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
           expandedSubjectsList.push("Object Oriented Design - Theory", "Object Oriented Design - Lab");
-        } else if (lower.includes("software engineering") || lower.includes("se")) {
+        } else if (lower.includes("software engineering") || lower === "se") {
           expandedSubjectsList.push("Software Engineering - Theory", "Software Engineering - Tutorial");
         } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
           expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
@@ -1435,7 +1435,7 @@ export default function App() {
           if (!rawVal) return;
           const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
           if (!rawText) return;
-          const parts = (rawText.includes(" / ") || rawText.includes(" // ")) ? rawText.split(/\s*\/\/\s*|\s*\/\s*/) : [rawText];
+          const parts = (rawText.includes(" / ") || rawText.includes(" // ")) ? rawText.split(/\s+[\/\\]{1,2}\s+/) : [rawText];
           parts.forEach(partText => {
             const parsed = parseTimetableEntry(partText, secData.room || "");
             if (parsed.splitSubjectName) {
@@ -1597,7 +1597,7 @@ export default function App() {
 
       if (!rawText) return;
 
-      const parts = (rawText.includes(" / ") || rawText.includes(" // ")) ? rawText.split(/\s*\/\/\s*|\s*\/\s*/) : [rawText];
+      const parts = (rawText.includes(" / ") || rawText.includes(" // ")) ? rawText.split(/\s+[\/\\]{1,2}\s+/) : [rawText];
 
       parts.forEach((partText) => {
         const parsed = parseTimetableEntry(partText, activeSec?.room || "");

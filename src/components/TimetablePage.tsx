@@ -587,7 +587,7 @@ export default function TimetablePage({
     if (selectedLabGroup === "All") return true;
 
     if (rawText.includes(" / ") || rawText.includes(" // ")) {
-      const parts = rawText.split(/\s*\/\/\s*|\s*\/\s*/);
+      const parts = rawText.split(/\s+[\/\\]{1,2}\s+/);
       return parts.some((part) => {
         const parsed = parseTimetableEntry(part, sectionData.room);
         return parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup);
@@ -607,7 +607,7 @@ export default function TimetablePage({
     const isCombinedLab = rawText.includes(" / ") || rawText.includes(" // ");
 
     if (isCombinedLab) {
-      const parts = rawText.split(/\s*\/\/\s*|\s*\/\s*/);
+      const parts = rawText.split(/\s+[\/\\]{1,2}\s+/);
       const displayParts = selectedLabGroup === "All"
         ? parts
         : parts.filter((part) => {
