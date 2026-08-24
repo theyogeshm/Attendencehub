@@ -290,12 +290,21 @@ function ScrollableTabList({
     };
   }, [checkScroll, tabList]);
 
-  // Center active tab smoothly into view when activeTab updates
+  // Center active tab smoothly into view when activeTab updates without affecting page scroll
   useEffect(() => {
     if (!activeTab || !containerRef.current) return;
-    const activeEl = containerRef.current.querySelector<HTMLElement>(`[data-tab-name="${activeTab}"]`);
+    const container = containerRef.current;
+    const activeEl = container.querySelector<HTMLElement>(`[data-tab-name="${activeTab}"]`);
     if (activeEl) {
-      activeEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      const containerRect = container.getBoundingClientRect();
+      const tabRect = activeEl.getBoundingClientRect();
+      const offsetLeft = tabRect.left - containerRect.left;
+      const targetScrollLeft = container.scrollLeft + offsetLeft - (containerRect.width / 2) + (tabRect.width / 2);
+      
+      container.scrollTo({
+        left: Math.max(0, targetScrollLeft),
+        behavior: "smooth",
+      });
       setTimeout(checkScroll, 350);
     }
   }, [activeTab, checkScroll]);
@@ -333,11 +342,11 @@ function ScrollableTabList({
     <div className="relative w-full min-w-0 max-w-full overflow-hidden">
       {/* Left Scroll Button & Fade Indicator */}
       {canScrollLeft && (
-        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-3 bg-gradient-to-r from-surface-container via-surface-container/90 to-transparent pointer-events-none">
+        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent pointer-events-none">
           <button
             type="button"
             onClick={() => scrollByAmount(-180)}
-            className="pointer-events-auto p-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
+            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
             title="Scroll left"
             aria-label="Scroll left"
           >
@@ -354,7 +363,7 @@ function ScrollableTabList({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className="flex overflow-x-auto scrollbar-none -mx-4 sm:-mx-6 px-4 sm:px-6 -mb-px max-w-full w-full min-w-0 cursor-grab active:cursor-grabbing select-none"
+        className="flex items-center overflow-x-auto scrollbar-none gap-1 -mb-px max-w-full w-full min-w-0 cursor-grab active:cursor-grabbing select-none"
         style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
         role="tablist"
         aria-label="Resource sections"
@@ -396,11 +405,11 @@ function ScrollableTabList({
 
       {/* Right Scroll Button & Fade Indicator */}
       {canScrollRight && (
-        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-3 bg-gradient-to-l from-surface-container via-surface-container/90 to-transparent pointer-events-none">
+        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent pointer-events-none">
           <button
             type="button"
             onClick={() => scrollByAmount(180)}
-            className="pointer-events-auto p-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
+            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
             title="Scroll right"
             aria-label="Scroll right"
           >
@@ -450,6 +459,13 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
+    // Reset scroll positions to prevent any viewport shift
+    window.scrollTo({ left: 0, top: 0 });
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+    const mainEl = document.querySelector(".custom-scrollbar");
+    if (mainEl) mainEl.scrollLeft = 0;
+
     if (!decodedName) { setLoading(false); return; }
 
     (async () => {
@@ -613,7 +629,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 px-0 py-3 sm:p-6 max-w-5xl xl:max-w-6xl mx-auto w-full min-w-0 box-border">
+      <div className="flex-1 px-3 sm:px-6 py-4 sm:py-6 max-w-5xl xl:max-w-6xl mx-auto w-full min-w-0 box-border">
 
         {/* Skeleton Loading */}
         {loading && (
