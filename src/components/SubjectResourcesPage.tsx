@@ -392,6 +392,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             className="w-full min-w-0 flex overflow-x-auto scrollbar-none px-0 -mb-px"
             role="tablist"
             aria-label="Resource sections"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {tabList.map((tab) => {
               const isActive = activeTab === tab;
@@ -403,7 +404,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => { setActiveTab(tab); setVisibleCount(15); }}
-                  className={`flex-shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-3 text-xs font-bold transition-all duration-150 cursor-pointer border-b-2 whitespace-nowrap ${
+                  className={`flex-shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-3 min-h-[44px] text-xs font-bold transition-all duration-150 cursor-pointer border-b-2 whitespace-nowrap ${
                     isActive
                       ? "text-primary border-primary font-bold"
                       : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
