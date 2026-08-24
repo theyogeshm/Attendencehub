@@ -586,8 +586,8 @@ export default function TimetablePage({
     if (!rawText) return false;
     if (selectedLabGroup === "All") return true;
 
-    if (rawText.includes(" / ")) {
-      const parts = rawText.split(" / ");
+    if (rawText.includes(" / ") || rawText.includes(" // ")) {
+      const parts = rawText.split(/\s*\/\/\s*|\s*\/\s*/);
       return parts.some((part) => {
         const parsed = parseTimetableEntry(part, sectionData.room);
         return parsed.group === selectedLabGroup || parsed.raw.includes(selectedLabGroup);
@@ -604,10 +604,10 @@ export default function TimetablePage({
   // Render combined lab session formatting
   const renderSlotContent = (rawText: string) => {
     if (!rawText) return null;
-    const isCombinedLab = rawText.includes(" / ");
+    const isCombinedLab = rawText.includes(" / ") || rawText.includes(" // ");
 
     if (isCombinedLab) {
-      const parts = rawText.split(" / ");
+      const parts = rawText.split(/\s*\/\/\s*|\s*\/\s*/);
       const displayParts = selectedLabGroup === "All"
         ? parts
         : parts.filter((part) => {

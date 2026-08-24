@@ -276,37 +276,36 @@ export const TIMETABLE_SEM_3_DATA: TimetableSem3Data = {
       "room": "AB4-315",
       "timetable": {
         "MON": {
-          "9-10": "TH-Software Engineering CS209 [Dr. Amrita Sisodia]",
-          "10-11": "TH-Digital Logic Design [ECE-Deptt]",
-          "11-12": "TH-CS205 DAA [Dr. Neha Gupta]",
-          "12-2": "Lab-Operating System Design CS207-A7/G1 [Prof Rajni Jindal] [DBMS Lab] / Lab-Object Oriented Design CS203-G3 [Dr. Snigdha Agrawal] [IPM Lab]",
-          "2-4": "Lab-Digital Logic Design-G1 [ECE-Deptt]"
+          "10-11": "TH-Software Engineering CS209 [Dr. Amrita Sisodia]",
+          "11-12": "TH-CS205 Design & Analysis of Algorithm [Dr. Neha Gupta]",
+          "12-2": "Lab-Operating System Design CS207-A7/G1-III Sem [Prof Rajni Jindal] [DBMS Lab] / Lab-Object Oriented Design CS203-G3-III Sem [Dr. Snigdha Agarwal] [IPM Lab]",
+          "4-6": "Digital Logic Design Lab (G1) [VLSI Lab, ECE] // Digital Logic Design Lab (G2) [Digital Logic Lab, ECE] // Digital Logic Design Lab (G3) [MP2 Lab, ECE]"
         },
         "TUE": {
           "10-11": "TH-Object Oriented Design CS203 [Dr. Aditi Zear]",
           "11-12": "TH-Operating System Design CS207 [Prof Rajni Jindal]",
-          "12-2": "Lab-Operating System Design CS207-A7/G2 [Dr.Prashant Giridhar S] [DBMS Lab] / Lab-Object Oriented Design CS203-A7/G1 [Ms. Anjali Bansal] [IPM Lab] / Lab-Digital Logic Design-A7/G3 [ECE-Deptt]"
+          "12-2": "Lab-Operating System Design CS207-A7/G2 [Dr. Prashant Giridhar S] [DBMS Lab] / Lab-Object Oriented Design CS203-A7/G1-III Sem [Ms. Anjali Bansal] [IPM Lab]",
+          "2-4": "Digital Logic Design [ECE-Deptt] [Ms. Lavi Tanwar] [AB4-515]"
         },
         "WED": {
-          "10-11": "TH-Object Oriented Design CS203 [Dr. Aditi Zear]",
-          "11-12": "TH-Operating System Design CS207 [Prof Rajni Jindal] [AB4-203]",
-          "12-2": "Lab-Operating System Design CS207-A7/G3 [Prof Rajni Jindal] [DBMS Lab] / Lab-Object Oriented Design CS203-A7/G2 [Ms. Yati] [IPM Lab]",
-          "2-3": "Tutorial-CS209 Software Engineering G1 [Mr Vivek] [AB4-315]",
-          "3-4": "TH-Digital Logic Design [ECE-Deptt]",
+          "10-11": "TH-Object Oriented Design CS203 [Dr. Aditi Zear] [AB4-203]",
+          "11-12": "Tutorial-CS209 Software Engineering G1 [Mr Vivek] [AB4-203/AB4-315]",
+          "12-2": "Lab-Operating System Design CS207-A7/G3-III Sem [Prof Rajni Jindal] [DBMS Lab] / Lab-Object Oriented Design CS203-A7/G2-III Sem [Dr. Manoj Sethi] [IPM Lab]",
+          "3-4": "TH-Operating System Design CS207 [Prof Rajni Jindal]",
           "4-5": "Tutorial-CS209 Software Engineering G2 [Mr Vivek] [AB4-315]"
         },
         "THUR": {
           "10-11": "TH-Software Engineering CS209 [Dr. Amrita Sisodia]",
           "11-12": "TH-Object Oriented Design CS203 [Dr. Aditi Zear]",
-          "1-2": "TH-CS205 DAA [Dr Neha Gupta] [AB4-315]",
-          "2-3": "Lab-Digital Logic Design-G2 [ECE-Deptt] / Lab-CS205 DAA-G2 [Dr. Neha Gupta] [IOT Lab] / Lab-CS205 DAA-G3 [Dr. Sanjay Kumar] [IOT Lab]"
+          "1-2": "TH-CS205 Design & Analysis of Algorithm [Dr. Neha Gupta]",
+          "2-3": "Lab-CS205 Design & Analysis of Algorithm-G1 [Dr. Neha Gupta] [CN Lab]"
         },
         "FRI": {
           "9-10": "TH-Software Engineering CS209 [Dr. Amrita Sisodia]",
-          "10-11": "TH-CS205 DAA [Dr. Neha Gupta]",
+          "10-11": "TH-CS205 Design & Analysis of Algorithm [Dr. Neha Gupta]",
           "11-12": "TH-Operating System Design CS207 [Prof Rajni Jindal]",
-          "12-1": "TH-Digital Logic Design [ECE-Deptt]",
-          "2-4": "Lab-CS209 Software Engineering [Dr. Amrita Sisodia]",
+          "12-1": "Digital Logic Design [Ms. Lavi Tanwar]",
+          "2-4": "Lab-CS205 Design & Analysis of Algorithm-G2 [Dr. Neha Gupta] [IOT Lab] / Lab-CS205 Design & Analysis of Algorithm-G3 [Dr. Sanjay Kumar] [IOT Lab]",
           "4-5": "Tutorial-CS209 Software Engineering G3 [Mr Vivek] [AB4-106]"
         }
       }
@@ -344,6 +343,7 @@ export const ALL_TIME_SLOTS = [
   "10-1",
   "12-2",
   "2-4",
+  "4-6",
   "10-12_lab",
   "10-11_lab"
 ];

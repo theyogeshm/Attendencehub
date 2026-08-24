@@ -1435,7 +1435,7 @@ export default function App() {
           if (!rawVal) return;
           const rawText = typeof rawVal === "string" ? rawVal : convertSem5SlotToString(rawVal);
           if (!rawText) return;
-          const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
+          const parts = (rawText.includes(" / ") || rawText.includes(" // ")) ? rawText.split(/\s*\/\/\s*|\s*\/\s*/) : [rawText];
           parts.forEach(partText => {
             const parsed = parseTimetableEntry(partText, secData.room || "");
             if (parsed.splitSubjectName) {
@@ -1597,7 +1597,7 @@ export default function App() {
 
       if (!rawText) return;
 
-      const parts = rawText.includes(" / ") ? rawText.split(" / ") : [rawText];
+      const parts = (rawText.includes(" / ") || rawText.includes(" // ")) ? rawText.split(/\s*\/\/\s*|\s*\/\s*/) : [rawText];
 
       parts.forEach((partText) => {
         const parsed = parseTimetableEntry(partText, activeSec?.room || "");
