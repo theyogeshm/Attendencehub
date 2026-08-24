@@ -177,14 +177,14 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
         </div>
       </div>
 
-      {/* Actions — compact mobile spacing to prevent clipping */}
-      <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
+      {/* Actions — compact mobile spacing to guarantee no overflow */}
+      <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
         <a
           href={res.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
-          title="View"
+          className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          title="View document"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           <span className="text-[11px]">View</span>
@@ -194,12 +194,11 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
           download={res.file_name}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
-          title="Download"
+          className="flex items-center justify-center p-1.5 sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          title="Download document"
         >
           <Download className="w-3.5 h-3.5" />
-          <span className="sm:hidden text-[11px]">Get</span>
-          <span className="hidden sm:inline text-[11px]">Download</span>
+          <span className="hidden sm:inline text-[11px] ml-1">Download</span>
         </a>
       </div>
     </div>
@@ -425,7 +424,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 p-3.5 sm:p-6 max-w-5xl xl:max-w-6xl mx-auto w-full">
+      <div className="flex-1 px-0 py-3 sm:p-6 max-w-5xl xl:max-w-6xl mx-auto w-full min-w-0 box-border">
 
         {/* Skeleton Loading */}
         {loading && (
