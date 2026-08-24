@@ -53,6 +53,14 @@
   --color-on-tertiary-fixed: #40000d;
 }
 
+/* Prevent the page root from ever scrolling horizontally.
+   Without this, any child overflow escapes to <body> and the
+   sticky app header scrolls sideways along with the content. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 @layer utilities {
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -239,7 +247,6 @@ html.light .bg-\[\#00C896\] { color: #FFFFFF !important; }
 /* — these rules back it up for Firefox and Chrome/Safari/WebKit.              */
 .scrollbar-none {
   scrollbar-width: none;                  /* Firefox */
-  -webkit-overflow-scrolling: touch;      /* iOS momentum scrolling            */
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;                          /* Chrome / Safari / WebKit          */
