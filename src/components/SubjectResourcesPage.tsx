@@ -389,7 +389,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         {/* Tab bar — scrolls horizontally on mobile */}
         {!loading && tabList.length > 0 && (
           <div
-            className="flex overflow-x-auto scrollbar-none px-0 -mb-px"
+            className="flex overflow-x-auto scrollbar-none px-0 -mb-px w-full"
             role="tablist"
             aria-label="Resource sections"
           >
