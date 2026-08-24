@@ -129,59 +129,76 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
     );
   }
 
-  // Standard file card — 2-line layout on mobile (phone), single row on desktop
+  // Standard file card
   return (
-    <div className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 active:bg-surface-container-high transition-all duration-150 w-full min-w-0 box-border">
-      {/* Top Line (Mobile) / Main Info (Desktop) */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        {/* Icon */}
-        <div className="flex-shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-          <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
-            {getTabIcon(res.tab_type)}
-          </span>
-        </div>
+    <div className="group flex items-center justify-between gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 active:bg-surface-container-high transition-all duration-150 w-full min-w-0 box-border">
+      {/* Icon */}
+      <div className="flex-shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+        <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
+          {getTabIcon(res.tab_type)}
+        </span>
+      </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words">
-            {res.file_name}
-          </p>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {res.file_size ? (
-              <span className="text-[10px] text-on-surface-variant font-medium">{res.file_size}</span>
-            ) : (
-              <span className="text-[10px] text-on-surface-variant/60 flex items-center gap-1 font-medium">
-                <FileText className="w-3 h-3" />
-                Document
-              </span>
-            )}
-            {res.year && <span className="text-[10px] text-on-surface-variant/70 font-medium">· {res.year}</span>}
+      {/* Info */}
+      <div className="flex-1 min-w-0 pr-1">
+        {isLongName ? (
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-left w-full cursor-pointer select-none sm:cursor-auto bg-transparent border-none p-0 focus:outline-none"
+          >
+            <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
+              !isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""
+            }`}>
+              {res.file_name}
+            </p>
+            <span className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
+              {isExpanded ? "Show less ▲" : "Show more ▼"}
+            </span>
+          </button>
+        ) : (
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words">
+              {res.file_name}
+            </p>
           </div>
+        )}
+
+        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+          {res.file_size ? (
+            <span className="text-[10px] text-on-surface-variant font-medium">{res.file_size}</span>
+          ) : (
+            <span className="text-[10px] text-on-surface-variant/60 flex items-center gap-1 font-medium">
+              <FileText className="w-3 h-3" />
+              Document
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Second Line (Mobile Actions Row) / Right Actions (Desktop) */}
-      <div className="flex items-center justify-end gap-2 shrink-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-outline-variant/30 sm:border-transparent">
+      {/* Actions — compact mobile spacing to guarantee no overflow */}
+      <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
         <a
           href={res.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap"
+          className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="View document"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          <span>View</span>
+          <span className="text-[11px]">View</span>
         </a>
         <a
           href={res.file_url}
           download={res.file_name}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap"
+          className="flex items-center justify-center p-1.5 sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="Download document"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Download</span>
+          <span className="hidden sm:inline text-[11px] ml-1">Download</span>
         </a>
       </div>
     </div>
