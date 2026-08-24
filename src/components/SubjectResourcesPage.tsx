@@ -321,7 +321,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col w-full min-w-0">
+    <div className="flex-1 flex flex-col w-full min-w-0 overflow-x-hidden">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0">
