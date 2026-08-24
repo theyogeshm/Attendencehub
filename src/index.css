@@ -53,12 +53,6 @@
   --color-on-tertiary-fixed: #40000d;
 }
 
-html,
-body {
-  overflow-x: hidden;
-  max-width: 100%;
-}
-
 @layer utilities {
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -118,16 +112,7 @@ body {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #3b4a42;
   }
-
-  /* Hide scrollbar visually but keep element scrollable (used on tab bar) */
-  .scrollbar-none {
-    scrollbar-width: none;        /* Firefox */
-    -ms-overflow-style: none;     /* IE/Edge */
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;                /* Chrome, Safari, Opera */
-  }
-
+  
   /* Progress Glow shadow helper */
   .progress-glow {
     box-shadow: 0 0 12px rgba(26, 231, 166, 0.4);
@@ -246,4 +231,16 @@ html.light .bg-\[\#00C896\] { color: #FFFFFF !important; }
 @media (max-width: 480px) {
   .timetable-subject { font-size: 11px; }
   .timetable-room    { font-size: 9px; }
+}
+
+/* ── HIDDEN SCROLLBAR UTILITY ─────────────────────────────────────────────── */
+/* Used by the resource tab row so it scrolls horizontally but shows no bar.  */
+/* Tailwind's scrollbar-none class has no effect without the scrollbar plugin  */
+/* — these rules back it up for Firefox and Chrome/Safari/WebKit.              */
+.scrollbar-none {
+  scrollbar-width: none;                  /* Firefox */
+  -webkit-overflow-scrolling: touch;      /* iOS momentum scrolling            */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;                          /* Chrome / Safari / WebKit          */
 }
