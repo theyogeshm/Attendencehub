@@ -324,7 +324,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     <div className="flex-1 flex flex-col w-full min-w-0">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0 overflow-x-hidden">
+      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0">
 
         {/* Back */}
         <button
@@ -389,7 +389,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         {/* Tab bar — scrolls horizontally on mobile */}
         {!loading && tabList.length > 0 && (
           <div
-            className="flex overflow-x-auto scrollbar-none px-0 -mb-px w-full"
+            className="flex overflow-x-auto scrollbar-none -mx-4 sm:-mx-6 px-4 sm:px-6 -mb-px"
             role="tablist"
             aria-label="Resource sections"
           >
