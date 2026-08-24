@@ -183,11 +183,11 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
           href={res.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="View document"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          <span className="text-[11px]">View</span>
+          <span className="hidden sm:inline text-[11px]">View</span>
         </a>
         <a
           href={res.file_url}
@@ -321,7 +321,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col w-full min-w-0">
+    <div className="flex-1 flex flex-col w-full min-w-0">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0">
