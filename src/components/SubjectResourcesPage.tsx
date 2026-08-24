@@ -1,15 +1,6 @@
-/**
- * SubjectResourcesPage
- * Route: /resources/:subjectName
- *
- * Full inner page for a subject's resources.
- * Tabs are built purely from whatever tab_type values exist in Supabase —
- * no hardcoded list. PYQ tabs (name contains "pyq") are year-grouped.
- */
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, ExternalLink, FolderOpen, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText } from "lucide-react";
 import { Subject } from "../types";
 import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
@@ -100,6 +91,123 @@ interface Props {
   subjects: Subject[];
 }
 
+// ── Top-level Memoized FileCard Component ─────────────────────────────────────
+const FileCard = memo(({ res }: { res: DbResource }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const resIsVideo  = res.tab_type.toLowerCase().includes("video");
+  const embedUrl    = resIsVideo ? getYouTubeEmbedUrl(res.file_url) : null;
+  const isLongName  = res.file_name.length > 35;
+
+  // YouTube embed
+  if (resIsVideo && embedUrl) {
+    return (
+      <div className="rounded-2xl overflow-hidden glass-card border border-outline-variant shadow-sm w-full min-w-0">
+        <iframe
+          src={embedUrl}
+          title={res.file_name}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full aspect-video"
+          loading="lazy"
+        />
+        <div className="px-3.5 py-3 flex items-center justify-between gap-3 min-w-0">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-semibold text-on-surface break-words leading-snug">{res.file_name}</p>
+            {res.year && <p className="text-[10px] text-on-surface-variant mt-0.5">{res.year}</p>}
+          </div>
+          <a
+            href={res.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 flex items-center gap-1 text-[11px] font-bold text-primary hover:underline active:scale-95 transition-transform"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Open
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard file card
+  return (
+    <div className="group flex items-center justify-between gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 active:bg-surface-container-high transition-all duration-150 w-full min-w-0 box-border">
+      {/* Icon */}
+      <div className="flex-shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+        <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
+          {getTabIcon(res.tab_type)}
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 pr-1">
+        {isLongName ? (
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-left w-full cursor-pointer select-none sm:cursor-auto bg-transparent border-none p-0 focus:outline-none"
+          >
+            <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
+              !isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""
+            }`}>
+              {res.file_name}
+            </p>
+            <span className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
+              {isExpanded ? "Show less ▲" : "Show more ▼"}
+            </span>
+          </button>
+        ) : (
+          <div>
+            <p className="text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words">
+              {res.file_name}
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+          {res.file_size ? (
+            <span className="text-[10px] text-on-surface-variant font-medium">{res.file_size}</span>
+          ) : (
+            <span className="text-[10px] text-on-surface-variant/60 flex items-center gap-1 font-medium">
+              <FileText className="w-3 h-3" />
+              Document
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Actions — compact mobile spacing to prevent clipping */}
+      <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
+        <a
+          href={res.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          title="View"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          <span className="text-[11px]">View</span>
+        </a>
+        <a
+          href={res.file_url}
+          download={res.file_name}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          title="Download"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span className="sm:hidden text-[11px]">Get</span>
+          <span className="hidden sm:inline text-[11px]">Download</span>
+        </a>
+      </div>
+    </div>
+  );
+});
+
+FileCard.displayName = "FileCard";
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function SubjectResourcesPage({ subjects }: Props) {
   const { subjectName } = useParams<{ subjectName: string }>();
@@ -134,6 +242,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   const [resources, setResources] = useState<DbResource[]>([]);
   const [loading, setLoading]     = useState(true);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [visibleCount, setVisibleCount] = useState<number>(15);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -143,6 +252,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       setLoading(true);
       setResources([]);
       setActiveTab("");
+      setVisibleCount(15);
 
       const RESOURCE_TABLE_NAMES = ["resources", "subject_resources", "study_resources"];
       for (const tableName of RESOURCE_TABLE_NAMES) {
@@ -210,123 +320,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   const icon = getSubjectIcon(decodedName);
 
-  // ── File card ───────────────────────────────────────────────────────────────
-  const FileCard = ({ res }: { res: DbResource }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const resIsVideo  = res.tab_type.toLowerCase().includes("video");
-    const embedUrl    = resIsVideo ? getYouTubeEmbedUrl(res.file_url) : null;
-    const isLongName  = res.file_name.length > 40;
-
-    // YouTube embed
-    if (resIsVideo && embedUrl) {
-      return (
-        <div className="rounded-2xl overflow-hidden glass-card border border-outline-variant shadow-sm">
-          <iframe
-            src={embedUrl}
-            title={res.file_name}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full aspect-video"
-          />
-          <div className="px-4 py-3 flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-semibold text-on-surface break-words leading-snug">{res.file_name}</p>
-              {res.year && <p className="text-[10px] text-on-surface-variant mt-0.5">{res.year}</p>}
-            </div>
-            <a
-              href={res.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0 flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Open
-            </a>
-          </div>
-        </div>
-      );
-    }
-
-    // Standard file card
-    return (
-      <div className="group flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 transition-all duration-200">
-        {/* Icon */}
-        <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center mt-0.5 sm:mt-0">
-          <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
-            {getTabIcon(res.tab_type)}
-          </span>
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          {isLongName ? (
-            <button
-              type="button"
-              aria-expanded={isExpanded}
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-left w-full cursor-pointer select-none sm:cursor-auto bg-transparent border-none p-0 focus:outline-none"
-            >
-              <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
-                !isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""
-              }`}>
-                {res.file_name}
-              </p>
-              <span className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
-                {isExpanded ? "Show less ▲" : "Show more ▼"}
-              </span>
-            </button>
-          ) : (
-            <div>
-              <p className="text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words">
-                {res.file_name}
-              </p>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 flex-wrap">
-            {res.file_size ? (
-              <span className="text-[10px] text-on-surface-variant font-medium">{res.file_size}</span>
-            ) : (
-              <span className="text-[10px] text-on-surface-variant/60 flex items-center gap-1 font-medium">
-                <FileText className="w-3 h-3" />
-                Document
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Actions — always in one row */}
-        <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
-          <a
-            href={res.file_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary transition-all duration-200 whitespace-nowrap"
-            title="View"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span className="text-[11px]">View</span>
-          </a>
-          <a
-            href={res.file_url}
-            download={res.file_name}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200 whitespace-nowrap"
-            title="Download"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="sm:hidden text-[11px]">Get</span>
-            <span className="hidden sm:inline text-[11px]">Download</span>
-          </a>
-        </div>
-      </div>
-    );
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="-m-4 sm:-m-6 min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col w-full min-w-0">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0">
@@ -394,7 +390,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
         {/* Tab bar — scrolls horizontally on mobile */}
         {!loading && tabList.length > 0 && (
           <div
-            className="flex overflow-x-auto scrollbar-none -mx-4 sm:-mx-8 px-4 sm:px-8"
+            className="flex overflow-x-auto scrollbar-none px-0 -mb-px"
             role="tablist"
             aria-label="Resource sections"
           >
@@ -407,8 +403,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   id={`res-tab-${tab.replace(/\s+/g, "-").toLowerCase()}`}
                   role="tab"
                   aria-selected={isActive}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all duration-200 cursor-pointer border-b-2 whitespace-nowrap ${
+                  onClick={() => { setActiveTab(tab); setVisibleCount(15); }}
+                  className={`flex-shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-3 text-xs font-bold transition-all duration-150 cursor-pointer border-b-2 whitespace-nowrap ${
                     isActive
                       ? "text-primary border-primary font-bold"
                       : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
@@ -429,11 +425,11 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 p-4 sm:p-8 max-w-5xl xl:max-w-6xl mx-auto w-full">
+      <div className="flex-1 p-3.5 sm:p-6 max-w-5xl xl:max-w-6xl mx-auto w-full">
 
         {/* Skeleton Loading */}
         {loading && (
-          <div className="space-y-4 animate-pulse">
+          <div className="space-y-3 sm:space-y-4 animate-pulse">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-24 h-5 bg-surface-variant/60 rounded-lg" />
               <div className="flex-1 h-px bg-outline-variant/30" />
@@ -465,9 +461,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
         {/* Empty */}
         {!loading && resources.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 gap-5 text-center text-on-surface-variant">
-            <div className="w-20 h-20 rounded-3xl bg-surface-container flex items-center justify-center border border-outline-variant">
-              <FolderOpen className="w-9 h-9 text-outline" />
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center text-on-surface-variant">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-surface-container flex items-center justify-center border border-outline-variant">
+              <FolderOpen className="w-8 h-8 sm:w-9 sm:h-9 text-outline" />
             </div>
             <div>
               <p className="text-base font-bold text-on-surface mb-1">No resources yet</p>
@@ -491,7 +487,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           <div>
             {/* Sub-heading / year grouped list */}
             {hasSubHeadings ? (
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {Object.entries(subHeadingGroups)
                   .sort(([a], [b]) => {
                     if (a === "General" || a === "Other") return 1;
@@ -503,8 +499,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                   })
                   .map(([groupName, files]) => (
                     <div key={groupName}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="text-sm font-bold text-primary">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-xs sm:text-sm font-bold text-primary">
                           {groupName}
                         </span>
                         <div className="flex-1 h-px bg-outline-variant/50" />
@@ -512,8 +508,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                           {files.length} file{files.length !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <div className="space-y-3">
-                        {files.map((res) => (
+                      <div className="space-y-2.5">
+                        {files.slice(0, visibleCount).map((res) => (
                           <div key={res.id}><FileCard res={res} /></div>
                         ))}
                       </div>
@@ -522,10 +518,23 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               </div>
             ) : (
               /* Flat list for tabs without sub-headings */
-              <div className={isVideoTab ? "space-y-5" : "space-y-3"}>
-                {tabResources.map((res) => (
+              <div className={isVideoTab ? "space-y-4" : "space-y-2.5"}>
+                {tabResources.slice(0, visibleCount).map((res) => (
                   <div key={res.id}><FileCard res={res} /></div>
                 ))}
+              </div>
+            )}
+
+            {/* Load More trigger if list exceeds visibleCount */}
+            {tabResources.length > visibleCount && (
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 20)}
+                  className="px-6 py-2.5 rounded-xl bg-surface-container border border-outline-variant text-primary font-bold text-xs hover:border-primary/50 hover:bg-primary/10 active:scale-95 transition-all cursor-pointer shadow-sm"
+                >
+                  Show More ({tabResources.length - visibleCount} remaining)
+                </button>
               </div>
             )}
           </div>

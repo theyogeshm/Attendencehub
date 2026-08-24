@@ -79,6 +79,19 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  /* Mobile performance optimization: disable expensive per-card backdrop blur on mobile viewports to ensure 60fps smooth scrolling */
+  @media (max-width: 768px) {
+    .glass-card {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(23, 31, 51, 0.96);
+    }
+    
+    button, a {
+      touch-action: manipulation;
+    }
+  }
+
   .glass-card-light {
     background: rgba(255, 255, 255, 0.82);
     border: 1px solid rgba(226, 232, 240, 1);

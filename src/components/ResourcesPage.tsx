@@ -144,7 +144,7 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
                 key={sub.id}
                 id={`subject-card-${sub.id}`}
                 onClick={() => navigate(`/resources/${encodeURIComponent(sub.name)}`)}
-                className="group text-left relative glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between cursor-pointer hover:border-primary/60 transition-all duration-300 focus:outline-none focus:border-primary shadow-sm"
+                className="group text-left relative glass-card rounded-2xl p-3 sm:p-5 flex flex-col justify-between cursor-pointer hover:border-primary/60 active:scale-[0.98] transition-all duration-150 focus:outline-none focus:border-primary shadow-sm"
               >
                 <div>
                   <div className="flex justify-between items-start mb-2 sm:mb-4">
