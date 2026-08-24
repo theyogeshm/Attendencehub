@@ -48,6 +48,37 @@ function getTabIcon(tabType: string): string {
   return TAB_ICONS[tabType.toLowerCase().trim()] ?? "folder_open";
 }
 
+// ── Canonical tab order priority ──────────────────────────────────────────────
+const TAB_ORDER_PRIORITY = [
+  "pyq",
+  "previous year",
+  "previous years",
+  "handwritten notes",
+  "handwritten",
+  "notes",
+  "assignments",
+  "assignment",
+  "lab",
+  "labs",
+  "tutorial",
+  "tutorials",
+  "video lectures",
+  "videos",
+  "video",
+  "formula sheet",
+  "formula",
+  "books",
+  "reference",
+  "slides",
+  "presentation",
+];
+
+function getTabPriority(tabType: string): number {
+  const lower = tabType.toLowerCase().trim();
+  const idx = TAB_ORDER_PRIORITY.findIndex(p => lower === p || lower.includes(p));
+  return idx === -1 ? 999 : idx;
+}
+
 // ── Subject icon map ──────────────────────────────────────────────────────────
 const SUBJECT_ICONS: Record<string, string> = {
   math: "calculate",       maths: "calculate",
@@ -277,8 +308,13 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
           if (matchingRows.length > 0) {
             setResources(matchingRows);
-            const nonSyllabus = matchingRows.filter(r => !r.tab_type.toLowerCase().includes("syllabus"));
-            const defaultTab = (nonSyllabus.length > 0 ? nonSyllabus[0] : matchingRows[0])?.tab_type ?? "";
+            const nonSyllabus = matchingRows
+              .filter(r => !r.tab_type.toLowerCase().includes("syllabus"))
+              .map(r => r.tab_type);
+            const uniqueTabs = Array.from(new Set(nonSyllabus)).sort(
+              (a, b) => getTabPriority(a) - getTabPriority(b)
+            );
+            const defaultTab = uniqueTabs[0] ?? (matchingRows[0]?.tab_type ?? "");
             setActiveTab(defaultTab);
             break;
           }
@@ -294,17 +330,19 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   );
 
   // Ordered unique tab list — exclude Syllabus (elevated to top-right hero header button)
-  const tabList: string[] = [];
+  const rawTabList: string[] = [];
   for (const r of resources) {
     if (r.tab_type.toLowerCase().trim().includes("syllabus")) continue;
-    if (!tabList.includes(r.tab_type)) tabList.push(r.tab_type);
+    if (!rawTabList.includes(r.tab_type)) rawTabList.push(r.tab_type);
   }
+  const tabList = rawTabList.sort((a, b) => getTabPriority(a) - getTabPriority(b));
 
-  const tabResources = resources.filter((r) => r.tab_type === activeTab);
-  const isPyqTab     =
-    activeTab.toLowerCase().includes("pyq") ||
-    activeTab.toLowerCase().includes("previous year");
-  const isVideoTab   = activeTab.toLowerCase().includes("video");
+  const activeTabToUse = activeTab && tabList.includes(activeTab) ? activeTab : (tabList[0] ?? "");
+  const tabResources   = resources.filter((r) => r.tab_type === activeTabToUse);
+  const isPyqTab       =
+    activeTabToUse.toLowerCase().includes("pyq") ||
+    activeTabToUse.toLowerCase().includes("previous year");
+  const isVideoTab     = activeTabToUse.toLowerCase().includes("video");
 
   // Group resources by sub-heading / year if sub-headings exist for this tab
   const hasSubHeadings = tabResources.some((r) => Boolean(r.year?.trim()));
@@ -321,10 +359,10 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col w-full min-w-0 overflow-x-hidden">
+    <div className="flex-1 flex flex-col w-full min-w-0 max-w-full overflow-x-hidden">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0">
+      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0 w-full min-w-0 max-w-full overflow-hidden">
 
         {/* Back */}
         <button
@@ -386,15 +424,15 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           )}
         </div>
 
-        {/* Tab bar — scrolls horizontally on mobile */}
+        {/* Tab bar — scrolls horizontally within row on mobile & overflow */}
         {!loading && tabList.length > 0 && (
           <div
-            className="flex overflow-x-auto scrollbar-none -mx-4 sm:-mx-6 px-4 sm:px-6 -mb-px"
+            className="flex overflow-x-auto scrollbar-none -mx-4 sm:-mx-6 px-4 sm:px-6 -mb-px max-w-full w-full min-w-0"
             role="tablist"
             aria-label="Resource sections"
           >
             {tabList.map((tab) => {
-              const isActive = activeTab === tab;
+              const isActive = activeTabToUse === tab;
               const count    = resources.filter((r) => r.tab_type === tab).length;
               return (
                 <button
