@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Subject } from "../types";
@@ -238,7 +238,7 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
 
 FileCard.displayName = "FileCard";
 
-// ── Ultra-Smooth & Professional Scrollable Tab Bar Component ─────────────────
+// ── Scrollable Tab Bar Component with Wheel, Drag & Chevron Controls ─────────
 function ScrollableTabList({
   tabList,
   activeTab,
@@ -253,56 +253,33 @@ function ScrollableTabList({
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const isMouseDownRef = useRef(false);
+  const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
-  const scrollLeftStartRef = useRef(0);
-  const dragMovedRef = useRef(false);
+  const scrollLeftRef = useRef(0);
+  const hasMovedRef = useRef(false);
 
-  // Check scroll position and overflow
   const checkScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 4);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+    setCanScrollLeft(scrollLeft > 6);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 6);
   }, []);
 
   useEffect(() => {
+    checkScroll();
     const el = containerRef.current;
     if (!el) return;
-
-    checkScroll();
 
     const handleResize = () => checkScroll();
     window.addEventListener("resize", handleResize);
 
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => checkScroll());
-      ro.observe(el);
-      Array.from(el.children).forEach((c) => ro?.observe(c as Element));
-    }
-
-    const t0 = setTimeout(checkScroll, 20);
-    const t1 = setTimeout(checkScroll, 100);
-    const t2 = setTimeout(checkScroll, 300);
-    const t3 = setTimeout(checkScroll, 800);
-
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(() => checkScroll());
-    }
-
-    // Horizontal wheel scroll handler
+    // Translate vertical wheel scroll to horizontal tab scroll seamlessly
     const onWheel = (e: WheelEvent) => {
-      if (el.scrollWidth > el.clientWidth) {
-        const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-        if (delta !== 0) {
-          e.preventDefault();
-          el.scrollLeft += delta * 1.2;
-          checkScroll();
-        }
+      if (el.scrollWidth > el.clientWidth && e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY * 0.8;
+        checkScroll();
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
@@ -310,118 +287,90 @@ function ScrollableTabList({
     return () => {
       window.removeEventListener("resize", handleResize);
       el.removeEventListener("wheel", onWheel);
-      clearTimeout(t0);
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      ro?.disconnect();
     };
   }, [checkScroll, tabList]);
 
-  // Center active tab smoothly in the viewport
-  const centerTab = useCallback((tabName: string) => {
+  // Center active tab smoothly into view when activeTab updates without affecting page scroll
+  useEffect(() => {
+    if (!activeTab || !containerRef.current) return;
     const container = containerRef.current;
-    if (!container || !tabName) return;
-    const activeEl = container.querySelector<HTMLElement>(`[data-tab-name="${tabName}"]`);
+    const activeEl = container.querySelector<HTMLElement>(`[data-tab-name="${activeTab}"]`);
     if (activeEl) {
-      const targetScroll =
-        activeEl.offsetLeft - container.clientWidth / 2 + activeEl.clientWidth / 2;
+      const containerRect = container.getBoundingClientRect();
+      const tabRect = activeEl.getBoundingClientRect();
+      const offsetLeft = tabRect.left - containerRect.left;
+      const targetScrollLeft = container.scrollLeft + offsetLeft - (containerRect.width / 2) + (tabRect.width / 2);
+      
       container.scrollTo({
-        left: Math.max(0, targetScroll),
+        left: Math.max(0, targetScrollLeft),
         behavior: "smooth",
       });
       setTimeout(checkScroll, 350);
     }
-  }, [checkScroll]);
-
-  // Auto-center when activeTab changes
-  useEffect(() => {
-    centerTab(activeTab);
-  }, [activeTab, centerTab]);
+  }, [activeTab, checkScroll]);
 
   const scrollByAmount = (amount: number) => {
-    if (!containerRef.current) return;
-    containerRef.current.scrollBy({ left: amount, behavior: "smooth" });
+    containerRef.current?.scrollBy({ left: amount, behavior: "smooth" });
     setTimeout(checkScroll, 350);
   };
 
-  // Mouse drag-to-scroll only (does not interfere with touch events)
+  // Mouse drag-to-scroll handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = containerRef.current;
-    if (!el) return;
-    isMouseDownRef.current = true;
-    dragMovedRef.current = false;
-    startXRef.current = e.pageX;
-    scrollLeftStartRef.current = el.scrollLeft;
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!isMouseDownRef.current || !containerRef.current) return;
-      const diffX = moveEvent.pageX - startXRef.current;
-      if (Math.abs(diffX) > 4) {
-        dragMovedRef.current = true;
-        setIsDragging(true);
-      }
-      containerRef.current.scrollLeft = scrollLeftStartRef.current - diffX;
-      checkScroll();
-    };
-
-    const onMouseUp = () => {
-      isMouseDownRef.current = false;
-      setTimeout(() => {
-        setIsDragging(false);
-        dragMovedRef.current = false;
-      }, 50);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    if (!containerRef.current) return;
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    startXRef.current = e.pageX - containerRef.current.offsetLeft;
+    scrollLeftRef.current = containerRef.current.scrollLeft;
   };
 
-  const handleTabClick = (tab: string) => {
-    if (dragMovedRef.current) return;
-    onSelectTab(tab);
-    centerTab(tab);
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current || !containerRef.current) return;
+    const x = e.pageX - containerRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.3;
+    if (Math.abs(walk) > 4) {
+      hasMovedRef.current = true;
+    }
+    containerRef.current.scrollLeft = scrollLeftRef.current - walk;
+    checkScroll();
+  };
+
+  const handleMouseUpOrLeave = () => {
+    isDraggingRef.current = false;
   };
 
   return (
-    <div className="relative w-full min-w-0 max-w-full py-2">
-      {/* Left Scroll Navigation Button & Fade */}
-      <div
-        className={`absolute left-0 top-0 bottom-0 z-20 flex items-center pr-3 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent transition-opacity duration-200 pointer-events-none ${
-          canScrollLeft ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => scrollByAmount(-220)}
-          className="pointer-events-auto w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-lg active:scale-90 transition-all flex items-center justify-center cursor-pointer ml-0.5"
-          title="Scroll left"
-          aria-label="Scroll left"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-      </div>
+    <div className="relative w-full min-w-0 max-w-full overflow-hidden">
+      {/* Left Scroll Button & Fade Indicator */}
+      {canScrollLeft && (
+        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent pointer-events-none">
+          <button
+            type="button"
+            onClick={() => scrollByAmount(-180)}
+            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
+            title="Scroll left"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
-      {/* Tab Row Container — free of scroll-smooth during drag for instant responsiveness */}
+      {/* Tab Row Container */}
       <div
         ref={containerRef}
         onScroll={checkScroll}
         onMouseDown={handleMouseDown}
-        className={`flex items-center overflow-x-auto scrollbar-none gap-2 max-w-full w-full min-w-0 px-1 select-none ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        style={{
-          touchAction: "pan-x",
-          WebkitOverflowScrolling: "touch",
-        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+        className="flex items-center overflow-x-auto scrollbar-none gap-1 -mb-px max-w-full w-full min-w-0 cursor-grab active:cursor-grabbing select-none"
+        style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
         role="tablist"
         aria-label="Resource sections"
       >
         {tabList.map((tab) => {
           const isActive = activeTab === tab;
-          const count = resources.filter((r) => r.tab_type === tab).length;
+          const count    = resources.filter((r) => r.tab_type === tab).length;
           return (
             <button
               key={tab}
@@ -429,22 +378,22 @@ function ScrollableTabList({
               id={`res-tab-${tab.replace(/\s+/g, "-").toLowerCase()}`}
               role="tab"
               aria-selected={isActive}
-              onClick={() => handleTabClick(tab)}
-              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-150 cursor-pointer whitespace-nowrap border ${
+              onClick={() => {
+                if (!hasMovedRef.current) {
+                  onSelectTab(tab);
+                }
+              }}
+              className={`flex-shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-3 text-xs font-bold transition-all duration-150 cursor-pointer border-b-2 whitespace-nowrap ${
                 isActive
-                  ? "bg-primary text-on-primary font-bold border-primary shadow-md shadow-primary/20 scale-[1.02]"
-                  : "bg-surface-container-high/90 text-on-surface-variant border-outline-variant/60 hover:text-on-surface hover:bg-surface-variant hover:border-primary/40 active:scale-95"
+                  ? "text-primary border-primary font-bold"
+                  : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
               }`}
             >
-              <span className={`material-symbols-outlined text-[17px] sm:text-[19px] ${isActive ? "text-on-primary" : "text-primary"}`}>
-                {getTabIcon(tab)}
-              </span>
-              <span className="capitalize tracking-wide">{tab}</span>
+              <span className="material-symbols-outlined text-[15px]">{getTabIcon(tab)}</span>
+              <span>{tab}</span>
               <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  isActive
-                    ? "bg-on-primary/20 text-on-primary"
-                    : "bg-surface-variant text-on-surface-variant border border-outline-variant/30"
+                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                  isActive ? "bg-primary/10 text-primary" : "bg-surface-variant text-on-surface-variant"
                 }`}
               >
                 {count}
@@ -452,27 +401,22 @@ function ScrollableTabList({
             </button>
           );
         })}
-
-        {/* End Spacer: Guarantees the rightmost tab can scroll completely into view with room to spare */}
-        <div className="w-16 sm:w-8 flex-shrink-0 h-1 pointer-events-none" aria-hidden="true" />
       </div>
 
-      {/* Right Scroll Navigation Button & Fade */}
-      <div
-        className={`absolute right-0 top-0 bottom-0 z-20 flex items-center pl-3 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent transition-opacity duration-200 pointer-events-none ${
-          canScrollRight ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => scrollByAmount(220)}
-          className="pointer-events-auto w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-lg active:scale-90 transition-all flex items-center justify-center cursor-pointer mr-0.5"
-          title="Scroll right"
-          aria-label="Scroll right"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
+      {/* Right Scroll Button & Fade Indicator */}
+      {canScrollRight && (
+        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent pointer-events-none">
+          <button
+            type="button"
+            onClick={() => scrollByAmount(180)}
+            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
+            title="Scroll right"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
