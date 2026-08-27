@@ -255,10 +255,10 @@ function ScrollableTabList({
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const isPointerDownRef = useRef(false);
+  const isMouseDownRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftStartRef = useRef(0);
-  const dragDistanceRef = useRef(0);
+  const dragMovedRef = useRef(false);
 
   // Check scroll position and overflow
   const checkScroll = useCallback(() => {
@@ -285,7 +285,6 @@ function ScrollableTabList({
       Array.from(el.children).forEach((c) => ro?.observe(c));
     }
 
-    // Multiple layout passes for async font and style settling
     const t0 = setTimeout(checkScroll, 20);
     const t1 = setTimeout(checkScroll, 100);
     const t2 = setTimeout(checkScroll, 300);
@@ -301,7 +300,7 @@ function ScrollableTabList({
         const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
         if (delta !== 0) {
           e.preventDefault();
-          el.scrollLeft += delta * 1.1;
+          el.scrollLeft += delta * 1.2;
           checkScroll();
         }
       }
@@ -346,45 +345,48 @@ function ScrollableTabList({
     setTimeout(checkScroll, 350);
   };
 
-  // Pointer drag-to-scroll implementation
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  // Mouse drag-to-scroll only (does not interfere with touch events)
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = containerRef.current;
     if (!el) return;
-    isPointerDownRef.current = true;
-    dragDistanceRef.current = 0;
+    isMouseDownRef.current = true;
+    dragMovedRef.current = false;
     startXRef.current = e.pageX;
     scrollLeftStartRef.current = el.scrollLeft;
-  };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPointerDownRef.current || !containerRef.current) return;
-    const diffX = e.pageX - startXRef.current;
-    dragDistanceRef.current = Math.abs(diffX);
-
-    if (dragDistanceRef.current > 5) {
-      setIsDragging(true);
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!isMouseDownRef.current || !containerRef.current) return;
+      const diffX = moveEvent.pageX - startXRef.current;
+      if (Math.abs(diffX) > 4) {
+        dragMovedRef.current = true;
+        setIsDragging(true);
+      }
       containerRef.current.scrollLeft = scrollLeftStartRef.current - diffX;
       checkScroll();
-    }
-  };
+    };
 
-  const handlePointerUpOrCancel = () => {
-    isPointerDownRef.current = false;
-    setTimeout(() => {
-      setIsDragging(false);
-      dragDistanceRef.current = 0;
-    }, 50);
+    const onMouseUp = () => {
+      isMouseDownRef.current = false;
+      setTimeout(() => {
+        setIsDragging(false);
+        dragMovedRef.current = false;
+      }, 50);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   };
 
   const handleTabClick = (tab: string) => {
-    // If it was a genuine drag gesture, do not trigger tab change
-    if (dragDistanceRef.current > 6) return;
+    if (dragMovedRef.current) return;
     onSelectTab(tab);
     centerTab(tab);
   };
 
   return (
-    <div className="relative w-full min-w-0 max-w-full py-2 group/tabbar">
+    <div className="relative w-full min-w-0 max-w-full py-2">
       {/* Left Scroll Navigation Button & Fade */}
       <div
         className={`absolute left-0 top-0 bottom-0 z-20 flex items-center pr-3 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent transition-opacity duration-200 pointer-events-none ${
@@ -402,21 +404,17 @@ function ScrollableTabList({
         </button>
       </div>
 
-      {/* Tab Row Container with pointer drag & native touch */}
+      {/* Tab Row Container — free of scroll-smooth during drag for instant responsiveness */}
       <div
         ref={containerRef}
         onScroll={checkScroll}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUpOrCancel}
-        onPointerCancel={handlePointerUpOrCancel}
-        className={`flex items-center overflow-x-auto scroll-smooth scrollbar-none gap-2 max-w-full w-full min-w-0 px-1 select-none ${
+        onMouseDown={handleMouseDown}
+        className={`flex items-center overflow-x-auto scrollbar-none gap-2 max-w-full w-full min-w-0 px-1 select-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         style={{
           touchAction: "pan-x",
           WebkitOverflowScrolling: "touch",
-          overscrollBehaviorX: "contain",
         }}
         role="tablist"
         aria-label="Resource sections"
