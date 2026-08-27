@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Subject } from "../types";
@@ -282,7 +282,7 @@ function ScrollableTabList({
     if (typeof ResizeObserver !== "undefined") {
       ro = new ResizeObserver(() => checkScroll());
       ro.observe(el);
-      Array.from(el.children).forEach((c) => ro?.observe(c));
+      Array.from(el.children).forEach((c) => ro?.observe(c as Element));
     }
 
     const t0 = setTimeout(checkScroll, 20);
