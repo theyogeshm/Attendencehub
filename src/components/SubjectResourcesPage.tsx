@@ -339,21 +339,25 @@ function ScrollableTabList({
   };
 
   return (
-    <div className="relative w-full min-w-0 max-w-full overflow-hidden">
-      {/* Left Scroll Button & Fade Indicator */}
-      {canScrollLeft && (
-        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent pointer-events-none">
-          <button
-            type="button"
-            onClick={() => scrollByAmount(-180)}
-            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
-            title="Scroll left"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+    <div className="relative w-full min-w-0 max-w-full py-1.5">
+      {/* Left Scroll Navigation Button & Fade */}
+      <div
+        className={`absolute left-0 top-0 bottom-0 z-20 flex items-center pr-3 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent transition-opacity duration-200 pointer-events-none ${
+          canScrollLeft ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => scrollByAmount(-180)}
+          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-lg active:scale-90 transition-all flex items-center justify-center cursor-pointer ml-0.5 ${
+            canScrollLeft ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+          title="Scroll left"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Tab Row Container */}
       <div
@@ -363,7 +367,7 @@ function ScrollableTabList({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className="flex items-center overflow-x-auto scrollbar-none gap-1 -mb-px max-w-full w-full min-w-0 cursor-grab active:cursor-grabbing select-none"
+        className="flex items-center overflow-x-auto scrollbar-none gap-2 max-w-full w-full min-w-0 px-0.5 cursor-grab active:cursor-grabbing select-none"
         style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
         role="tablist"
         aria-label="Resource sections"
@@ -383,17 +387,21 @@ function ScrollableTabList({
                   onSelectTab(tab);
                 }
               }}
-              className={`flex-shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-3 text-xs font-bold transition-all duration-150 cursor-pointer border-b-2 whitespace-nowrap ${
+              className={`flex-shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-bold rounded-xl transition-all duration-150 cursor-pointer whitespace-nowrap border ${
                 isActive
-                  ? "text-primary border-primary font-bold"
-                  : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
+                  ? "bg-primary text-[#002114] border-primary shadow-md shadow-primary/25 scale-[1.02]"
+                  : "bg-surface-container-high/90 text-on-surface-variant border-outline-variant/60 hover:text-on-surface hover:bg-surface-variant hover:border-primary/40 active:scale-95"
               }`}
             >
-              <span className="material-symbols-outlined text-[15px]">{getTabIcon(tab)}</span>
-              <span>{tab}</span>
+              <span className={`material-symbols-outlined text-[17px] sm:text-[19px] shrink-0 ${isActive ? "text-[#002114]" : "text-primary"}`}>
+                {getTabIcon(tab)}
+              </span>
+              <span className="capitalize tracking-tight shrink-0">{tab}</span>
               <span
-                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                  isActive ? "bg-primary/10 text-primary" : "bg-surface-variant text-on-surface-variant"
+                className={`inline-flex items-center justify-center shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-extrabold ${
+                  isActive
+                    ? "bg-[#002114]/20 text-[#002114]"
+                    : "bg-surface-variant text-on-surface-variant border border-outline-variant/40"
                 }`}
               >
                 {count}
@@ -401,22 +409,29 @@ function ScrollableTabList({
             </button>
           );
         })}
+
+        {/* End Spacer: Guarantees the rightmost tab can scroll completely into view with generous room */}
+        <div className="w-8 sm:w-4 flex-shrink-0 h-1 pointer-events-none" aria-hidden="true" />
       </div>
 
-      {/* Right Scroll Button & Fade Indicator */}
-      {canScrollRight && (
-        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent pointer-events-none">
-          <button
-            type="button"
-            onClick={() => scrollByAmount(180)}
-            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
-            title="Scroll right"
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+      {/* Right Scroll Navigation Button & Fade */}
+      <div
+        className={`absolute right-0 top-0 bottom-0 z-20 flex items-center pl-3 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent transition-opacity duration-200 pointer-events-none ${
+          canScrollRight ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => scrollByAmount(180)}
+          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-lg active:scale-90 transition-all flex items-center justify-center cursor-pointer mr-0.5 ${
+            canScrollRight ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+          title="Scroll right"
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -552,7 +567,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     <div className="flex-1 flex flex-col w-full min-w-0 max-w-full overflow-x-hidden">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-2.5 flex-shrink-0 w-full min-w-0 max-w-full overflow-hidden">
 
         {/* Back */}
         <button
@@ -629,7 +644,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 px-3 sm:px-6 py-4 sm:py-6 max-w-5xl xl:max-w-6xl mx-auto w-full min-w-0 box-border">
+      <div className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 sm:pb-24 max-w-5xl xl:max-w-6xl mx-auto w-full min-w-0 box-border">
 
         {/* Skeleton Loading */}
         {loading && (
@@ -741,6 +756,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                 </button>
               </div>
             )}
+
+            {/* Bottom Safe Area Spacer ensuring floating action button never overlaps content */}
+            <div className="h-16 sm:h-8" aria-hidden="true" />
           </div>
         )}
       </div>
