@@ -208,28 +208,28 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
         </div>
       </div>
 
-      {/* Actions — compact mobile spacing to guarantee no overflow */}
-      <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
+      {/* Actions */}
+      <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
         <a
           href={res.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="View document"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-[11px]">View</span>
+          <span className="text-xs">View</span>
         </a>
         <a
           href={res.file_url}
           download={res.file_name}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center p-1.5 sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="Download document"
         >
           <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-[11px] ml-1">Download</span>
+          <span className="text-xs">Download</span>
         </a>
       </div>
     </div>
@@ -421,15 +421,18 @@ function ScrollableTabList({
             </button>
           );
         })}
+
+        {/* End Spacer ensuring rightmost tab is fully reachable and never obscured */}
+        <div className="w-16 sm:w-8 flex-shrink-0 h-1 pointer-events-none" aria-hidden="true" />
       </div>
 
       {/* Right Scroll Button & Fade Indicator */}
       {canScrollRight && (
-        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent pointer-events-none">
+        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-3 pr-1 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent pointer-events-none">
           <button
             type="button"
             onClick={() => scrollByAmount(180)}
-            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
+            className="pointer-events-auto p-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
             title="Scroll right"
             aria-label="Scroll right"
           >
@@ -761,6 +764,8 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                 </button>
               </div>
             )}
+            {/* Bottom Safe Area Spacer ensuring floating action button and bottom nav never overlap content */}
+            <div className="h-32 sm:h-20" aria-hidden="true" />
           </div>
         )}
       </div>
