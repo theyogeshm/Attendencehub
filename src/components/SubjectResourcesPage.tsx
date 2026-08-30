@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Subject } from "../types";
