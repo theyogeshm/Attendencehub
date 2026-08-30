@@ -274,6 +274,24 @@ function ScrollableTabList({
     const handleResize = () => checkScroll();
     window.addEventListener("resize", handleResize);
 
+    // Re-measure once the icon font (material-symbols-outlined) finishes loading —
+    // icon glyphs can change tab widths *after* the initial layout paint, which
+    // otherwise leaves scrollWidth stale and canScrollRight/Left wrongly false,
+    // making the last tab look cut off with no scroll affordance.
+    if (typeof document !== "undefined" && "fonts" in document) {
+      document.fonts.ready.then(() => checkScroll()).catch(() => {});
+    }
+
+    // Also re-measure on the next animation frame in case layout settles
+    // after this effect runs (e.g. fonts/images still reflowing).
+    const raf = requestAnimationFrame(checkScroll);
+
+    // Watch the tab row itself for any size changes (safer than only
+    // listening to window resize, which misses container-only changes
+    // like sidebar toggles or dynamic content reflow).
+    const resizeObserver = new ResizeObserver(() => checkScroll());
+    resizeObserver.observe(el);
+
     // Translate vertical wheel scroll to horizontal tab scroll seamlessly
     const onWheel = (e: WheelEvent) => {
       if (el.scrollWidth > el.clientWidth && e.deltaY !== 0) {
@@ -287,6 +305,8 @@ function ScrollableTabList({
     return () => {
       window.removeEventListener("resize", handleResize);
       el.removeEventListener("wheel", onWheel);
+      cancelAnimationFrame(raf);
+      resizeObserver.disconnect();
     };
   }, [checkScroll, tabList]);
 
