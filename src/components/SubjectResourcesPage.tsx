@@ -208,28 +208,32 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
+      {/* Actions — icon-only on mobile (compact, guaranteed to fit at 375px),
+          icon+label from sm: up. This is the fix: a previous change made both
+          labels always-visible with wider padding, and because this wrapper is
+          flex-shrink-0, the two pill buttons no longer fit next to a card title
+          on narrow screens and were clipped off the right edge entirely. */}
+      <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
         <a
           href={res.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="View document"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          <span className="text-xs">View</span>
+          <span className="hidden sm:inline text-[11px]">View</span>
         </a>
         <a
           href={res.file_url}
           download={res.file_name}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center p-1.5 sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="Download document"
         >
           <Download className="w-3.5 h-3.5" />
-          <span className="text-xs">Download</span>
+          <span className="hidden sm:inline text-[11px] ml-1">Download</span>
         </a>
       </div>
     </div>
