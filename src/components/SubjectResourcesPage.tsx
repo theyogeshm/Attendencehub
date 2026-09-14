@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText } from "lucide-react";
 import { Subject } from "../types";
 import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
@@ -248,8 +248,8 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
 
 FileCard.displayName = "FileCard";
 
-// ── Collapsible Tab Bar Component with "..." Expand Pattern ──────────────────
-function CollapsibleTabList({
+// ── Resource Tab Bar Component (Wraps naturally to next line as needed) ─────
+function ResourceTabList({
   tabList,
   activeTab,
   onSelectTab,
@@ -260,32 +260,6 @@ function CollapsibleTabList({
   onSelectTab: (tab: string) => void;
   resources: DbResource[];
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Compute the paired tab to display alongside the active tab when collapsed
-  const activeIdx = tabList.indexOf(activeTab);
-  let pairedTab = "";
-  if (tabList.length > 1) {
-    if (activeIdx >= 0 && activeIdx < tabList.length - 1) {
-      pairedTab = tabList[activeIdx + 1];
-    } else if (activeIdx === tabList.length - 1) {
-      pairedTab = tabList[0];
-    } else {
-      pairedTab = tabList.find((t) => t !== activeTab) || tabList[1];
-    }
-  }
-
-  // When collapsed: show activeTab + pairedTab
-  // When expanded: show all tabs
-  const visibleTabs = isExpanded
-    ? tabList
-    : tabList.length <= 2
-    ? tabList
-    : [activeTab, pairedTab].filter(Boolean);
-
-  const hasMore = tabList.length > 2;
-  const hiddenCount = Math.max(0, tabList.length - 2);
-
   return (
     <div className="w-full min-w-0 max-w-full">
       <div
@@ -293,7 +267,7 @@ function CollapsibleTabList({
         role="tablist"
         aria-label="Resource sections"
       >
-        {visibleTabs.map((tab) => {
+        {tabList.map((tab) => {
           const isActive = activeTab === tab;
           const count = resources.filter((r) => r.tab_type === tab).length;
 
@@ -303,10 +277,7 @@ function CollapsibleTabList({
               id={`res-tab-${tab.replace(/\s+/g, "-").toLowerCase()}`}
               role="tab"
               aria-selected={isActive}
-              onClick={() => {
-                onSelectTab(tab);
-                setIsExpanded(false);
-              }}
+              onClick={() => onSelectTab(tab)}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold transition-all duration-150 cursor-pointer rounded-xl border shrink-0 ${
                 isActive
                   ? "bg-primary/15 text-primary border-primary shadow-sm"
@@ -329,29 +300,6 @@ function CollapsibleTabList({
             </button>
           );
         })}
-
-        {/* "..." Expand / Collapse Button */}
-        {hasMore && (
-          <button
-            type="button"
-            aria-label={isExpanded ? "Collapse sections" : "Show more sections"}
-            aria-expanded={isExpanded}
-            onClick={() => setIsExpanded((prev) => !prev)}
-            className={`flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold transition-all duration-150 cursor-pointer rounded-xl border shrink-0 ${
-              isExpanded
-                ? "bg-primary/20 text-primary border-primary shadow-sm"
-                : "bg-surface-variant/40 border-outline-variant/60 text-on-surface-variant hover:text-on-surface hover:border-primary/40 active:scale-95"
-            }`}
-            title={isExpanded ? "Show fewer sections" : "Show more sections"}
-          >
-            <MoreHorizontal className="w-4 h-4" />
-            {!isExpanded && hiddenCount > 0 && (
-              <span className="text-[10px] font-bold bg-surface-variant text-on-surface-variant px-1.5 py-0.5 rounded-full">
-                +{hiddenCount}
-              </span>
-            )}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -550,9 +498,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           )}
         </div>
 
-        {/* Tab bar — collapse + "..." expand pattern (zero overflow, wraps naturally) */}
+        {/* Tab bar — all tabs always rendered with natural flex-wrap */}
         {!loading && tabList.length > 0 && (
-          <CollapsibleTabList
+          <ResourceTabList
             tabList={tabList}
             activeTab={activeTabToUse}
             onSelectTab={(tab) => {
