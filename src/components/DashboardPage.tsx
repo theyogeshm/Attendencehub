@@ -25,7 +25,7 @@ interface DashboardPageProps {
   subjects: Subject[];
   assignments: Assignment[];
   onMarkAttendance: (subjectId: string, status: AttendanceStatus) => void;
-  onOpenAttendanceLog: (date?: number) => void;
+  onOpenAttendanceLog: (date?: number | string, month?: number, year?: number) => void;
   setActiveTab: (tab: string) => void;
   isDarkMode: boolean;
   todayAttendance: Record<string, AttendanceStatus>;
@@ -479,17 +479,23 @@ export default function DashboardPage({
                 return (
                   <button
                     key={day}
-                    onClick={() => past ? onOpenAttendanceLog(day) : undefined}
+                    onClick={() => {
+                      if (past || tod) {
+                        const mStr = String(calMonth + 1).padStart(2, '0');
+                        const dStr = String(day).padStart(2, '0');
+                        onOpenAttendanceLog(`${calYear}-${mStr}-${dStr}`);
+                      }
+                    }}
                     className={`relative py-1 rounded-lg text-[11px] font-medium transition-colors ${
                       tod
                         ? isDarkMode
-                          ? "bg-primary text-[#002114] font-extrabold shadow-sm ring-2 ring-primary-container ring-offset-1 ring-offset-[#0b1326]"
-                          : "bg-[#1AE7A6] text-white font-extrabold shadow-sm ring-2 ring-[#1AE7A6]/30 ring-offset-1 ring-offset-white"
+                          ? "bg-primary text-[#002114] font-extrabold shadow-sm ring-2 ring-primary-container ring-offset-1 ring-offset-[#0b1326] cursor-pointer"
+                          : "bg-[#1AE7A6] text-white font-extrabold shadow-sm ring-2 ring-[#1AE7A6]/30 ring-offset-1 ring-offset-white cursor-pointer"
                         : past
                         ? "hover:bg-[#222a3d] text-on-surface-variant cursor-pointer hover:text-primary"
                         : "text-on-surface-variant/60 cursor-default"
                     }`}
-                    title={past ? `View attendance log for ${day} ${monthNames[calMonth]}` : undefined}
+                    title={(past || tod) ? `View attendance log for ${day} ${monthNames[calMonth]}` : undefined}
                   >
                     {day}
                     {past && !tod && (

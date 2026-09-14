@@ -1344,24 +1344,42 @@ export default function App() {
     setLogLoading(true);
     const currentSemNum = parseSemesterNumber(profile.semester);
 
-    const { data, error } = await supabase
+    console.log(`[Attendance Log] Fetching attendance records for date: "${dateStr}" (user: ${user.id})`);
+
+    let { data, error } = await supabase
       .from("attendance")
       .select("*")
       .eq("user_id", user.id)
       .eq("date", dateStr);
 
-    if (error) {
+    // Fallback: check if date column has ISO timestamps (e.g. YYYY-MM-DDTHH:mm:ss...)
+    if (!error && (!data || data.length === 0)) {
+      const { data: rangeData } = await supabase
+        .from("attendance")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("date", `${dateStr}T00:00:00`)
+        .lte("date", `${dateStr}T23:59:59.999Z`);
+      if (rangeData && rangeData.length > 0) {
+        data = rangeData;
+      }
+    }
 
+    if (error) {
+      console.error("[Attendance Log] Supabase query error:", error);
     } else {
       const fetched = (data ?? []).filter(r => !r.semester || parseSemesterNumber(r.semester) === currentSemNum);
+      console.log(`[Attendance Log] Found ${fetched.length} records in DB for date "${dateStr}":`, fetched.map(r => ({ subject: r.subject, status: r.status, date: r.date })));
       const targetSubjects = getScheduledSubjectsForDate(dateStr);
 
+      const matchedRowIds = new Set<string>();
       const entries: LogEntry[] = targetSubjects.map(sub => {
         const subKeys = getNormalizedSubjectKeys(sub.name);
         const row = fetched.find(r => {
           const rKeys = getNormalizedSubjectKeys(r.subject ?? "");
           return rKeys.some(rk => subKeys.includes(rk));
         });
+        if (row && row.id) matchedRowIds.add(row.id);
 
         return {
           subjectId:       sub.id,
@@ -1372,19 +1390,49 @@ export default function App() {
           status:          row?.status ?? undefined,
         };
       });
+
+      // Preserve any marked attendance rows from Supabase for this date even if not in timetable schedule
+      fetched.forEach(r => {
+        if (r.id && !matchedRowIds.has(r.id)) {
+          entries.push({
+            subjectId:       `db-${r.id}`,
+            subjectName:     r.subject ?? "Unknown Subject",
+            attendanceCount: r.status === "present" ? 1 : 0,
+            totalClasses:    r.status !== "leave" ? 1 : 0,
+            subjectType:     (r.subject ?? "").toLowerCase().includes("lab") ? "LAB" : "LEC",
+            status:          r.status,
+          });
+        }
+      });
+
       setLogSubjects(entries);
     }
     setLogLoading(false);
   };
 
   // ── Open attendance log modal ─────────────────────────────────────────────
-  const handleOpenAttendanceLog = (date?: number) => {
-    const d = date ?? null;
-    const today = new Date();
-    const dateStr = d
-      ? `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-      : new Date().toISOString().split('T')[0];
-    setAttendanceLogDate(d);
+  const handleOpenAttendanceLog = (date?: number | string, month?: number, year?: number) => {
+    let dateStr: string;
+    let dayNum: number | null = null;
+
+    if (typeof date === "string" && date.includes("-")) {
+      // Direct YYYY-MM-DD string passed (e.g. from calendar "2026-08-24")
+      dateStr = date;
+      const parts = date.split("-");
+      dayNum = parseInt(parts[2], 10) || null;
+    } else if (typeof date === "number") {
+      dayNum = date;
+      const y = year ?? new Date().getFullYear();
+      const m = month !== undefined ? month + 1 : (new Date().getMonth() + 1);
+      dateStr = `${y}-${String(m).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+    } else {
+      // Fallback: use today's local date, NEVER UTC toISOString()
+      dateStr = getTodayDateStr();
+      dayNum = new Date().getDate();
+    }
+
+    console.log("[Attendance Log] Opening modal for date:", dateStr);
+    setAttendanceLogDate(dayNum);
     setAttendanceLogDateStr(dateStr);
     setShowAttendanceLogModal(true);
     fetchLogForDate(dateStr);
@@ -2235,7 +2283,7 @@ export default function App() {
 
               <h3 className="font-bold text-lg text-on-surface mb-1">Attendance Log</h3>
               <p className="text-xs text-on-surface-variant font-mono mb-5">
-                {attendanceLogDateStr ?? new Date().toISOString().split('T')[0]}
+                {attendanceLogDateStr ?? getTodayDateStr()}
               </p>
 
               {logLoading ? (
