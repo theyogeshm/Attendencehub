@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
-import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName, parseSemesterNumber } from "./data";
+import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName, parseSemesterNumber, isSubjectInSemester } from "./data";
 import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
@@ -80,9 +80,23 @@ export default function App() {
 
   // ── Live persistent states ────────────────────────────────────────────────
   // safeLocalStorageGet guards against corrupted/tampered data in localStorage
-  const [subjects, setSubjects] = useState<Subject[]>(() =>
-    safeLocalStorageGet<Subject[]>("ATTENDANCE_HUB_SUBJECTS", INITIAL_SUBJECTS)
-  );
+  const [subjects, setSubjects] = useState<Subject[]>(() => {
+    const rawProfile = safeLocalStorageGet<StudentProfile>("ATTENDANCE_HUB_PROFILE", {
+      name: "Student",
+      rollNo: "2K24/CSE/01",
+      branch: "Computer Science & Engineering",
+      semester: "3rd Semester",
+      section: "A3",
+    });
+    const semNum = parseSemesterNumber(rawProfile?.semester || "3rd Semester");
+    const cached = safeLocalStorageGet<Subject[]>("ATTENDANCE_HUB_SUBJECTS", INITIAL_SUBJECTS);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      const filtered = cached.filter(s => isSubjectInSemester(s.name, semNum));
+      if (filtered.length > 0) return filtered;
+    }
+    const semSubs = DTU_CSE_SUBJECTS[semNum] || INITIAL_SUBJECTS.map(s => s.name);
+    return subjectNamestoSubjects(semSubs);
+  });
 
   const [assignments, setAssignments] = useState<Assignment[]>(() =>
     safeLocalStorageGet<Assignment[]>("ATTENDANCE_HUB_ASSIGNMENTS", INITIAL_ASSIGNMENTS)
@@ -288,7 +302,11 @@ export default function App() {
           const cached = JSON.parse(raw);
           if (cached.userId === u.id) {
             if (cached.profile)     setProfile(cached.profile);
-            if (cached.subjects)    setSubjects(cached.subjects);
+            if (cached.subjects) {
+              const semNum = parseSemesterNumber(cached.profile?.semester || profile.semester);
+              const filtered = (cached.subjects as Subject[]).filter(s => isSubjectInSemester(s.name, semNum));
+              setSubjects(filtered.length > 0 ? filtered : cached.subjects);
+            }
             if (cached.assignments) setAssignments(cached.assignments);
             if (cached.onboardingDone === false) {
               setShowOnboarding(true);
@@ -392,9 +410,11 @@ export default function App() {
       const timetableSubjects = getTimetableSubjectsForSemAndSection(userSemNum, userSectionStr, dbTimetableEntries);
 
       // Read stored subjects from profiles.subjects (jsonb array in Supabase)
-      const storedSubjects: string[] = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
+      const rawStored: string[] = (pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0)
         ? pData.subjects as string[]
         : [];
+      // STRICT ISOLATION: Keep ONLY subjects that belong to user's current semester
+      const storedSubjects = rawStored.filter(s => isSubjectInSemester(s, userSemNum));
 
       let rawSubjectNames: string[] = [];
 
@@ -405,18 +425,26 @@ export default function App() {
           supabase.from("profiles").update({ subjects: timetableSubjects }).eq("id", u.id).then(() => {});
         }
       } else if (storedSubjects.length > 0) {
-        // Priority 2: Fallback to profiles.subjects (jsonb array)
+        // Priority 2: Fallback to valid profiles.subjects belonging to this semester
         rawSubjectNames = storedSubjects;
       } else {
         // Priority 3: Fallback to DTU_CSE_SUBJECTS[userSemNum]
         const semSubs = DTU_CSE_SUBJECTS[userSemNum];
         rawSubjectNames = (semSubs && semSubs.length > 0) ? semSubs : [];
+        if (rawSubjectNames.length > 0 && u) {
+          supabase.from("profiles").update({ subjects: rawSubjectNames }).eq("id", u.id).then(() => {});
+        }
+      }
+
+      // If storedSubjects had foreign semester subjects mixed in, sync clean subjects back to Supabase
+      if (rawStored.length > 0 && rawStored.length !== storedSubjects.length && u) {
+        supabase.from("profiles").update({ subjects: rawSubjectNames }).eq("id", u.id).then(() => {});
       }
 
       let expandedSubjectsList: string[] = [];
       for (const name of rawSubjectNames) {
         const lower = name.toLowerCase().trim();
-        if (lower.includes("theory") || lower.includes("lab")) {
+        if (lower.includes("theory") || lower.includes("lab") || lower.includes("tutorial")) {
           expandedSubjectsList.push(name);
         } else if (lower.includes("operating system") || lower === "os") {
           expandedSubjectsList.push("Operating System Design - Theory", "Operating System Design - Lab");
@@ -433,22 +461,24 @@ export default function App() {
         }
       }
 
-      // Also ensure any subject from attData is preserved in expandedSubjectsList
+      // STRICT ISOLATION: Only preserve subjects from attData if they belong to this semester
       if (attData && attData.length > 0) {
         attData.forEach(row => {
           if (row.subject) {
             const std = getStandardizedSubjectName(row.subject);
-            if (std && !expandedSubjectsList.includes(std)) {
+            if (std && isSubjectInSemester(std, userSemNum) && !expandedSubjectsList.includes(std)) {
               expandedSubjectsList.push(std);
             }
           }
         });
       }
 
-      expandedSubjectsList = Array.from(new Set(expandedSubjectsList));
+      expandedSubjectsList = Array.from(new Set(expandedSubjectsList)).filter(s => isSubjectInSemester(s, userSemNum));
       const baseSubjects = subjectNamestoSubjects(expandedSubjectsList);
 
-      const agg = buildAttendanceAggregates(attData || []);
+      // STRICT ISOLATION: Aggregate attendance ONLY for the current semester's subjects
+      const currentSemAttData = (attData || []).filter(r => isSubjectInSemester(r.subject, userSemNum));
+      const agg = buildAttendanceAggregates(currentSemAttData);
       const getType = (name: string): string | null => {
         const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
         if (!m) return null;
@@ -1162,15 +1192,19 @@ export default function App() {
       if (editProfile.branch.toLowerCase().includes("computer science") || editProfile.branch.toUpperCase() === "CSE") {
         const cseBranch = dtuData.branches.find((b: any) => b.branch === "CSE");
         const semData = cseBranch?.semesters.find((s: any) => s.sem === semNum);
-        const subNames = (semData && semData.subjects && semData.subjects.length > 0)
-          ? [...semData.subjects]
+        const timetableSubs = getTimetableSubjectsForSemAndSection(semNum, editProfile.section, dbTimetableEntries);
+        const subNames = timetableSubs.length > 0
+          ? timetableSubs
           : (DTU_CSE_SUBJECTS[semNum] && DTU_CSE_SUBJECTS[semNum].length > 0)
           ? [...DTU_CSE_SUBJECTS[semNum]]
+          : (semData && semData.subjects && semData.subjects.length > 0)
+          ? [...semData.subjects]
           : [];
 
         if (subNames.length > 0) {
           newSubjectsList = subNames;
-          setSubjects(subjectNamestoSubjects(subNames));
+          const newSubs = subjectNamestoSubjects(subNames);
+          setSubjects(newSubs);
           showToast(`Profile updated, subjects updated for Sem ${semNum}`);
         } else {
           // No predefined subjects for this semester — explicitly clear stale subjects
@@ -1186,6 +1220,19 @@ export default function App() {
     } else {
       showToast("Profile updated");
     }
+
+    // Update session cache with clean new subjects and profile
+    try {
+      const raw = localStorage.getItem(SESSION_CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        cached.profile = safeEditProfile;
+        if (newSubjectsList !== null) {
+          cached.subjects = subjectNamestoSubjects(newSubjectsList);
+        }
+        localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(cached));
+      }
+    } catch { /* ignore */ }
 
     if (user) {
       const updateData: any = {
@@ -1204,6 +1251,10 @@ export default function App() {
       }
       
       await supabase.from("profiles").upsert(updateData);
+      if (isSemesterChanged) {
+        await refreshAttendanceCounts(user);
+        await fetchTodayAttendance(user, newSubjectsList ? subjectNamestoSubjects(newSubjectsList) : subjects);
+      }
     }
   };
 
@@ -1253,7 +1304,9 @@ export default function App() {
       .eq("user_id", u.id);
     if (!attData) return;
 
-    const agg = buildAttendanceAggregates(attData);
+    const currentSemNum = parseSemesterNumber(profile?.semester || "3rd Semester");
+    const currentSemAttData = attData.filter(r => isSubjectInSemester(r.subject, currentSemNum));
+    const agg = buildAttendanceAggregates(currentSemAttData);
 
     const getType = (name: string): string | null => {
       const m = name.toLowerCase().match(/\s*-\s*(theory|lab|tutorial|tut|lec)$/i);
@@ -1368,7 +1421,7 @@ export default function App() {
     if (error) {
       console.error("[Attendance Log] Supabase query error:", error);
     } else {
-      const fetched = (data ?? []).filter(r => !r.semester || parseSemesterNumber(r.semester) === currentSemNum);
+      const fetched = (data ?? []).filter(r => isSubjectInSemester(r.subject, currentSemNum));
       console.log(`[Attendance Log] Found ${fetched.length} records in DB for date "${dateStr}":`, fetched.map(r => ({ subject: r.subject, status: r.status, date: r.date })));
       const targetSubjects = getScheduledSubjectsForDate(dateStr);
 
@@ -1595,9 +1648,13 @@ export default function App() {
 
     const secData = isSem1
       ? getSem1SecData(profile.section)
+      : isSem3
+      ? (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A1"])
       : isSem5
       ? (TIMETABLE_SEM_5_DATA.sections[userSecKey] || TIMETABLE_SEM_5_DATA.sections["A1"])
-      : (TIMETABLE_SEM_3_DATA.sections[userSecKey] || TIMETABLE_SEM_3_DATA.sections["A1"]);
+      : isSem7
+      ? sem7SecData
+      : null;
 
     const activeSec = isSem7 ? sem7SecData : secData;
     const daySchedule = (isSem1 || isSem3 || isSem5 || isSem7)

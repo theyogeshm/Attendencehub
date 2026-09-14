@@ -88,6 +88,78 @@ export const getStandardizedBaseName = (raw: string): string => {
   return raw;
 };
 
+// ── Helper to determine which semester a subject belongs to ──────────────────
+export const getSubjectSemester = (raw: string): number | null => {
+  if (!raw) return null;
+  const lower = raw.toLowerCase().trim();
+
+  // Sem 1
+  if (lower.includes("am101") || lower.includes("mathematics-i") || lower.includes("mathematics 1") || (lower.includes("mathematics i") && !lower.includes("ii") && !lower.includes("2"))) return 1;
+  if (lower.includes("co101") || lower.includes("programming fundamentals")) return 1;
+  if (lower.includes("ec101") || lower.includes("basic electronics")) return 1;
+  if (lower.includes("me105") || lower.includes("engineering graphics")) return 1;
+  if (lower.includes("cs103") || lower.includes("web designing") || lower.includes("web design")) return 1;
+
+  // Sem 2
+  if (lower.includes("basic ml") || lower.includes("basics of ml")) return 2;
+  if (lower.includes("discrete structure") || lower.includes("discrete math")) return 2;
+  if (lower.includes("data structure") && !lower.includes("advance") && !lower.includes("daa") && !lower.includes("algorithm")) return 2;
+  if (lower.includes("maths ii") || lower.includes("maths 2") || lower.includes("mathematics ii") || lower.includes("mathematics-ii") || lower.includes("mathematics 2")) return 2;
+  if (lower.includes("physics")) return 2;
+
+  // Sem 3
+  if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) return 3;
+  if (lower.includes("algorithm") || lower.includes("daa")) return 3;
+  if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) return 3;
+  if (lower.includes("operating system") || lower === "os") return 3;
+  if (lower.includes("software engineering") || lower === "se") return 3;
+  if (lower.includes("foundation to data science")) return 3;
+  if (lower.includes("linear algebra")) return 3;
+
+  // Sem 4
+  if (lower.includes("database management") || lower.includes("dbms")) return 4;
+  if (lower.includes("probability and statistics") || lower.includes("probability & statistics")) return 4;
+  if (lower.includes("theory of computation") || lower.includes("toc")) return 4;
+  if (lower.includes("computer communication networks") || lower.includes("ccn")) return 4;
+  if (lower.includes("computer organisation and architecture") || lower.includes("computer organization and architecture") || lower.includes("coa")) return 4;
+
+  // Sem 5
+  if (lower.includes("compiler design") || lower.includes("cd")) return 5;
+  if (lower.includes("machine learning") && !lower.includes("basic")) return 5;
+  if (lower.includes("information and network security") || lower.includes("ins")) return 5;
+  if (lower.includes("distributed system") || lower.includes("dis")) return 5;
+  if (lower.includes("cyber vulnerability") || lower.includes("ethical hacking") || lower.includes("cs411")) return 5;
+  if (lower.includes("cloud computing") || lower.includes("cs425")) return 5;
+  if (lower.includes("advance web technology") || lower.includes("web technology") || lower.includes("cs421")) return 5;
+  if (lower.includes("big data analytics") || lower.includes("big data") || lower.includes("cs423")) return 5;
+  if (lower.includes("advance data structure")) return 5;
+  if (lower.includes("information theory")) return 5;
+  if (lower.includes("quantum computing")) return 5;
+
+  // Sem 7
+  if (DTU_CSE_SEM7_SUBJECTS && DTU_CSE_SEM7_SUBJECTS.some(s => lower.includes(s.toLowerCase().trim()))) return 7;
+
+  return null;
+};
+
+// ── Check if a subject belongs to a specific semester ────────────────────────
+export const isSubjectInSemester = (subjectName: string, semNum: number): boolean => {
+  if (!subjectName) return false;
+  // Strip any slot suffix e.g. " (10-11)" or room info
+  const cleanName = subjectName.replace(/\s*\([^)]+\)$/, "").trim();
+  const detectedSem = getSubjectSemester(cleanName);
+  if (detectedSem !== null) {
+    return detectedSem === semNum;
+  }
+  // Check predefined list for this semester
+  const list = DTU_CSE_SUBJECTS[semNum] || [];
+  const clean = cleanName.toLowerCase().trim();
+  return list.some(s => {
+    const item = s.toLowerCase().trim();
+    return item === clean || clean.includes(item) || item.includes(clean);
+  });
+};
+
 export const getStandardizedSubjectName = (name: string): string => {
   if (!name) return "";
   const isLab = name.toLowerCase().includes("lab");
