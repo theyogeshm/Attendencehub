@@ -170,30 +170,38 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
         </span>
       </div>
 
-      {/* Info */}
+      {/* Info — document title is clickable and opens the file */}
       <div className="flex-1 min-w-0 pr-1">
         {isLongName ? (
-          <button
-            type="button"
-            aria-expanded={isExpanded}
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-left w-full cursor-pointer select-none sm:cursor-auto bg-transparent border-none p-0 focus:outline-none"
-          >
-            <p className={`text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words ${
-              !isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""
-            }`}>
-              {res.file_name}
-            </p>
-            <span className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5">
-              {isExpanded ? "Show less ▲" : "Show more ▼"}
-            </span>
-          </button>
-        ) : (
           <div>
-            <p className="text-xs sm:text-sm font-semibold text-on-surface leading-snug break-words">
-              {res.file_name}
-            </p>
+            <a
+              href={res.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block"
+            >
+              <p className={!isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""}>
+                {res.file_name}
+              </p>
+            </a>
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5 cursor-pointer"
+            >
+              {isExpanded ? "Show less ▲" : "Show more ▼"}
+            </button>
           </div>
+        ) : (
+          <a
+            href={res.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block"
+          >
+            {res.file_name}
+          </a>
         )}
 
         <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
@@ -208,18 +216,15 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
         </div>
       </div>
 
-      {/* Actions — icon-only on mobile (compact, guaranteed to fit at 375px),
-          icon+label from sm: up. This is the fix: a previous change made both
-          labels always-visible with wider padding, and because this wrapper is
-          flex-shrink-0, the two pill buttons no longer fit next to a card title
-          on narrow screens and were clipped off the right edge entirely. */}
-      <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
+      {/* Actions — 36px touch-friendly square icons on mobile, icon+text on desktop */}
+      <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
         <a
           href={res.file_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="View document"
+          aria-label="View document"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           <span className="hidden sm:inline text-[11px]">View</span>
@@ -229,8 +234,9 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
           download={res.file_name}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center p-1.5 sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
           title="Download document"
+          aria-label="Download document"
         >
           <Download className="w-3.5 h-3.5" />
           <span className="hidden sm:inline text-[11px] ml-1">Download</span>
@@ -262,12 +268,19 @@ function ScrollableTabList({
   const scrollLeftRef = useRef(0);
   const hasMovedRef = useRef(false);
 
+  const rafRef = useRef<number | null>(null);
+
   const checkScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 6);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 6);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const left = scrollLeft > 6;
+      const right = scrollLeft < scrollWidth - clientWidth - 6;
+      setCanScrollLeft((prev) => (prev !== left ? left : prev));
+      setCanScrollRight((prev) => (prev !== right ? right : prev));
+    });
   }, []);
 
   useEffect(() => {
@@ -310,6 +323,7 @@ function ScrollableTabList({
       window.removeEventListener("resize", handleResize);
       el.removeEventListener("wheel", onWheel);
       cancelAnimationFrame(raf);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       resizeObserver.disconnect();
     };
   }, [checkScroll, tabList]);
@@ -741,7 +755,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                       </div>
                       <div className="space-y-2.5">
                         {files.slice(0, visibleCount).map((res) => (
-                          <div key={res.id}><FileCard res={res} /></div>
+                          <div key={res.id} className="list-item-optimized"><FileCard res={res} /></div>
                         ))}
                       </div>
                     </div>
@@ -751,7 +765,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               /* Flat list for tabs without sub-headings */
               <div className={isVideoTab ? "space-y-4" : "space-y-2.5"}>
                 {tabResources.slice(0, visibleCount).map((res) => (
-                  <div key={res.id}><FileCard res={res} /></div>
+                  <div key={res.id} className="list-item-optimized"><FileCard res={res} /></div>
                 ))}
               </div>
             )}

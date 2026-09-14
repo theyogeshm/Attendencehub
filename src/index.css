@@ -59,6 +59,25 @@
 html, body {
   overflow-x: hidden;
   max-width: 100%;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+/* Remove 300ms tap delay on mobile devices for all interactive elements */
+button, a, input, select, textarea, [role="button"], [role="tab"] {
+  touch-action: manipulation;
+}
+
+/* Enable smooth momentum scrolling on iOS and prevent pull-to-refresh conflicts */
+.overflow-y-auto, .overflow-x-auto, .custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Browser-native list virtualization: skip layout and render for offscreen cards */
+.list-item-optimized {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 76px;
 }
 
 @layer utilities {
@@ -94,9 +113,8 @@ html, body {
       -webkit-backdrop-filter: none !important;
       background: rgba(23, 31, 51, 0.96);
     }
-    
-    button, a {
-      touch-action: manipulation;
+    html.light .glass-card {
+      background: #FFFFFF !important;
     }
   }
 
