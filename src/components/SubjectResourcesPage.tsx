@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText, MoreHorizontal } from "lucide-react";
 import { Subject } from "../types";
 import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
@@ -248,8 +248,8 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
 
 FileCard.displayName = "FileCard";
 
-// ── Scrollable Tab Bar Component with Wheel, Drag & Chevron Controls ─────────
-function ScrollableTabList({
+// ── Collapsible Tab Bar Component with "..." Expand Pattern ──────────────────
+function CollapsibleTabList({
   tabList,
   activeTab,
   onSelectTab,
@@ -260,178 +260,68 @@ function ScrollableTabList({
   onSelectTab: (tab: string) => void;
   resources: DbResource[];
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const hasMovedRef = useRef(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const rafRef = useRef<number | null>(null);
-
-  const checkScroll = useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      const el = containerRef.current;
-      if (!el) return;
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const left = scrollLeft > 6;
-      const right = scrollLeft < scrollWidth - clientWidth - 6;
-      setCanScrollLeft((prev) => (prev !== left ? left : prev));
-      setCanScrollRight((prev) => (prev !== right ? right : prev));
-    });
-  }, []);
-
-  useEffect(() => {
-    checkScroll();
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleResize = () => checkScroll();
-    window.addEventListener("resize", handleResize);
-
-    // Re-measure once the icon font (material-symbols-outlined) finishes loading —
-    // icon glyphs can change tab widths *after* the initial layout paint, which
-    // otherwise leaves scrollWidth stale and canScrollRight/Left wrongly false,
-    // making the last tab look cut off with no scroll affordance.
-    if (typeof document !== "undefined" && "fonts" in document) {
-      document.fonts.ready.then(() => checkScroll()).catch(() => {});
+  // Compute the paired tab to display alongside the active tab when collapsed
+  const activeIdx = tabList.indexOf(activeTab);
+  let pairedTab = "";
+  if (tabList.length > 1) {
+    if (activeIdx >= 0 && activeIdx < tabList.length - 1) {
+      pairedTab = tabList[activeIdx + 1];
+    } else if (activeIdx === tabList.length - 1) {
+      pairedTab = tabList[0];
+    } else {
+      pairedTab = tabList.find((t) => t !== activeTab) || tabList[1];
     }
+  }
 
-    // Also re-measure on the next animation frame in case layout settles
-    // after this effect runs (e.g. fonts/images still reflowing).
-    const raf = requestAnimationFrame(checkScroll);
+  // When collapsed: show activeTab + pairedTab
+  // When expanded: show all tabs
+  const visibleTabs = isExpanded
+    ? tabList
+    : tabList.length <= 2
+    ? tabList
+    : [activeTab, pairedTab].filter(Boolean);
 
-    // Watch the tab row itself for any size changes (safer than only
-    // listening to window resize, which misses container-only changes
-    // like sidebar toggles or dynamic content reflow).
-    const resizeObserver = new ResizeObserver(() => checkScroll());
-    resizeObserver.observe(el);
-
-    // Translate vertical wheel scroll to horizontal tab scroll seamlessly
-    const onWheel = (e: WheelEvent) => {
-      if (el.scrollWidth > el.clientWidth && e.deltaY !== 0) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaY * 0.8;
-        checkScroll();
-      }
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      el.removeEventListener("wheel", onWheel);
-      cancelAnimationFrame(raf);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      resizeObserver.disconnect();
-    };
-  }, [checkScroll, tabList]);
-
-  // Center active tab smoothly into view when activeTab updates without affecting page scroll
-  useEffect(() => {
-    if (!activeTab || !containerRef.current) return;
-    const container = containerRef.current;
-    const activeEl = container.querySelector<HTMLElement>(`[data-tab-name="${activeTab}"]`);
-    if (activeEl) {
-      const containerRect = container.getBoundingClientRect();
-      const tabRect = activeEl.getBoundingClientRect();
-      const offsetLeft = tabRect.left - containerRect.left;
-      const targetScrollLeft = container.scrollLeft + offsetLeft - (containerRect.width / 2) + (tabRect.width / 2);
-      
-      container.scrollTo({
-        left: Math.max(0, targetScrollLeft),
-        behavior: "smooth",
-      });
-      setTimeout(checkScroll, 350);
-    }
-  }, [activeTab, checkScroll]);
-
-  const scrollByAmount = (amount: number) => {
-    containerRef.current?.scrollBy({ left: amount, behavior: "smooth" });
-    setTimeout(checkScroll, 350);
-  };
-
-  // Mouse drag-to-scroll handlers
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    isDraggingRef.current = true;
-    hasMovedRef.current = false;
-    startXRef.current = e.pageX - containerRef.current.offsetLeft;
-    scrollLeftRef.current = containerRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current || !containerRef.current) return;
-    const x = e.pageX - containerRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.3;
-    if (Math.abs(walk) > 4) {
-      hasMovedRef.current = true;
-    }
-    containerRef.current.scrollLeft = scrollLeftRef.current - walk;
-    checkScroll();
-  };
-
-  const handleMouseUpOrLeave = () => {
-    isDraggingRef.current = false;
-  };
+  const hasMore = tabList.length > 2;
+  const hiddenCount = Math.max(0, tabList.length - 2);
 
   return (
-    <div className="relative w-full min-w-0 max-w-full overflow-hidden">
-      {/* Left Scroll Button & Fade Indicator */}
-      {canScrollLeft && (
-        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-surface-container via-surface-container/95 to-transparent pointer-events-none">
-          <button
-            type="button"
-            onClick={() => scrollByAmount(-180)}
-            className="pointer-events-auto p-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
-            title="Scroll left"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Tab Row Container */}
+    <div className="w-full min-w-0 max-w-full">
       <div
-        ref={containerRef}
-        onScroll={checkScroll}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUpOrLeave}
-        onMouseLeave={handleMouseUpOrLeave}
-        className="flex items-center overflow-x-auto scrollbar-none gap-1 -mb-px max-w-full w-full min-w-0 cursor-grab active:cursor-grabbing select-none"
-        style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
+        className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full min-w-0"
         role="tablist"
         aria-label="Resource sections"
       >
-        {tabList.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = activeTab === tab;
-          const count    = resources.filter((r) => r.tab_type === tab).length;
+          const count = resources.filter((r) => r.tab_type === tab).length;
+
           return (
             <button
               key={tab}
-              data-tab-name={tab}
               id={`res-tab-${tab.replace(/\s+/g, "-").toLowerCase()}`}
               role="tab"
               aria-selected={isActive}
               onClick={() => {
-                if (!hasMovedRef.current) {
-                  onSelectTab(tab);
-                }
+                onSelectTab(tab);
+                setIsExpanded(false);
               }}
-              className={`flex-shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-3 text-xs font-bold transition-all duration-150 cursor-pointer border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold transition-all duration-150 cursor-pointer rounded-xl border shrink-0 ${
                 isActive
-                  ? "text-primary border-primary font-bold"
-                  : "text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant"
+                  ? "bg-primary/15 text-primary border-primary shadow-sm"
+                  : "bg-surface-variant/40 border-outline-variant/60 text-on-surface-variant hover:text-on-surface hover:border-primary/40 active:scale-95"
               }`}
             >
-              <span className="material-symbols-outlined text-[15px]">{getTabIcon(tab)}</span>
-              <span>{tab}</span>
+              <span className="material-symbols-outlined text-[16px] shrink-0">
+                {getTabIcon(tab)}
+              </span>
+              <span className="whitespace-nowrap">{tab}</span>
               <span
-                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                  isActive ? "bg-primary/10 text-primary" : "bg-surface-variant text-on-surface-variant"
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                  isActive
+                    ? "bg-primary text-on-primary"
+                    : "bg-surface-variant text-on-surface-variant"
                 }`}
               >
                 {count}
@@ -440,24 +330,29 @@ function ScrollableTabList({
           );
         })}
 
-        {/* End Spacer ensuring rightmost tab is fully reachable and never obscured */}
-        <div className="w-16 sm:w-8 flex-shrink-0 h-1 pointer-events-none" aria-hidden="true" />
-      </div>
-
-      {/* Right Scroll Button & Fade Indicator */}
-      {canScrollRight && (
-        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-3 pr-1 bg-gradient-to-l from-surface-container via-surface-container/95 to-transparent pointer-events-none">
+        {/* "..." Expand / Collapse Button */}
+        {hasMore && (
           <button
             type="button"
-            onClick={() => scrollByAmount(180)}
-            className="pointer-events-auto p-1.5 rounded-full bg-surface-container-high border border-outline-variant text-on-surface hover:text-primary hover:border-primary shadow-md active:scale-95 transition-all cursor-pointer"
-            title="Scroll right"
-            aria-label="Scroll right"
+            aria-label={isExpanded ? "Collapse sections" : "Show more sections"}
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className={`flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold transition-all duration-150 cursor-pointer rounded-xl border shrink-0 ${
+              isExpanded
+                ? "bg-primary/20 text-primary border-primary shadow-sm"
+                : "bg-surface-variant/40 border-outline-variant/60 text-on-surface-variant hover:text-on-surface hover:border-primary/40 active:scale-95"
+            }`}
+            title={isExpanded ? "Show fewer sections" : "Show more sections"}
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <MoreHorizontal className="w-4 h-4" />
+            {!isExpanded && hiddenCount > 0 && (
+              <span className="text-[10px] font-bold bg-surface-variant text-on-surface-variant px-1.5 py-0.5 rounded-full">
+                +{hiddenCount}
+              </span>
+            )}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -593,7 +488,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     <div className="flex-1 flex flex-col w-full min-w-0 max-w-full overflow-x-hidden">
 
       {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-0 flex-shrink-0 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="bg-surface-container border-b border-outline-variant px-4 sm:px-6 pt-3.5 pb-3 sm:pb-3.5 flex-shrink-0 w-full min-w-0 max-w-full">
 
         {/* Back */}
         <button
@@ -655,9 +550,9 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           )}
         </div>
 
-        {/* Tab bar — enhanced scrollable tabs with wheel, drag & chevron controls */}
+        {/* Tab bar — collapse + "..." expand pattern (zero overflow, wraps naturally) */}
         {!loading && tabList.length > 0 && (
-          <ScrollableTabList
+          <CollapsibleTabList
             tabList={tabList}
             activeTab={activeTabToUse}
             onSelectTab={(tab) => {
