@@ -2010,7 +2010,7 @@ export default function App() {
         </header>
 
         {/* ── PAGE CONTENT ── */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 pt-3 sm:pt-6 pb-36 lg:pb-24 custom-scrollbar">
+        <div className="flex-1 min-w-0 px-3 sm:px-6 pt-3 sm:pt-6 pb-36 lg:pb-24">
           <div className="max-w-7xl mx-auto w-full min-w-0">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

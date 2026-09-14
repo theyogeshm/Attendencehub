@@ -53,25 +53,37 @@
   --color-on-tertiary-fixed: #40000d;
 }
 
-/* Prevent the page root from ever scrolling horizontally.
-   Without this, any child overflow escapes to <body> and the
-   sticky app header scrolls sideways along with the content. */
-html, body {
+/* Prevent the page root from ever scrolling horizontally while allowing
+   full, unconstrained vertical touch scrolling on all mobile devices. */
+html {
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
-  width: 100%;
-  touch-action: manipulation;
 }
 
-/* Remove 300ms tap delay on mobile devices for all interactive elements */
+body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+  min-height: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Remove 300ms tap delay on mobile devices for interactive elements ONLY (never html/body) */
 button, a, input, select, textarea, [role="button"], [role="tab"] {
   touch-action: manipulation;
 }
 
-/* Enable smooth momentum scrolling on iOS and prevent pull-to-refresh conflicts */
-.overflow-y-auto, .overflow-x-auto, .custom-scrollbar {
+/* Enable smooth momentum scrolling on iOS */
+.overflow-y-auto, .custom-scrollbar {
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+}
+
+/* For horizontal scrollbars (like tab rows or timetable slots), constrain
+   horizontal overscroll without blocking vertical swipe-to-scroll gestures */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 /* Browser-native list virtualization: skip layout and render for offscreen cards */
