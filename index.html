@@ -1,6 +1,28 @@
 <!doctype html>
 <html lang="en" class="dark">
   <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E9Z2L0GXZQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      // Disable tracking on localhost / dev to avoid polluting production analytics
+      // (To test locally in console: localStorage.setItem('ENABLE_GA_TEST', 'true'); location.reload())
+      if (
+        (window.location.hostname === 'localhost' ||
+         window.location.hostname === '127.0.0.1' ||
+         window.location.hostname.endsWith('.local')) &&
+        window.localStorage.getItem('ENABLE_GA_TEST') !== 'true'
+      ) {
+        window['ga-disable-G-E9Z2L0GXZQ'] = true;
+      }
+
+      // Configure GA4 (send_page_view: false lets React Router handle SPA route changes)
+      gtag('config', 'G-E9Z2L0GXZQ', { send_page_view: false });
+    </script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Attendance Hub | Academic Portal</title>

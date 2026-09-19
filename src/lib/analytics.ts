@@ -9,17 +9,22 @@ declare global {
   }
 }
 
-export const GA_MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined)?.trim();
+export const GA_MEASUREMENT_ID =
+  (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined)?.trim() || 'G-E9Z2L0GXZQ';
 
 /**
  * Checks if current environment is localhost or development.
  * Prevents polluting production analytics with local testing data.
+ * Can be temporarily bypassed for testing in console with:
+ *   localStorage.setItem('ENABLE_GA_TEST', 'true'); location.reload();
  */
 export function isLocalOrDev(): boolean {
   if (typeof window === 'undefined') return true;
+  if (window.localStorage.getItem('ENABLE_GA_TEST') === 'true') {
+    return false;
+  }
   const hostname = window.location.hostname;
   return (
-    import.meta.env.DEV ||
     hostname === 'localhost' ||
     hostname === '127.0.0.1' ||
     hostname === '[::1]' ||
@@ -28,32 +33,34 @@ export function isLocalOrDev(): boolean {
 }
 
 /**
- * Initializes GA4 by injecting the gtag script asynchronously.
- * Skips execution in local development or if no measurement ID is configured.
+ * Initializes GA4. If tag is already present in index.html, ensures gtag is defined.
+ * If not present, injects the script asynchronously.
  */
 export function initGA(): boolean {
   if (typeof window === 'undefined') return false;
-  if (!GA_MEASUREMENT_ID) return false;
   if (isLocalOrDev()) return false;
   if (window.__gaInitialized) return true;
 
-  // Set up dataLayer and gtag function
+  // Set up dataLayer and gtag function if not already created
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function () {
-    window.dataLayer?.push(arguments);
-  };
+  if (!window.gtag) {
+    window.gtag = function () {
+      window.dataLayer?.push(arguments);
+    };
+  }
 
-  window.gtag('js', new Date());
-  // Disable automatic page view on initial config to prevent duplicate views in SPA
-  window.gtag('config', GA_MEASUREMENT_ID, {
-    send_page_view: false,
-  });
+  // If the script is not already in index.html, inject it dynamically
+  if (!document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`)) {
+    window.gtag('js', new Date());
+    window.gtag('config', GA_MEASUREMENT_ID, {
+      send_page_view: false,
+    });
 
-  // Inject gtag.js script asynchronously so it never blocks rendering
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  document.head.appendChild(script);
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+    document.head.appendChild(script);
+  }
 
   window.__gaInitialized = true;
   return true;
