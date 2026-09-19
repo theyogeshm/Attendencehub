@@ -13,6 +13,7 @@ import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { safeLocalStorageGet, sanitizeText, checkRateLimit, FIELD_LIMITS, startIdleTimer, clearIdleTimer, isAdminEmail } from "./lib/security";
+import { usePageTracking } from "./lib/analytics";
 
 // Sub-page components
 import DashboardPage from "./components/DashboardPage";
@@ -54,6 +55,9 @@ interface StudentProfile {
 }
 
 export default function App() {
+  // ── GA4 Analytics tracking (SPA route listener) ───────────────────────────
+  usePageTracking();
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [user, setUser] = useState<User | null>(null);
   const [initialAuthDone, setInitialAuthDone] = useState(false);
