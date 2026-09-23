@@ -1,5 +1,5 @@
 /**
- * pdfUtils.ts — Helpers for PDF detection and direct Google Drive CORS stream resolution
+ * pdfUtils.ts — Helpers for PDF detection and Google Drive embeddable preview resolution
  */
 
 /**
@@ -14,15 +14,19 @@ export function getDriveFileId(url: string): string | null {
 }
 
 /**
- * Converts a Google Drive link to a direct usercontent download URL.
- * Google usercontent endpoints support CORS headers (Access-Control-Allow-Origin: *),
- * enabling direct client-side PDF canvas rendering without off-site redirects.
+ * Converts a Google Drive link to its official embeddable /preview URL.
+ * Google Drive's /preview endpoint serves its inline preview UI without X-Frame-Options restrictions,
+ * completely avoiding browser CORS restrictions while keeping the user on-site.
  */
-export function getPdfDirectUrl(url: string): string {
+export function getDriveEmbedUrl(url: string): string {
   if (!url) return "";
   const fileId = getDriveFileId(url);
   if (fileId) {
-    return `https://drive.usercontent.google.com/download?id=${fileId}&export=download`;
+    return `https://drive.google.com/file/d/${fileId}/preview`;
+  }
+  // If external PDF URL, Google Docs gview provides universal inline preview
+  if (url.toLowerCase().endsWith(".pdf")) {
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
   }
   return url;
 }
