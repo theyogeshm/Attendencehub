@@ -32,6 +32,20 @@ export function getDriveEmbedUrl(url: string): string {
 }
 
 /**
+ * Converts a Google Drive link to a direct file download URL.
+ * When clicked, the browser directly downloads the file as an attachment
+ * instead of opening Google Drive's web viewer.
+ */
+export function getDriveDownloadUrl(url: string): string {
+  if (!url) return "";
+  const fileId = getDriveFileId(url);
+  if (fileId) {
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+  return url;
+}
+
+/**
  * Checks whether a document resource is a PDF file.
  * Returns false for non-PDFs (videos, audio, archives, images) so they fall back to normal browser behavior.
  */

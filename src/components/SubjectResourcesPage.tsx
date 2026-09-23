@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import type { DbResource } from "../lib/supabase";
 import PdfViewerModal from "./PdfViewerModal";
 import AdSlot from "./AdSlot";
-import { isPdfDocument } from "../lib/pdfUtils";
+import { isPdfDocument, getDriveDownloadUrl } from "../lib/pdfUtils";
 
 // ── Dynamic color palette — assigned to tabs in appearance order ──────────────
 const TAB_PALETTE = [
@@ -132,11 +132,14 @@ const FileCard = memo(({ res, onViewPdf }: { res: DbResource; onViewPdf?: (res: 
   const embedUrl    = resIsVideo ? getYouTubeEmbedUrl(res.file_url) : null;
   const isLongName  = res.file_name.length > 35;
   const isPdf       = isPdfDocument(res.file_name, res.file_url);
+  const downloadUrl = getDriveDownloadUrl(res.file_url);
 
-  const handleView = (e: React.MouseEvent) => {
+  const handleView = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (isPdf && onViewPdf) {
-      e.preventDefault();
       onViewPdf(res);
+    } else {
+      window.open(res.file_url, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -171,53 +174,55 @@ const FileCard = memo(({ res, onViewPdf }: { res: DbResource; onViewPdf?: (res: 
     );
   }
 
-  // Standard file card
+  // Standard file card — clicking anywhere opens in-site document preview (View) by default
   return (
-    <div className="group flex items-center justify-between gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/40 active:bg-surface-container-high transition-all duration-150 w-full min-w-0 box-border">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleView}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleView();
+        }
+      }}
+      className="group flex items-center justify-between gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-2xl glass-card border border-outline-variant shadow-sm hover:border-primary/50 hover:bg-surface-container-high/40 active:scale-[0.99] transition-all duration-150 w-full min-w-0 box-border cursor-pointer select-none"
+    >
       {/* Icon */}
-      <div className="flex-shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+      <div className="flex-shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-primary/10 flex items-center justify-center pointer-events-none">
         <span className="material-symbols-outlined text-primary text-[18px] sm:text-[20px]">
           {getTabIcon(res.tab_type)}
         </span>
       </div>
 
-      {/* Info — document title is clickable and opens the file */}
+      {/* Info — clicking card opens view */}
       <div className="flex-1 min-w-0 pr-1">
         {isLongName ? (
           <div>
-            <a
-              href={res.file_url}
-              onClick={handleView}
-              target={isPdf ? undefined : "_blank"}
-              rel="noopener noreferrer"
-              className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block cursor-pointer"
-            >
+            <span className="text-xs sm:text-sm font-semibold text-on-surface group-hover:text-primary transition-colors leading-snug break-words block">
               <p className={!isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""}>
                 {res.file_name}
               </p>
-            </a>
+            </span>
             <button
               type="button"
               aria-expanded={isExpanded}
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
               className="sm:hidden text-[10px] text-primary font-bold hover:underline inline-block mt-0.5 cursor-pointer"
             >
               {isExpanded ? "Show less ▲" : "Show more ▼"}
             </button>
           </div>
         ) : (
-          <a
-            href={res.file_url}
-            onClick={handleView}
-            target={isPdf ? undefined : "_blank"}
-            rel="noopener noreferrer"
-            className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block cursor-pointer"
-          >
+          <span className="text-xs sm:text-sm font-semibold text-on-surface group-hover:text-primary transition-colors leading-snug break-words block">
             {res.file_name}
-          </a>
+          </span>
         )}
 
-        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap pointer-events-none">
           {res.file_size ? (
             <span className="text-[10px] text-on-surface-variant font-medium">{res.file_size}</span>
           ) : (
@@ -229,26 +234,31 @@ const FileCard = memo(({ res, onViewPdf }: { res: DbResource; onViewPdf?: (res: 
         </div>
       </div>
 
-      {/* Actions — 36px touch-friendly square icons on mobile, icon+text on desktop */}
+      {/* Actions */}
       <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
-        <a
-          href={res.file_url}
-          onClick={handleView}
-          target={isPdf ? undefined : "_blank"}
-          rel="noopener noreferrer"
+        {/* View button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleView();
+          }}
           className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer"
           title={isPdf ? "View document inline" : "View document"}
           aria-label={isPdf ? "View document inline" : "View document"}
         >
           <ExternalLink className="w-3.5 h-3.5" />
           <span className="hidden sm:inline text-[11px]">View</span>
-        </a>
+        </button>
+
+        {/* Download direct file */}
         <a
-          href={res.file_url}
+          href={downloadUrl}
           download={res.file_name}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2 text-[11px] font-bold bg-primary text-on-primary rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer"
           title="Download document"
           aria-label="Download document"
         >
@@ -501,6 +511,12 @@ export default function SubjectResourcesPage({ subjects }: Props) {
           {syllabusResource && (
             <a
               href={syllabusResource.file_url}
+              onClick={(e) => {
+                if (isPdfDocument(syllabusResource.file_name, syllabusResource.file_url)) {
+                  e.preventDefault();
+                  setActivePdf(syllabusResource);
+                }
+              }}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary font-bold text-xs hover:bg-primary/20 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-sm"

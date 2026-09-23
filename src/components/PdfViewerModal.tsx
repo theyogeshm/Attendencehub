@@ -7,7 +7,7 @@ import {
   FileText,
   AlertCircle
 } from "lucide-react";
-import { getDriveEmbedUrl } from "../lib/pdfUtils";
+import { getDriveEmbedUrl, getDriveDownloadUrl } from "../lib/pdfUtils";
 
 interface PdfViewerModalProps {
   isOpen: boolean;
@@ -25,8 +25,9 @@ export default function PdfViewerModal({
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Derive the embeddable preview URL (Google Drive /preview format)
+  // Derive the embeddable preview URL (Google Drive /preview format) and direct download URL
   const embedUrl = getDriveEmbedUrl(fileUrl);
+  const downloadUrl = getDriveDownloadUrl(fileUrl);
 
   // Lock body scroll when modal is active
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function PdfViewerModal({
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Download direct file */}
           <a
-            href={fileUrl}
+            href={downloadUrl}
             download={fileName}
             target="_blank"
             rel="noopener noreferrer"
