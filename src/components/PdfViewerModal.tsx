@@ -160,7 +160,7 @@ export default function PdfViewerModal({
               <iframe
                 src={embedUrl}
                 title={`Preview - ${fileName}`}
-                className="w-full h-full border-0 block"
+                className="w-full h-[calc(100%+52px)] -mt-[52px] border-0 block"
                 allow="autoplay; fullscreen"
                 allowFullScreen
                 onLoad={() => setLoading(false)}
