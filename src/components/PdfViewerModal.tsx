@@ -85,40 +85,29 @@ export default function PdfViewerModal({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-2">
           {/* Download direct file */}
           <a
             href={downloadUrl}
             download={fileName}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-outline-variant bg-surface-container-low flex items-center justify-center gap-1.5 text-on-surface hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer shadow-xs"
+            className="h-8 sm:h-9 px-3 rounded-xl border border-outline-variant bg-surface-container-low flex items-center justify-center gap-1.5 text-on-surface hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer shadow-xs"
             title="Download document"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline text-xs font-semibold">Download</span>
           </a>
 
-          {/* Open on Google Drive in new tab */}
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-outline-variant bg-surface-container-low flex items-center justify-center gap-1.5 text-on-surface hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer shadow-xs"
-            title="Open in Google Drive"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span className="hidden sm:inline text-xs font-semibold">Open in Drive</span>
-          </a>
-
           {/* Close modal */}
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer ml-1"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl border border-outline-variant bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/30 active:scale-95 transition-all cursor-pointer shadow-xs"
             title="Close viewer (Esc)"
+            aria-label="Close viewer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </button>
         </div>
       </header>
@@ -134,7 +123,7 @@ export default function PdfViewerModal({
           </div>
         )}
 
-        {/* Error Fallback */}
+        {/* Error Fallback — ONLY shown if PDF is not showing */}
         {hasError ? (
           <div className="glass-card border border-red-500/30 rounded-2xl p-6 sm:p-8 max-w-md text-center space-y-4 shadow-xl z-10">
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mx-auto">
@@ -166,8 +155,8 @@ export default function PdfViewerModal({
             </div>
           </div>
         ) : (
-          <div className="w-full h-full max-w-6xl flex flex-col items-center justify-center gap-2">
-            <div className="relative w-full flex-1 rounded-2xl border border-outline-variant shadow-xl bg-surface overflow-hidden">
+          <div className="w-full h-full max-w-6xl flex flex-col items-center justify-center">
+            <div className="relative w-full h-full rounded-2xl border border-outline-variant shadow-xl bg-surface overflow-hidden">
               <iframe
                 src={embedUrl}
                 title={`Preview - ${fileName}`}
@@ -180,19 +169,6 @@ export default function PdfViewerModal({
                   setHasError(true);
                 }}
               />
-            </div>
-            {/* Footer helper tip */}
-            <div className="flex items-center justify-between w-full px-2 text-[11px] text-on-surface-variant flex-shrink-0">
-              <span className="hidden sm:inline">Google Drive Embedded Viewer</span>
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary text-on-surface-variant transition-colors flex items-center gap-1 font-medium ml-auto"
-              >
-                <span>Having trouble? Open directly in Google Drive</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
             </div>
           </div>
         )}
