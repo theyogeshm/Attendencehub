@@ -167,18 +167,25 @@ export default function PdfViewerModal({
           </div>
         ) : (
           <div className="w-full h-full max-w-6xl flex flex-col items-center justify-center gap-2">
-            <iframe
-              src={embedUrl}
-              title={`Preview - ${fileName}`}
-              className="w-full flex-1 rounded-2xl border border-outline-variant shadow-xl bg-surface"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-              onLoad={() => setLoading(false)}
-              onError={() => {
-                setLoading(false);
-                setHasError(true);
-              }}
-            />
+            <div className="relative w-full flex-1 rounded-2xl border border-outline-variant shadow-xl bg-surface overflow-hidden">
+              <iframe
+                src={embedUrl}
+                title={`Preview - ${fileName}`}
+                className="w-full h-full border-0 block"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                onLoad={() => setLoading(false)}
+                onError={() => {
+                  setLoading(false);
+                  setHasError(true);
+                }}
+              />
+              {/* Conceal Google Drive's internal pop-out button with matching canvas mask */}
+              <div
+                className="absolute top-0 right-0 w-[70px] h-[70px] bg-[#1d1e1f] z-10 pointer-events-auto select-none rounded-tr-2xl"
+                aria-hidden="true"
+              />
+            </div>
             {/* Footer helper tip */}
             <div className="flex items-center justify-between w-full px-2 text-[11px] text-on-surface-variant flex-shrink-0">
               <span className="hidden sm:inline">Google Drive Embedded Viewer</span>
