@@ -91,10 +91,11 @@ export default function PdfViewerModal({
             download={fileName}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-[#23324f] bg-[#131d33] flex items-center justify-center text-[#8ca0ba] hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer"
+            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-[#23324f] bg-[#131d33] flex items-center justify-center gap-1.5 text-[#8ca0ba] hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer"
             title="Download document"
           >
             <Download className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs font-semibold">Download</span>
           </a>
 
           {/* Open on Google Drive in new tab */}
@@ -102,10 +103,11 @@ export default function PdfViewerModal({
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-[#23324f] bg-[#131d33] flex items-center justify-center text-[#8ca0ba] hover:text-white hover:border-[#8ca0ba]/40 active:scale-95 transition-all cursor-pointer"
+            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-[#23324f] bg-[#131d33] flex items-center justify-center gap-1.5 text-[#8ca0ba] hover:text-white hover:border-[#8ca0ba]/40 active:scale-95 transition-all cursor-pointer"
             title="Open in Google Drive"
           >
             <ExternalLink className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs font-semibold">Open in Drive</span>
           </a>
 
           {/* Close modal */}
@@ -163,16 +165,33 @@ export default function PdfViewerModal({
             </div>
           </div>
         ) : (
-          <iframe
-            src={embedUrl}
-            title={`Preview - ${fileName}`}
-            className="w-full h-full max-w-6xl rounded-2xl border border-[#23324f] shadow-2xl bg-[#0c1424]"
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setHasError(true);
-            }}
-          />
+          <div className="w-full h-full max-w-6xl flex flex-col items-center justify-center gap-2">
+            <iframe
+              src={embedUrl}
+              title={`Preview - ${fileName}`}
+              className="w-full flex-1 rounded-2xl border border-[#23324f] shadow-2xl bg-[#0c1424]"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              onLoad={() => setLoading(false)}
+              onError={() => {
+                setLoading(false);
+                setHasError(true);
+              }}
+            />
+            {/* Footer helper tip */}
+            <div className="flex items-center justify-between w-full px-2 text-[11px] text-[#6b7e94] flex-shrink-0">
+              <span className="hidden sm:inline">Google Drive Embedded Viewer</span>
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary transition-colors flex items-center gap-1 font-medium ml-auto"
+              >
+                <span>Having trouble? Open directly in Google Drive</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
         )}
       </main>
     </div>
