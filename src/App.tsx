@@ -71,9 +71,12 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState<boolean>(() => {
     try {
       const raw = localStorage.getItem(SESSION_CACHE_KEY);
-      if (raw) { JSON.parse(raw); return false; } // cache hit → skip spinner
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.onboardingDone === true) return false;
+      }
     } catch { /* ignore bad cache */ }
-    return true; // no cache → show spinner (first-ever login)
+    return true; // no cache or onboarding pending → show spinner while auth / profile resolves
   });
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -258,10 +261,10 @@ export default function App() {
       setUser(u);
       setInitialAuthDone(true);
       if (u) {
-        // If we have a valid cache for THIS user, skip the loading screen
+        // If we have a valid cache for THIS user with completed onboarding, skip the loading screen
         // and do a silent background refresh instead
-        const cached = safeLocalStorageGet<{ userId?: string } | null>(SESSION_CACHE_KEY, null);
-        const hasCacheForUser = cached?.userId === u.id;
+        const cached = safeLocalStorageGet<{ userId?: string; onboardingDone?: boolean } | null>(SESSION_CACHE_KEY, null);
+        const hasCacheForUser = cached?.userId === u.id && cached?.onboardingDone === true;
         loadUserData(u, hasCacheForUser /* backgroundRefresh */);
         stopIdleTimer = startIdleTimer(doSignOut);
       } else {
@@ -274,8 +277,8 @@ export default function App() {
       setUser(u);
       setInitialAuthDone(true);
       if (u) {
-        const cached = safeLocalStorageGet<{ userId?: string } | null>(SESSION_CACHE_KEY, null);
-        const hasCacheForUser = cached?.userId === u.id;
+        const cached = safeLocalStorageGet<{ userId?: string; onboardingDone?: boolean } | null>(SESSION_CACHE_KEY, null);
+        const hasCacheForUser = cached?.userId === u.id && cached?.onboardingDone === true;
         loadUserData(u, hasCacheForUser);
         if (stopIdleTimer) stopIdleTimer();
         stopIdleTimer = startIdleTimer(doSignOut);
@@ -294,6 +297,26 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Profile completeness check ───────────────────────────────────────────
+  // A profile is complete only if onboarding was finished and subjects + core fields are saved
+  const isProfileComplete = (pData: any): boolean => {
+    if (!pData) return false;
+    if (pData.onboarding_done === false) return false;
+
+    const hasSubjects = Array.isArray(pData.subjects) && pData.subjects.length > 0;
+    const hasRollNo   = typeof pData.roll_no === "string" && pData.roll_no.trim().length > 0;
+    const hasBranch   = typeof pData.branch === "string" && pData.branch.trim().length > 0;
+    const hasSemester = typeof pData.semester === "string" && pData.semester.trim().length > 0;
+    const hasSection  = typeof pData.section === "string" && pData.section.trim().length > 0;
+
+    if (pData.onboarding_done === true) {
+      return hasSubjects && (hasRollNo || hasBranch);
+    }
+
+    // Fallback for legacy profiles where onboarding_done column is null
+    return hasSubjects && hasRollNo && hasBranch && hasSemester && hasSection;
+  };
+
   // ── Load user data from Supabase ──────────────────────────────────────────
   // backgroundRefresh=true → cache already applied, don't show loading screen,
   //                          just quietly update state when fetch completes.
@@ -304,7 +327,7 @@ export default function App() {
         const raw = localStorage.getItem(SESSION_CACHE_KEY);
         if (raw) {
           const cached = JSON.parse(raw);
-          if (cached.userId === u.id) {
+          if (cached.userId === u.id && cached.onboardingDone === true) {
             if (cached.profile)     setProfile(cached.profile);
             if (cached.subjects) {
               const semNum = parseSemesterNumber(cached.profile?.semester || profile.semester);
@@ -312,11 +335,6 @@ export default function App() {
               setSubjects(filtered.length > 0 ? filtered : cached.subjects);
             }
             if (cached.assignments) setAssignments(cached.assignments);
-            if (cached.onboardingDone === false) {
-              setShowOnboarding(true);
-              setAuthLoading(false);
-              return; // still need onboarding — don't fetch in background
-            }
           }
         }
       } catch { /* ignore bad cache */ }
@@ -330,7 +348,7 @@ export default function App() {
     const timeout = new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), TIMEOUT_MS));
 
     try {
-      // 1. Fetch profile — gated on onboarding_done
+      // 1. Fetch profile — check onboarding status and profile data
       const profileFetch = supabase
         .from("profiles")
         .select("*")
@@ -341,54 +359,80 @@ export default function App() {
 
       // If timed out and we already rendered from cache, just give up quietly
       if (profileResult === 'timeout') {
+        if (backgroundRefresh) {
+          setAuthLoading(false);
+          return;
+        }
+        showToast("Profile check timed out. Please verify your details.", "error");
+        setShowOnboarding(true);
         setAuthLoading(false);
         return;
       }
 
       const { data: pData } = profileResult as Awaited<typeof profileFetch>;
 
-      if (pData) {
-        const freshProfile: StudentProfile = {
-          name:     pData.full_name  || u.user_metadata?.full_name || profile.name || "Student",
-          rollNo:   pData.roll_no    || profile.rollNo   || "2K24/CSE/01",
-          branch:   pData.branch     || profile.branch   || "Computer Science & Engineering",
-          semester: pData.semester   || profile.semester || "3rd Semester",
-          section:  pData.section    || profile.section  || "A7",
-        };
-        setProfile(freshProfile);
+      // If user profile is not complete -> force OnboardingModal and block main app
+      if (!isProfileComplete(pData)) {
+        const displayName = pData?.full_name || u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
 
-        const hasSubjects = pData.subjects && Array.isArray(pData.subjects) && pData.subjects.length > 0;
-        if (pData.onboarding_done === false && !hasSubjects) {
-          setShowOnboarding(true);
-          setAuthLoading(false);
-          // Cache minimal state so next load knows onboarding is pending
+        // Brand new user or missing profile row — ensure initial profile row exists
+        if (!pData) {
           try {
-            localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
-              userId: u.id,
-              profile: freshProfile,
-              subjects: [],
-              assignments: [],
-              onboardingDone: false,
-            }));
-          } catch { /* ignore */ }
-          return;
+            await supabase.from("profiles").upsert({
+              id:              u.id,
+              email:           u.email,
+              full_name:       displayName,
+              avatar_url:      u.user_metadata?.avatar_url ?? null,
+              onboarding_done: false,
+            }, { onConflict: "id", ignoreDuplicates: true });
+          } catch (e) {
+            console.warn("Failed to create initial profile row:", e);
+          }
         }
 
-      } else {
-        // Brand new user — create profile row, trigger onboarding
-        const displayName = u.user_metadata?.full_name || u.email?.split("@")[0] || "Student";
-        await supabase.from("profiles").insert({
-          id:              u.id,
-          email:           u.email,
-          full_name:       displayName,
-          avatar_url:      u.user_metadata?.avatar_url ?? null,
-          onboarding_done: false,
-        });
-        setProfile(prev => ({ ...prev, name: displayName }));
+        setProfile(prev => ({
+          ...prev,
+          name:     displayName,
+          rollNo:   pData?.roll_no || prev.rollNo,
+          branch:   pData?.branch || prev.branch,
+          semester: pData?.semester || prev.semester,
+          section:  pData?.section || prev.section,
+        }));
+
         setShowOnboarding(true);
         setAuthLoading(false);
-        return;
+
+        // Cache minimal state so next load knows onboarding is pending
+        try {
+          localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
+            userId: u.id,
+            profile: {
+              name:     displayName,
+              rollNo:   pData?.roll_no || "",
+              branch:   pData?.branch || "",
+              semester: pData?.semester || "",
+              section:  pData?.section || "",
+            },
+            subjects: [],
+            assignments: [],
+            onboardingDone: false,
+            cachedAt: Date.now(),
+          }));
+        } catch { /* ignore */ }
+
+        return; // BLOCK rest of loadUserData (do not populate timetable subjects or mark onboardingDone: true)
       }
+
+      // Profile is verified complete!
+      const freshProfile: StudentProfile = {
+        name:     pData.full_name  || u.user_metadata?.full_name || profile.name || "Student",
+        rollNo:   pData.roll_no    || profile.rollNo   || "2K24/CSE/01",
+        branch:   pData.branch     || profile.branch   || "Computer Science & Engineering",
+        semester: pData.semester   || profile.semester || "3rd Semester",
+        section:  pData.section    || profile.section  || "A7",
+      };
+      setProfile(freshProfile);
+      setShowOnboarding(false);
 
       // 2 & 3. Fetch Attendance and Assignments IN PARALLEL (also with timeout)
       const parallelFetch = Promise.all([
@@ -580,20 +624,35 @@ export default function App() {
   }) => {
     if (!user) throw new Error("Not authenticated");
 
-    // 1. Update local state immediately — don't wait for Supabase
-    setSubjects(subjectNamestoSubjects(result.subjects));
-    setProfile(prev => ({
-      ...prev,
+    const newSubjects = subjectNamestoSubjects(result.subjects);
+    const updatedProfile: StudentProfile = {
+      name:     profile.name || user.user_metadata?.full_name || "Student",
+      rollNo:   result.rollNo,
       branch:   result.branch,
       semester: result.semester,
       section:  result.section,
-      rollNo:   result.rollNo,
-    }));
+    };
 
-    // 2. Redirect to dashboard RIGHT NOW
+    // 1. Update local state immediately — don't wait for Supabase
+    setSubjects(newSubjects);
+    setProfile(updatedProfile);
+
+    // 2. Dismiss onboarding modal and enter dashboard
     setShowOnboarding(false);
 
-    // 3. Save to Supabase in the background — never block the UI
+    // 3. Cache session snapshot immediately so subsequent reloads don't prompt onboarding again
+    try {
+      localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
+        userId:         user.id,
+        profile:        updatedProfile,
+        subjects:       newSubjects,
+        assignments:    assignments || [],
+        onboardingDone: true,
+        cachedAt:       Date.now(),
+      }));
+    } catch { /* ignore */ }
+
+    // 4. Save to Supabase in the background — never block the UI
     const saveStart = performance.now();
 
     supabase
@@ -601,6 +660,8 @@ export default function App() {
       .upsert({
         id:              user.id,
         email:           user.email,
+        full_name:       updatedProfile.name,
+        avatar_url:      user.user_metadata?.avatar_url ?? null,
         branch:          result.branch,
         semester:        result.semester,
         section:         result.section,
@@ -1926,7 +1987,19 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Main App (Authenticated)
+  // Onboarding Gate — Block access until profile setup is complete
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (showOnboarding) {
+    return (
+      <OnboardingModal
+        userName={profile.name || user.user_metadata?.full_name || "Student"}
+        onComplete={handleOnboardingComplete}
+      />
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Main App (Authenticated & Onboarded)
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className={`min-h-screen flex ${isDarkMode ? "bg-[#0b1326] text-[#dae2fd]" : "bg-[#F8F9FA] text-[#111827]"}`}>
