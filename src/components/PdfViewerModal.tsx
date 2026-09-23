@@ -64,23 +64,23 @@ export default function PdfViewerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col bg-slate-900/60 dark:bg-[#050811]/95 backdrop-blur-md select-none"
+      className="fixed inset-0 z-[200] flex flex-col bg-black/60 backdrop-blur-md select-none"
       role="dialog"
       aria-modal="true"
       aria-label={`Document Viewer - ${fileName}`}
     >
       {/* ── Top Bar / Header ── */}
-      <header className="h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-[#0c1424] border-b border-gray-200 dark:border-[#23324f] flex items-center justify-between gap-3 z-20 flex-shrink-0 shadow-xs dark:shadow-lg">
+      <header className="h-14 sm:h-16 px-3 sm:px-6 bg-surface border-b border-outline-variant flex items-center justify-between gap-3 z-20 flex-shrink-0 shadow-xs">
         {/* Left: Document info */}
         <div className="flex items-center gap-2.5 min-w-0 max-w-[60%] sm:max-w-[70%]">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-primary/10 border border-emerald-500/20 dark:border-primary/20 flex items-center justify-center text-emerald-600 dark:text-primary flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
             <FileText className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate" title={fileName}>
+            <h2 className="text-xs sm:text-sm font-bold text-on-surface truncate" title={fileName}>
               {fileName}
             </h2>
-            <p className="text-[10px] text-gray-500 dark:text-[#8ca0ba] hidden sm:block">In-Site Document Viewer</p>
+            <p className="text-[10px] text-on-surface-variant hidden sm:block">In-Site Document Viewer</p>
           </div>
         </div>
 
@@ -92,7 +92,7 @@ export default function PdfViewerModal({
             download={fileName}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-gray-200 dark:border-[#23324f] bg-gray-50 dark:bg-[#131d33] flex items-center justify-center gap-1.5 text-gray-700 dark:text-[#8ca0ba] hover:text-emerald-600 dark:hover:text-primary hover:border-emerald-500/40 dark:hover:border-primary/40 hover:bg-white dark:hover:bg-[#1c2942] active:scale-95 transition-all cursor-pointer shadow-xs"
+            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-outline-variant bg-surface-container-low flex items-center justify-center gap-1.5 text-on-surface hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer shadow-xs"
             title="Download document"
           >
             <Download className="w-4 h-4" />
@@ -104,7 +104,7 @@ export default function PdfViewerModal({
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-gray-200 dark:border-[#23324f] bg-gray-50 dark:bg-[#131d33] flex items-center justify-center gap-1.5 text-gray-700 dark:text-[#8ca0ba] hover:text-emerald-600 dark:hover:text-white hover:border-emerald-500/40 dark:hover:border-[#8ca0ba]/40 hover:bg-white dark:hover:bg-[#1c2942] active:scale-95 transition-all cursor-pointer shadow-xs"
+            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-outline-variant bg-surface-container-low flex items-center justify-center gap-1.5 text-on-surface hover:text-primary hover:border-primary/40 active:scale-95 transition-all cursor-pointer shadow-xs"
             title="Open in Google Drive"
           >
             <ExternalLink className="w-4 h-4" />
@@ -115,7 +115,7 @@ export default function PdfViewerModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 border border-red-500/20 dark:border-red-500/30 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer ml-1"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer ml-1"
             title="Close viewer (Esc)"
           >
             <X className="w-4 h-4" />
@@ -124,25 +124,25 @@ export default function PdfViewerModal({
       </header>
 
       {/* ── Main Viewport with Embedded Drive Preview Iframe ── */}
-      <main className="flex-1 w-full h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden bg-slate-100 dark:bg-[#070b14]">
+      <main className="flex-1 w-full h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center relative overflow-hidden bg-surface-dim">
         {/* Loading Spinner */}
         {loading && !hasError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-100/95 dark:bg-[#070b14]/95 backdrop-blur-xs z-10 pointer-events-none">
-            <Loader2 className="w-10 h-10 animate-spin text-emerald-600 dark:text-primary" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Opening document preview…</p>
-            <p className="text-xs text-gray-500 dark:text-[#6b7e94]">Loading embedded Google Drive viewer</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface-dim/95 backdrop-blur-xs z-10 pointer-events-none">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-on-surface">Opening document preview…</p>
+            <p className="text-xs text-on-surface-variant">Loading embedded Google Drive viewer</p>
           </div>
         )}
 
         {/* Error Fallback */}
         {hasError ? (
-          <div className="glass-card border border-red-500/30 bg-white dark:bg-[#160e15] rounded-2xl p-6 sm:p-8 max-w-md text-center space-y-4 shadow-xl dark:shadow-2xl z-10">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400 mx-auto">
+          <div className="glass-card border border-red-500/30 rounded-2xl p-6 sm:p-8 max-w-md text-center space-y-4 shadow-xl z-10">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Cannot Load Embedded Preview</h3>
-              <p className="text-xs text-gray-600 dark:text-[#a0949d] leading-relaxed">
+              <h3 className="text-base font-bold text-on-surface mb-1">Cannot Load Embedded Preview</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
                 This document requires direct Google Drive access or private sign-in permissions.
               </p>
             </div>
@@ -151,7 +151,7 @@ export default function PdfViewerModal({
                 href={fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 dark:bg-primary text-white dark:text-[#002114] rounded-xl font-bold text-xs hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md"
+                className="flex-1 py-2.5 px-4 bg-primary text-on-primary rounded-xl font-bold text-xs hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 Open on Google Drive
@@ -159,7 +159,7 @@ export default function PdfViewerModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-[#23151f] border border-gray-200 dark:border-[#3b2334] text-gray-800 dark:text-white rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                className="py-2.5 px-4 bg-surface-container-high border border-outline-variant text-on-surface rounded-xl font-bold text-xs active:scale-95 transition-all cursor-pointer"
               >
                 Close
               </button>
@@ -170,7 +170,7 @@ export default function PdfViewerModal({
             <iframe
               src={embedUrl}
               title={`Preview - ${fileName}`}
-              className="w-full flex-1 rounded-2xl border border-gray-300 dark:border-[#23324f] shadow-lg dark:shadow-2xl bg-white dark:bg-[#0c1424]"
+              className="w-full flex-1 rounded-2xl border border-outline-variant shadow-xl bg-surface"
               allow="autoplay; fullscreen"
               allowFullScreen
               onLoad={() => setLoading(false)}
@@ -180,13 +180,13 @@ export default function PdfViewerModal({
               }}
             />
             {/* Footer helper tip */}
-            <div className="flex items-center justify-between w-full px-2 text-[11px] text-gray-500 dark:text-[#6b7e94] flex-shrink-0">
+            <div className="flex items-center justify-between w-full px-2 text-[11px] text-on-surface-variant flex-shrink-0">
               <span className="hidden sm:inline">Google Drive Embedded Viewer</span>
               <a
                 href={fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-emerald-600 dark:hover:text-primary text-gray-600 dark:text-[#8ca0ba] transition-colors flex items-center gap-1 font-medium ml-auto"
+                className="hover:text-primary text-on-surface-variant transition-colors flex items-center gap-1 font-medium ml-auto"
               >
                 <span>Having trouble? Open directly in Google Drive</span>
                 <ExternalLink className="w-3 h-3" />
