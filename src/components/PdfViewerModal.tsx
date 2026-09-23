@@ -180,11 +180,6 @@ export default function PdfViewerModal({
                   setHasError(true);
                 }}
               />
-              {/* Conceal Google Drive's internal pop-out button with matching canvas mask */}
-              <div
-                className="absolute top-0 right-0 w-[70px] h-[70px] bg-[#1d1e1f] z-10 pointer-events-auto select-none rounded-tr-2xl"
-                aria-hidden="true"
-              />
             </div>
             {/* Footer helper tip */}
             <div className="flex items-center justify-between w-full px-2 text-[11px] text-on-surface-variant flex-shrink-0">
