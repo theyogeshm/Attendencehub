@@ -5,6 +5,9 @@ import { Subject } from "../types";
 import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
 import type { DbResource } from "../lib/supabase";
+import PdfViewerModal from "./PdfViewerModal";
+import AdSlot from "./AdSlot";
+import { isPdfDocument } from "../lib/pdfUtils";
 
 // ── Dynamic color palette — assigned to tabs in appearance order ──────────────
 const TAB_PALETTE = [
@@ -123,11 +126,19 @@ interface Props {
 }
 
 // ── Top-level Memoized FileCard Component ─────────────────────────────────────
-const FileCard = memo(({ res }: { res: DbResource }) => {
+const FileCard = memo(({ res, onViewPdf }: { res: DbResource; onViewPdf?: (res: DbResource) => void }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const resIsVideo  = res.tab_type.toLowerCase().includes("video");
   const embedUrl    = resIsVideo ? getYouTubeEmbedUrl(res.file_url) : null;
   const isLongName  = res.file_name.length > 35;
+  const isPdf       = isPdfDocument(res.file_name, res.file_url);
+
+  const handleView = (e: React.MouseEvent) => {
+    if (isPdf && onViewPdf) {
+      e.preventDefault();
+      onViewPdf(res);
+    }
+  };
 
   // YouTube embed
   if (resIsVideo && embedUrl) {
@@ -176,9 +187,10 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
           <div>
             <a
               href={res.file_url}
-              target="_blank"
+              onClick={handleView}
+              target={isPdf ? undefined : "_blank"}
               rel="noopener noreferrer"
-              className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block"
+              className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block cursor-pointer"
             >
               <p className={!isExpanded ? "line-clamp-2 sm:line-clamp-none" : ""}>
                 {res.file_name}
@@ -196,9 +208,10 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
         ) : (
           <a
             href={res.file_url}
-            target="_blank"
+            onClick={handleView}
+            target={isPdf ? undefined : "_blank"}
             rel="noopener noreferrer"
-            className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block"
+            className="text-xs sm:text-sm font-semibold text-on-surface hover:text-primary transition-colors leading-snug break-words block cursor-pointer"
           >
             {res.file_name}
           </a>
@@ -220,11 +233,12 @@ const FileCard = memo(({ res }: { res: DbResource }) => {
       <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
         <a
           href={res.file_url}
-          target="_blank"
+          onClick={handleView}
+          target={isPdf ? undefined : "_blank"}
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0"
-          title="View document"
-          aria-label="View document"
+          className="flex items-center justify-center gap-1 w-9 h-9 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 text-[11px] font-bold text-on-surface-variant border border-outline-variant rounded-xl hover:border-primary/50 hover:text-primary active:scale-95 transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer"
+          title={isPdf ? "View document inline" : "View document"}
+          aria-label={isPdf ? "View document inline" : "View document"}
         >
           <ExternalLink className="w-3.5 h-3.5" />
           <span className="hidden sm:inline text-[11px]">View</span>
@@ -309,6 +323,7 @@ function ResourceTabList({
 export default function SubjectResourcesPage({ subjects }: Props) {
   const { subjectName } = useParams<{ subjectName: string }>();
   const navigate = useNavigate();
+  const [activePdf, setActivePdf] = useState<DbResource | null>(null);
 
   const rawDecoded = decodeURIComponent(subjectName ?? "");
   const rawBase = rawDecoded
@@ -598,7 +613,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                       </div>
                       <div className="space-y-2.5">
                         {files.slice(0, visibleCount).map((res) => (
-                          <div key={res.id} className="list-item-optimized"><FileCard res={res} /></div>
+                          <div key={res.id} className="list-item-optimized"><FileCard res={res} onViewPdf={setActivePdf} /></div>
                         ))}
                       </div>
                     </div>
@@ -608,7 +623,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               /* Flat list for tabs without sub-headings */
               <div className={isVideoTab ? "space-y-4" : "space-y-2.5"}>
                 {tabResources.slice(0, visibleCount).map((res) => (
-                  <div key={res.id} className="list-item-optimized"><FileCard res={res} /></div>
+                  <div key={res.id} className="list-item-optimized"><FileCard res={res} onViewPdf={setActivePdf} /></div>
                 ))}
               </div>
             )}
@@ -625,11 +640,25 @@ export default function SubjectResourcesPage({ subjects }: Props) {
                 </button>
               </div>
             )}
+
+            {/* Ad slot placeholder (inactive & 0px when ADS_ENABLED is false) */}
+            <AdSlot slotId="subject-resources-bottom" format="auto" />
+
             {/* Bottom Safe Area Spacer ensuring floating action button and bottom nav never overlap content */}
             <div className="h-32 sm:h-20" aria-hidden="true" />
           </div>
         )}
       </div>
+
+      {/* ── Embedded In-Site PDF Viewer Modal ── */}
+      {activePdf && (
+        <PdfViewerModal
+          isOpen={!!activePdf}
+          onClose={() => setActivePdf(null)}
+          fileName={activePdf.file_name}
+          fileUrl={activePdf.file_url}
+        />
+      )}
     </div>
   );
 }

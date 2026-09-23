@@ -13,6 +13,7 @@ import { Subject } from "../types";
 import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
 import { Search, BookOpen, X, ChevronRight } from "lucide-react";
+import AdSlot from "./AdSlot";
 
 const SUBJECT_ICONS: Record<string, string> = {
   math: "calculate",       maths: "calculate",
@@ -133,6 +134,9 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
           )}
         </div>
       </div>
+
+      {/* Ad slot placeholder (inactive & 0px when ADS_ENABLED is false) */}
+      <AdSlot slotId="resources-page-header" format="horizontal" />
 
       {filteredSubjects.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5">

@@ -19,6 +19,7 @@ import {
   BookOpen,
   GraduationCap,
 } from "lucide-react";
+import AdSlot from "./AdSlot";
 
 
 interface DashboardPageProps {
@@ -437,6 +438,9 @@ export default function DashboardPage({
             })()}
           </div>
           )}
+
+          {/* Ad slot placeholder (inactive & 0px when ADS_ENABLED is false) */}
+          <AdSlot slotId="dashboard-main-bottom" format="auto" />
 
         </div>
 
