@@ -121,6 +121,16 @@ export default function LoginPage() {
         <p className="text-center text-on-surface-variant opacity-50 text-[10px] mt-6 font-mono">
           Data stored securely · RLS enabled · Your data, only yours
         </p>
+
+        {/* Public Privacy Policy Link */}
+        <div className="mt-3 text-center">
+          <a
+            href="/privacy-policy"
+            className="text-[11px] text-on-surface-variant/70 hover:text-primary-container transition-colors underline font-medium"
+          >
+            Privacy Policy
+          </a>
+        </div>
       </div>
     </div>
   );

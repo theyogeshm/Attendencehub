@@ -27,6 +27,7 @@ import LoginPage from "./components/LoginPage";
 import ConfirmDialog from "./components/ConfirmDialog";
 import AdminPanel from "./components/AdminPanel";
 import NotFoundPage from "./components/NotFoundPage";
+import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import { TIMETABLE_SEM_1_DATA } from "./data/timetableSem1";
 import { TIMETABLE_SEM_3_DATA, parseTimetableEntry } from "./data/timetableSem3";
 import { TIMETABLE_SEM_5_DATA, convertSem5SlotToString } from "./data/timetableSem5";
@@ -1975,6 +1976,13 @@ export default function App() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Public Routes (Accessible without login, required for Google AdSense review)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (location.pathname === "/privacy-policy") {
+    return <PrivacyPolicyPage isDarkMode={isDarkMode} />;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Unauthenticated User -> Render Login Page
   // ═══════════════════════════════════════════════════════════════════════════
   if (!user) {
@@ -2085,6 +2093,17 @@ export default function App() {
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
+          </div>
+
+          {/* Privacy Policy Link */}
+          <div className="pt-2 px-2 border-t border-outline-variant/20 flex items-center justify-between text-[10px] text-on-surface-variant">
+            <button
+              onClick={() => navigate("/privacy-policy")}
+              className="hover:text-primary transition-colors cursor-pointer underline-offset-2 hover:underline"
+            >
+              Privacy Policy
+            </button>
+            <span className="font-mono text-[9px] opacity-50">attendancehub.me</span>
           </div>
         </div>
       </aside>
@@ -2204,6 +2223,7 @@ export default function App() {
               <Route path="/admin" element={
                 <AdminPanel onToast={showToast} isDarkMode={isDarkMode} />
               } />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage isDarkMode={isDarkMode} />} />
               <Route path="/404" element={<NotFoundPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
@@ -2399,6 +2419,13 @@ export default function App() {
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Reset All Attendance
+                  </button>
+
+                  <button
+                    onClick={() => { setShowProfileModal(false); navigate("/privacy-policy"); }}
+                    className="mt-3 w-full text-center text-xs text-on-surface-variant hover:text-primary transition-colors cursor-pointer py-1 underline-offset-2 hover:underline"
+                  >
+                    Privacy Policy
                   </button>
                 </div>
               )}
