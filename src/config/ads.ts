@@ -7,5 +7,5 @@
  */
 export const ADS_ENABLED = false;
 
-// Default AdSense client ID (to be replaced with live pub ID when enabled)
-export const ADSENSE_CLIENT_ID = "ca-pub-XXXXXXXXXXXXXXXX";
+// AdSense client ID (matches verification script and ads.txt)
+export const ADSENSE_CLIENT_ID = "ca-pub-5021728049778025";
