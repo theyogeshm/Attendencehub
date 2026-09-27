@@ -238,6 +238,17 @@ export default function PrivacyPolicyPage({ isDarkMode = true }: PrivacyPolicyPa
                 and/or other sites on the web.
               </li>
               <li>
+                <strong>Google Advertising Technologies:</strong> To understand how Google manages and serves ads across partner sites, review{" "}
+                <a
+                  href="https://policies.google.com/technologies/ads"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary-container font-semibold underline hover:brightness-120"
+                >
+                  Google's Advertising Privacy &amp; Technologies Policy
+                </a>.
+              </li>
+              <li>
                 <strong>Opt-Out Options:</strong> Users may opt out of personalized advertising at any
                 time by visiting{" "}
                 <a
