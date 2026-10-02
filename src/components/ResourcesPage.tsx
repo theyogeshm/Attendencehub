@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Subject } from "../types";
-import { getStandardizedBaseName } from "../data";
+import { getResourceCanonicalSubject, stripTheoryLab } from "../lib/resourceSubjects";
 import { supabase } from "../lib/supabase";
 import { Search, BookOpen, X, ChevronRight } from "lucide-react";
 import AdSlot from "./AdSlot";
@@ -23,6 +23,7 @@ const SUBJECT_ICONS: Record<string, string> = {
   ml: "neurology",         machine: "neurology",
   chemistry: "science",    english: "translate",
   programming: "terminal", algorithm: "code_blocks",
+  oop: "data_object",      "object oriented": "data_object",
   os: "memory",            operating: "memory",
   network: "hub",          database: "storage",
   web: "web",              ai: "smart_toy",
@@ -66,15 +67,16 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
         if (!error && data) {
           const map: Record<string, number> = {};
           data.forEach((row: { subject: string }) => {
-            const rawBase = (row.subject || "")
-              .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
-              .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
-              .trim();
-            const stdName = getStandardizedBaseName(rawBase);
-            const key = stdName.toLowerCase().trim();
+            const canonical = getResourceCanonicalSubject(row.subject || "");
+            const key = canonical.toLowerCase().trim();
             map[key] = (map[key] ?? 0) + 1;
-            const rawKey = rawBase.toLowerCase().trim();
-            if (rawKey !== key) {
+
+            const rawBase = stripTheoryLab(row.subject || "").toLowerCase().trim();
+            if (rawBase && rawBase !== key) {
+              map[rawBase] = (map[rawBase] ?? 0) + 1;
+            }
+            const rawKey = (row.subject || "").toLowerCase().trim();
+            if (rawKey && rawKey !== key && rawKey !== rawBase) {
               map[rawKey] = (map[rawKey] ?? 0) + 1;
             }
           });
@@ -86,16 +88,12 @@ export default function ResourcesPage({ subjects }: ResourcesPageProps) {
     })();
   }, [subjects]);
 
-  // Deduplicate resources subjects by base subject name so Theory, Lab and Tutorial are unified
+  // Deduplicate resources subjects by canonical subject name so Theory and Lab are merged into a single entry
   const displaySubjects = Array.from(
     new Map(
       subjects.map((s) => {
-        const rawBase = s.name
-          .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
-          .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
-          .trim();
-        const baseName = getStandardizedBaseName(rawBase);
-        return [baseName, { ...s, name: baseName }];
+        const canonicalName = getResourceCanonicalSubject(s.name);
+        return [canonicalName, { ...s, name: canonicalName }];
       })
     ).values()
   );

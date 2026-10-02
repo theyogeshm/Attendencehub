@@ -13,6 +13,7 @@ import { isAdminEmail, sanitizeText, sanitizeUrl } from "../lib/security";
 import type { DbResource } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import dtuData from "../../dtu_subjects.json";
+import { getResourceCanonicalSubject } from "../lib/resourceSubjects";
 import {
   ShieldAlert,
   Loader2,
@@ -155,16 +156,18 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [adding,         setAdding]         = useState(false);
   const [editingResource, setEditingResource] = useState<DbResource | null>(null);
 
-  // Filter subject options based on selected semester
+  // Filter subject options based on selected semester — unified Theory + Lab into single subject entry
   const availableSubjects = (() => {
     const semNum = parseInt(semester, 10);
     if (!isNaN(semNum) && dtuData?.branches?.[0]?.semesters) {
       const found = dtuData.branches[0].semesters.find((s: any) => s.sem === semNum);
-      if (found?.subjects?.length) return found.subjects;
+      if (found?.subjects?.length) {
+        return Array.from(new Set(found.subjects.map((s: string) => getResourceCanonicalSubject(s)))).filter(Boolean);
+      }
     }
     // Fallback: all subjects across all semesters in dtuData
     const all = dtuData?.branches?.[0]?.semesters?.flatMap((s: any) => s.subjects || []) || [];
-    return Array.from(new Set(all));
+    return Array.from(new Set(all.map((s: string) => getResourceCanonicalSubject(s)))).filter(Boolean);
   })();
 
   // Table state
@@ -272,12 +275,16 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const handleStartEdit = (r: DbResource) => {
     setEditingResource(r);
     setSemester(r.semester || "");
-    if (availableSubjects.includes(r.subject)) {
+    const canonical = getResourceCanonicalSubject(r.subject);
+    if (availableSubjects.includes(canonical)) {
+      setSubjectSelect(canonical);
+      setCustomSubject("");
+    } else if (availableSubjects.includes(r.subject)) {
       setSubjectSelect(r.subject);
       setCustomSubject("");
     } else {
       setSubjectSelect("__CUSTOM__");
-      setCustomSubject(r.subject);
+      setCustomSubject(canonical || r.subject);
     }
     if (availableTabs.includes(r.tab_type)) {
       setTabSelect(r.tab_type);
@@ -410,8 +417,10 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const filtered = resources.filter(r => {
     if (!filterQ) return true;
     const q = filterQ.toLowerCase();
+    const canonical = getResourceCanonicalSubject(r.subject).toLowerCase();
     return (
       r.subject.toLowerCase().includes(q) ||
+      canonical.includes(q) ||
       r.file_name.toLowerCase().includes(q) ||
       r.tab_type.toLowerCase().includes(q)
     );
