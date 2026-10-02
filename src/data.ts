@@ -15,11 +15,16 @@ import { DTU_CSE_SEM7_SUBJECTS } from "./data/timetableSem7";
 export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
   1: DTU_CSE_SEM1_SUBJECTS,
   2: [
-    "Basic ML",
-    "Data Structure",
-    "Discrete Structure",
-    "Maths II",
-    "Physics",
+    "Data Structure - Theory",
+    "Data Structure - Lab",
+    "Basic ML - Theory",
+    "Basic ML - Lab",
+    "Physics - Theory",
+    "Physics - Lab",
+    "Discrete Structure - Theory",
+    "Discrete Structure - Tutorial",
+    "Maths II - Theory",
+    "Maths II - Tutorial",
   ],
   3: [
     "Object Oriented Design - Theory",
@@ -34,11 +39,16 @@ export const DTU_CSE_SUBJECTS: Record<number, string[]> = {
     "Digital Logic Design - Lab",
   ],
   4: [
-    "Database Management System",
-    "Probability and Statistics",
-    "Theory of Computation",
-    "Computer Communication Networks",
-    "Computer Organisation and Architecture",
+    "Database Management System - Theory",
+    "Database Management System - Lab",
+    "Computer Communication Networks - Theory",
+    "Computer Communication Networks - Lab",
+    "Computer Organisation and Architecture - Theory",
+    "Computer Organisation and Architecture - Lab",
+    "Probability and Statistics - Theory",
+    "Probability and Statistics - Tutorial",
+    "Theory of Computation - Theory",
+    "Theory of Computation - Tutorial",
   ],
   5: DTU_CSE_SEM5_SUBJECTS,
   6: [],
@@ -62,30 +72,159 @@ export const DTU_CSE_DA_SEM3_SUBJECTS: string[] = [
 export const getStandardizedBaseName = (raw: string): string => {
   if (!raw) return "";
   const lower = raw.toLowerCase().trim();
-  if (lower.includes("am101") || lower.includes("mathematics-i") || (lower.includes("mathematics i") && !lower.includes("ii"))) return "Mathematics-I";
+  // Sem 1
+  if (lower.includes("am101") || lower.includes("mathematics-i") || lower.includes("mathematics 1") || (lower.includes("mathematics i") && !lower.includes("ii") && !lower.includes("2"))) return "Mathematics-I";
   if (lower.includes("co101") || lower.includes("programming fundamentals")) return "Programming Fundamentals";
   if (lower.includes("ec101") || lower.includes("basic electronics")) return "Basic Electronics & Communication Engineering";
   if (lower.includes("me105") || lower.includes("engineering graphics")) return "Computer Aided Engineering Graphics-2";
   if (lower.includes("cs103") || lower.includes("web designing") || lower.includes("web design")) return "Web Designing";
-  if (lower.includes("basic ml") || lower.includes("basics of ml")) return "Basic ML";
-  if (lower.includes("discrete structure") || lower.includes("discrete math")) return "Discrete Structure";
-  if (lower.includes("data structure") && !lower.includes("advance")) return "Data Structure";
-  if (lower.includes("maths ii") || lower.includes("maths 2") || (lower.includes("mathematics") && (lower.includes("ii") || lower.includes("2")))) return "Maths II";
-  if (lower.includes("physics")) return "Physics";
-  if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) return "Object Oriented Design";
-  if (lower.includes("algorithm") || lower.includes("daa")) return "Design & Analysis of Algorithm";
+  // Sem 2
+  if (lower.includes("basic ml") || lower.includes("basics of ml") || lower.includes("cs106")) return "Basic ML";
+  if (lower.includes("discrete structure") || lower.includes("discrete math") || lower.includes("co104") || lower.includes("cs104")) return "Discrete Structure";
+  if (lower.includes("data structure") && !lower.includes("advance") && !lower.includes("daa") && !lower.includes("algorithm")) return "Data Structure";
+  if (lower.includes("maths ii") || lower.includes("maths 2") || lower.includes("mathematics-ii") || lower.includes("mathematics ii") || lower.includes("mathematics 2") || lower.includes("am102")) return "Maths II";
+  if (lower.includes("physics") || lower.includes("ap102") || lower.includes("ph102")) return "Physics";
+  // Sem 3
+  if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood") || lower.includes("cs203")) return "Object Oriented Design";
+  if (lower.includes("algorithm") || lower.includes("daa") || lower.includes("cs205") || lower.includes("da201")) return "Design & Analysis of Algorithm";
   if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) return "Digital Logic Design";
-  if (lower.includes("operating system") || lower === "os") return "Operating System Design";
-  if (lower.includes("software engineering") || lower === "se") return "Software Engineering";
-  if (lower.includes("compiler design") || lower.includes("cd")) return "Compiler Design";
-  if (lower.includes("machine learning") || lower.includes("ml")) return "Machine Learning";
-  if (lower.includes("information and network security") || lower.includes("ins")) return "Information and Network Security";
-  if (lower.includes("distributed system") || lower.includes("dis")) return "Distributed Systems";
+  if (lower.includes("operating system") || lower === "os" || lower.includes("cs207")) return "Operating System Design";
+  if (lower.includes("software engineering") || lower === "se" || lower.includes("cs209")) return "Software Engineering";
+  if (lower.includes("foundation to data science") || lower.includes("da203")) return "Foundation to Data Science";
+  if (lower.includes("linear algebra") || lower.includes("da205")) return "Linear Algebra";
+  if (lower.includes("computer organization & os design") || lower.includes("da209")) return "Computer Organization & OS Design";
+  // Sem 4
+  if (lower.includes("database management") || lower.includes("dbms") || lower.includes("co202") || lower.includes("cs202")) return "Database Management System";
+  if (lower.includes("probability and statistics") || lower.includes("probability & statistics") || lower.includes("am202")) return "Probability and Statistics";
+  if (lower.includes("theory of computation") || lower.includes("toc") || lower.includes("co204") || lower.includes("cs204")) return "Theory of Computation";
+  if (lower.includes("computer communication networks") || lower.includes("ccn") || lower.includes("co206") || lower.includes("cs206")) return "Computer Communication Networks";
+  if (lower.includes("computer organisation and architecture") || lower.includes("computer organization and architecture") || lower.includes("coa") || lower.includes("co208") || lower.includes("cs208")) return "Computer Organisation and Architecture";
+  // Sem 5
+  if (lower.includes("compiler design") || lower.includes("cd") || lower.includes("cs301")) return "Compiler Design";
+  if ((lower.includes("machine learning") || lower.includes("ml") || lower.includes("cs303") || lower.includes("da207")) && !lower.includes("basic")) return "Machine Learning";
+  if (lower.includes("information and network security") || lower.includes("ins") || lower.includes("cs305")) return "Information and Network Security";
+  if (lower.includes("distributed system") || lower.includes("dis") || lower.includes("cs309")) return "Distributed Systems";
+  if (lower.includes("information theory") || lower.includes("itc") || lower.includes("cs311")) return "Information Theory and Coding";
+  if (lower.includes("quantum computing") || lower.includes("qc") || lower.includes("cs313")) return "Quantum Computing";
+  if (lower.includes("advance data structure") || lower.includes("ads") || lower.includes("cs315")) return "Advance Data Structure";
+  // Sem 7 & Electives
   if (lower.includes("cyber vulnerability") || lower.includes("ethical hacking") || lower.includes("cs411")) return "Cyber Vulnerability & Ethical Hacking";
   if (lower.includes("cloud computing") || lower.includes("cs425")) return "Cloud Computing";
-  if (lower.includes("advance web technology") || lower.includes("web technology") || lower.includes("cs421")) return "Advance Web Technology";
+  if (lower.includes("advance web technology") || (lower.includes("web technology") && !lower.includes("design")) || lower.includes("cs421")) return "Advance Web Technology";
   if (lower.includes("big data analytics") || lower.includes("big data") || lower.includes("cs423")) return "Big Data Analytics";
+  if (lower.includes("humanities") || lower.includes("hu301")) return "Humanities Elective (EE HU301)";
   return raw;
+};
+
+// ── Helper: check if a subject has a lab component across ANY semester ────────
+export const hasLabComponent = (name: string): boolean => {
+  if (!name) return false;
+  const base = getStandardizedBaseName(name);
+  const lower = base.toLowerCase().trim();
+
+  // Exclude subjects that genuinely have NO lab
+  if (
+    lower.includes("software engineering") ||
+    lower.includes("mathematics") ||
+    lower.includes("maths") ||
+    lower.includes("discrete") ||
+    lower.includes("probability") ||
+    lower.includes("theory of computation") ||
+    lower.includes("toc") ||
+    lower.includes("linear algebra") ||
+    lower.includes("distributed") ||
+    lower.includes("information theory") ||
+    lower.includes("quantum") ||
+    lower.includes("advance data structure") ||
+    lower.includes("humanities") ||
+    lower.includes("hu301")
+  ) {
+    return false;
+  }
+
+  // Include subjects known to have a Lab
+  return (
+    // Sem 1
+    lower.includes("programming fundamentals") ||
+    lower.includes("co101") ||
+    lower.includes("basic electronics") ||
+    lower.includes("ec101") ||
+    lower.includes("engineering graphics") ||
+    lower.includes("me105") ||
+    lower.includes("web designing") ||
+    lower.includes("web design") ||
+    lower.includes("cs103") ||
+    // Sem 2
+    (lower.includes("data structure") && !lower.includes("advance")) ||
+    lower.includes("basic ml") ||
+    lower.includes("physics") ||
+    // Sem 3
+    lower.includes("object oriented") ||
+    lower.includes("oop") ||
+    lower.includes("ood") ||
+    lower.includes("operating system") ||
+    lower === "os" ||
+    lower.includes("algorithm") ||
+    lower.includes("daa") ||
+    lower.includes("digital logic") ||
+    lower.includes("digital electronics") ||
+    lower.includes("data science") ||
+    lower.includes("computer organization") ||
+    // Sem 4
+    lower.includes("database") ||
+    lower.includes("dbms") ||
+    lower.includes("communication networks") ||
+    lower.includes("ccn") ||
+    lower.includes("computer organisation") ||
+    lower.includes("coa") ||
+    // Sem 5 & 7
+    lower.includes("compiler") ||
+    lower.includes("machine learning") ||
+    lower.includes("network security") ||
+    lower.includes("ins") ||
+    lower.includes("cyber") ||
+    lower.includes("ethical hacking") ||
+    lower.includes("cloud computing") ||
+    lower.includes("big data") ||
+    lower.includes("advance web technology")
+  );
+};
+
+// ── Helper: check if a subject has a tutorial component ────────────────────────
+export const hasTutorialComponent = (name: string): boolean => {
+  if (!name) return false;
+  const base = getStandardizedBaseName(name);
+  const lower = base.toLowerCase().trim();
+  return (
+    lower.includes("software engineering") ||
+    lower.includes("mathematics") ||
+    lower.includes("maths") ||
+    lower.includes("discrete") ||
+    lower.includes("probability") ||
+    lower.includes("theory of computation") ||
+    lower.includes("linear algebra") ||
+    lower.includes("distributed") ||
+    lower.includes("information theory") ||
+    lower.includes("quantum") ||
+    lower.includes("advance data structure")
+  );
+};
+
+// ── Helper: expand a subject name into its constituent Theory and Lab/Tut names ─
+export const expandSubjectName = (rawName: string): string[] => {
+  if (!rawName) return [];
+  const lower = rawName.toLowerCase().trim();
+  if (lower.includes("theory") || lower.includes("lab") || lower.includes("tutorial") || lower.includes("tut") || lower.includes("lec")) {
+    return [rawName];
+  }
+  const base = getStandardizedBaseName(rawName);
+  if (hasLabComponent(base)) {
+    return [`${base} - Theory`, `${base} - Lab`];
+  }
+  if (hasTutorialComponent(base)) {
+    return [`${base} - Theory`, `${base} - Tutorial`];
+  }
+  return [`${base} - Theory`];
 };
 
 // ── Helper to determine which semester a subject belongs to ──────────────────

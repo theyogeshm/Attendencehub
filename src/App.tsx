@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Subject, Assignment, AttendanceStatus } from "./types";
-import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName, parseSemesterNumber, isSubjectInSemester } from "./data";
+import { INITIAL_SUBJECTS, INITIAL_ASSIGNMENTS, subjectNamestoSubjects, DTU_CSE_SUBJECTS, getStandardizedSubjectName, parseSemesterNumber, isSubjectInSemester, expandSubjectName } from "./data";
 import dtuData from "../dtu_subjects.json";
 import OnboardingModal from "./components/OnboardingModal";
 import { supabase } from "./lib/supabase";
@@ -492,22 +492,7 @@ export default function App() {
 
       let expandedSubjectsList: string[] = [];
       for (const name of rawSubjectNames) {
-        const lower = name.toLowerCase().trim();
-        if (lower.includes("theory") || lower.includes("lab") || lower.includes("tutorial")) {
-          expandedSubjectsList.push(name);
-        } else if (lower.includes("operating system") || lower === "os") {
-          expandedSubjectsList.push("Operating System Design - Theory", "Operating System Design - Lab");
-        } else if (lower.includes("algorithm") || lower.includes("daa")) {
-          expandedSubjectsList.push("Design & Analysis of Algorithm - Theory", "Design & Analysis of Algorithm - Lab");
-        } else if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
-          expandedSubjectsList.push("Object Oriented Design - Theory", "Object Oriented Design - Lab");
-        } else if (lower.includes("software engineering") || lower === "se") {
-          expandedSubjectsList.push("Software Engineering - Theory", "Software Engineering - Tutorial");
-        } else if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
-          expandedSubjectsList.push("Digital Logic Design - Theory", "Digital Logic Design - Lab");
-        } else {
-          expandedSubjectsList.push(name);
-        }
+        expandedSubjectsList.push(...expandSubjectName(name));
       }
 
       // STRICT ISOLATION: Only preserve subjects from attData if they belong to this semester
@@ -1268,8 +1253,9 @@ export default function App() {
           : [];
 
         if (subNames.length > 0) {
-          newSubjectsList = subNames;
-          const newSubs = subjectNamestoSubjects(subNames);
+          const expandedSubs = Array.from(new Set(subNames.flatMap(expandSubjectName)));
+          newSubjectsList = expandedSubs;
+          const newSubs = subjectNamestoSubjects(expandedSubs);
           setSubjects(newSubs);
           showToast(`Profile updated, subjects updated for Sem ${semNum}`);
         } else {

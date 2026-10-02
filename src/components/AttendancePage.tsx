@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Subject } from "../types";
+import { getStandardizedBaseName, hasLabComponent } from "../data";
 import { Calculator, BookOpen, FileText, Calendar, X, Filter, MoreVertical, Award, ArrowUpRight } from "lucide-react";
 import CustomSelect from "./CustomSelect";
 
@@ -47,23 +48,6 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
   const totalClassesAttended = subjects.reduce((sum, s) => sum + s.attendanceCount, 0);
   const totalClassesHeld = subjects.reduce((sum, s) => sum + s.totalClasses, 0);
 
-  // Helper: check if a subject has a lab component
-  const isLabSubject = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes("software engineering")) {
-      return false;
-    }
-    return (
-      lower.includes("object oriented") ||
-      lower.includes("operating system") ||
-      lower.includes("algorithm") ||
-      lower.includes("digital") ||
-      lower.includes("machine learning") ||
-      lower.includes("data science") ||
-      lower.includes("computer organization")
-    );
-  };
-
   // Group subjects into Unified Base Cards (e.g., Operating System Design)
   interface UnifiedCardData {
     baseName: string;
@@ -72,20 +56,6 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
     tutSub?: Subject;
     singleSub?: Subject;
   }
-
-  const getStandardizedBaseName = (raw: string): string => {
-    const lower = raw.toLowerCase().trim();
-    if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) return "Object Oriented Design";
-    if (lower.includes("algorithm") || lower.includes("daa")) return "Design & Analysis of Algorithm";
-    if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) return "Digital Logic Design";
-    if (lower.includes("operating system") || lower === "os") return "Operating System Design";
-    if (lower.includes("software engineering") || lower === "se") return "Software Engineering";
-    if (lower.includes("compiler design") || lower.includes("cd")) return "Compiler Design";
-    if (lower.includes("machine learning") || lower.includes("ml")) return "Machine Learning";
-    if (lower.includes("information and network security") || lower.includes("ins")) return "Information and Network Security";
-    if (lower.includes("distributed system") || lower.includes("dis")) return "Distributed Systems";
-    return raw;
-  };
 
   const groupedCardsMap = new Map<string, UnifiedCardData>();
   subjects.forEach(sub => {
@@ -114,7 +84,7 @@ export default function AttendancePage({ subjects, onUpdateSubjectHours, isDarkM
 
   // Ensure theory and lab components exist for subjects that have labs
   groupedCardsMap.forEach((entry, baseName) => {
-    if (isLabSubject(baseName)) {
+    if (hasLabComponent(baseName)) {
       if (!entry.theorySub && entry.labSub) {
         entry.theorySub = {
           ...entry.labSub,

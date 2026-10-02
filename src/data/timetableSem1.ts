@@ -41,11 +41,6 @@ export const DTU_CSE_SEM1_SUBJECTS: string[] = [
   "Computer Aided Engineering Graphics-2 - Lab",
   "Web Designing - Theory",
   "Web Designing - Lab",
-  "Mathematics-I",
-  "Programming Fundamentals",
-  "Basic Electronics & Communication Engineering",
-  "Computer Aided Engineering Graphics-2",
-  "Web Designing",
 ];
 
 export const TIMETABLE_SEM_1_DATA: TimetableSem1Data = {

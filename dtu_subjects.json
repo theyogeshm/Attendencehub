@@ -7,21 +7,31 @@
         {
           "sem": 1,
           "subjects": [
-            "Mathematics-I",
-            "Programming Fundamentals",
-            "Basic Electronics & Communication Engineering",
-            "Computer Aided Engineering Graphics-2",
-            "Web Designing"
+            "Mathematics-I - Theory",
+            "Mathematics-I - Tutorial",
+            "Programming Fundamentals - Theory",
+            "Programming Fundamentals - Lab",
+            "Basic Electronics & Communication Engineering - Theory",
+            "Basic Electronics & Communication Engineering - Lab",
+            "Computer Aided Engineering Graphics-2 - Theory",
+            "Computer Aided Engineering Graphics-2 - Lab",
+            "Web Designing - Theory",
+            "Web Designing - Lab"
           ]
         },
         {
           "sem": 2,
           "subjects": [
-            "Basic ML",
-            "Data Structure",
-            "Discrete Structure",
-            "Maths II",
-            "Physics"
+            "Data Structure - Theory",
+            "Data Structure - Lab",
+            "Basic ML - Theory",
+            "Basic ML - Lab",
+            "Physics - Theory",
+            "Physics - Lab",
+            "Discrete Structure - Theory",
+            "Discrete Structure - Tutorial",
+            "Maths II - Theory",
+            "Maths II - Tutorial"
           ]
         },
         {
@@ -42,11 +52,16 @@
         {
           "sem": 4,
           "subjects": [
-            "Database Management System",
-            "Probability and Statistics",
-            "Theory of Computation",
-            "Computer Communication Networks",
-            "Computer Organisation and Architecture"
+            "Database Management System - Theory",
+            "Database Management System - Lab",
+            "Computer Communication Networks - Theory",
+            "Computer Communication Networks - Lab",
+            "Computer Organisation and Architecture - Theory",
+            "Computer Organisation and Architecture - Lab",
+            "Probability and Statistics - Theory",
+            "Probability and Statistics - Tutorial",
+            "Theory of Computation - Theory",
+            "Theory of Computation - Tutorial"
           ]
         },
         {

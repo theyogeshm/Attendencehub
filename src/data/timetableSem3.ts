@@ -405,17 +405,32 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   }
 
   // Extract subject code
-  const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|DA\d{3}|HU301|EE HU301)\b/i);
+  const codeMatch = raw.match(/\b(CS\d{3}[A-Z]?|CO\d{3}[A-Z]?|DA\d{3}|AM\d{3}|EC\d{3}|ME\d{3}|AP\d{3}|PH\d{3}|HU301|EE HU301)\b/i);
   const subjectCode = codeMatch ? codeMatch[1].toUpperCase() : "";
 
   // Map to standardized full subject name
   let baseSubjectName = "";
   if (codeMatch) {
     const code = codeMatch[1].toUpperCase();
-    if (code.startsWith("CS203")) baseSubjectName = "Object Oriented Design";
+    if (code.startsWith("CO101")) baseSubjectName = "Programming Fundamentals";
+    else if (code.startsWith("EC101")) baseSubjectName = "Basic Electronics & Communication Engineering";
+    else if (code.startsWith("ME105")) baseSubjectName = "Computer Aided Engineering Graphics-2";
+    else if (code.startsWith("CS103")) baseSubjectName = "Web Designing";
+    else if (code.startsWith("AM101")) baseSubjectName = "Mathematics-I";
+    else if (code.startsWith("CO102") || code.startsWith("CS102")) baseSubjectName = "Data Structure";
+    else if (code.startsWith("CO104") || code.startsWith("CS104")) baseSubjectName = "Discrete Structure";
+    else if (code.startsWith("AM102")) baseSubjectName = "Maths II";
+    else if (code.startsWith("AP102") || code.startsWith("PH102")) baseSubjectName = "Physics";
+    else if (code.startsWith("CS106")) baseSubjectName = "Basic ML";
+    else if (code.startsWith("CS203")) baseSubjectName = "Object Oriented Design";
     else if (code.startsWith("CS205")) baseSubjectName = "Design & Analysis of Algorithm";
     else if (code.startsWith("CS207")) baseSubjectName = "Operating System Design";
     else if (code.startsWith("CS209")) baseSubjectName = "Software Engineering";
+    else if (code.startsWith("CO202") || code.startsWith("CS202")) baseSubjectName = "Database Management System";
+    else if (code.startsWith("CO204") || code.startsWith("CS204")) baseSubjectName = "Theory of Computation";
+    else if (code.startsWith("CO206") || code.startsWith("CS206")) baseSubjectName = "Computer Communication Networks";
+    else if (code.startsWith("CO208") || code.startsWith("CS208")) baseSubjectName = "Computer Organisation and Architecture";
+    else if (code.startsWith("AM202")) baseSubjectName = "Probability and Statistics";
     else if (code.startsWith("CS301")) baseSubjectName = "Compiler Design";
     else if (code.startsWith("CS303")) baseSubjectName = "Machine Learning";
     else if (code.startsWith("CS305")) baseSubjectName = "Information and Network Security";
@@ -436,7 +451,37 @@ export function parseTimetableEntry(raw: string, defaultRoom: string = ""): Time
   }
 
   if (!baseSubjectName) {
-    if (lower.includes("cyber vulnerability") || lower.includes("ethical hacking") || lower.includes("cs411")) {
+    if (lower.includes("programming fundamentals") || lower.includes("co101")) {
+      baseSubjectName = "Programming Fundamentals";
+    } else if (lower.includes("basic electronics") || lower.includes("ec101")) {
+      baseSubjectName = "Basic Electronics & Communication Engineering";
+    } else if (lower.includes("engineering graphics") || lower.includes("me105")) {
+      baseSubjectName = "Computer Aided Engineering Graphics-2";
+    } else if (lower.includes("web designing") || lower.includes("web design") || lower.includes("cs103")) {
+      baseSubjectName = "Web Designing";
+    } else if (lower.includes("mathematics-i") || lower.includes("mathematics 1") || (lower.includes("mathematics i") && !lower.includes("ii") && !lower.includes("2")) || lower.includes("am101")) {
+      baseSubjectName = "Mathematics-I";
+    } else if (lower.includes("database management") || lower.includes("dbms")) {
+      baseSubjectName = "Database Management System";
+    } else if (lower.includes("probability and statistics") || lower.includes("probability & statistics")) {
+      baseSubjectName = "Probability and Statistics";
+    } else if (lower.includes("theory of computation") || lower.includes("toc")) {
+      baseSubjectName = "Theory of Computation";
+    } else if (lower.includes("computer communication networks") || lower.includes("ccn")) {
+      baseSubjectName = "Computer Communication Networks";
+    } else if (lower.includes("computer organisation") || lower.includes("computer organization") || lower.includes("coa")) {
+      baseSubjectName = "Computer Organisation and Architecture";
+    } else if (lower.includes("basic ml") || lower.includes("basics of ml")) {
+      baseSubjectName = "Basic ML";
+    } else if (lower.includes("data structure") && !lower.includes("advance") && !lower.includes("daa") && !lower.includes("algorithm")) {
+      baseSubjectName = "Data Structure";
+    } else if (lower.includes("discrete structure") || lower.includes("discrete math")) {
+      baseSubjectName = "Discrete Structure";
+    } else if (lower.includes("maths ii") || lower.includes("maths 2") || lower.includes("mathematics-ii") || lower.includes("mathematics ii") || lower.includes("mathematics 2")) {
+      baseSubjectName = "Maths II";
+    } else if (lower.includes("physics")) {
+      baseSubjectName = "Physics";
+    } else if (lower.includes("cyber vulnerability") || lower.includes("ethical hacking") || lower.includes("cs411")) {
       baseSubjectName = "Cyber Vulnerability & Ethical Hacking";
     } else if (lower.includes("cloud computing") || lower.includes("cs425")) {
       baseSubjectName = "Cloud Computing";
