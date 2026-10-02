@@ -157,8 +157,8 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   const [editingResource, setEditingResource] = useState<DbResource | null>(null);
 
   // Filter subject options based on selected semester — unified Theory + Lab into single subject entry
-  const availableSubjects = (() => {
-    const semNum = parseInt(semester, 10);
+  const getSubjectsForSemester = useCallback((semStr: string): string[] => {
+    const semNum = parseInt(semStr, 10);
     if (!isNaN(semNum) && dtuData?.branches?.[0]?.semesters) {
       const found = dtuData.branches[0].semesters.find((s: any) => s.sem === semNum);
       if (found?.subjects?.length) {
@@ -168,7 +168,9 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
     // Fallback: all subjects across all semesters in dtuData
     const all = dtuData?.branches?.[0]?.semesters?.flatMap((s: any) => s.subjects || []) || [];
     return Array.from(new Set(all.map((s: string) => getResourceCanonicalSubject(s)))).filter(Boolean);
-  })();
+  }, []);
+
+  const availableSubjects = getSubjectsForSemester(semester);
 
   // Table state
   const [resources, setResources] = useState<DbResource[]>([]);
@@ -198,7 +200,12 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
         .select("*")
         .order("created_at", { ascending: false });
       if (!error && data) {
-        setResources(data as DbResource[]);
+        // Normalize any Theory/Lab-specific resource subjects to single base subject names
+        const normalized = (data as DbResource[]).map(r => ({
+          ...r,
+          subject: getResourceCanonicalSubject(r.subject),
+        }));
+        setResources(normalized);
         setLoading(false);
         return;
       }
@@ -214,7 +221,8 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleAdd = async () => {
-    const finalSubject = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
+    const rawSub = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
+    const finalSubject = getResourceCanonicalSubject(rawSub);
     const finalTabType = tabSelect === "__CUSTOM__" ? customTab.trim() : tabSelect.trim();
     if (!finalSubject || !fileName.trim() || !fileUrl.trim() || !finalTabType) {
       show("Subject, Tab Type, File Name and URL are required", false);
@@ -274,12 +282,14 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleStartEdit = (r: DbResource) => {
     setEditingResource(r);
-    setSemester(r.semester || "");
+    const semVal = r.semester || "";
+    setSemester(semVal);
+    const subList = getSubjectsForSemester(semVal);
     const canonical = getResourceCanonicalSubject(r.subject);
-    if (availableSubjects.includes(canonical)) {
+    if (subList.includes(canonical)) {
       setSubjectSelect(canonical);
       setCustomSubject("");
-    } else if (availableSubjects.includes(r.subject)) {
+    } else if (subList.includes(r.subject)) {
       setSubjectSelect(r.subject);
       setCustomSubject("");
     } else {
@@ -319,7 +329,8 @@ function ResourcesManager({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleUpdate = async () => {
     if (!editingResource) return;
-    const finalSubject = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
+    const rawSub = subjectSelect === "__CUSTOM__" ? customSubject.trim() : subjectSelect.trim();
+    const finalSubject = getResourceCanonicalSubject(rawSub);
     const finalTabType = tabSelect === "__CUSTOM__" ? customTab.trim() : tabSelect.trim();
     if (!finalSubject || !fileName.trim() || !fileUrl.trim() || !finalTabType) {
       show("Subject, Tab Type, File Name and URL are required", false);

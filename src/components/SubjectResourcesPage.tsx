@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink, FolderOpen, FileText } from "lucide-react";
 import { Subject } from "../types";
-import { getResourceCanonicalSubject, areResourceSubjectsMatching, getKnownSubjectCode } from "../lib/resourceSubjects";
+import { getStandardizedBaseName } from "../data";
 import { supabase } from "../lib/supabase";
 import type { DbResource } from "../lib/supabase";
 import PdfViewerModal from "./PdfViewerModal";
@@ -91,7 +91,6 @@ const SUBJECT_ICONS: Record<string, string> = {
   ml: "neurology",         machine: "neurology",
   chemistry: "science",    english: "translate",
   programming: "terminal", algorithm: "code_blocks",
-  oop: "data_object",      "object oriented": "data_object",
   os: "memory",            operating: "memory",
   network: "hub",          database: "storage",
   web: "web",              ai: "smart_toy",
@@ -337,19 +336,27 @@ export default function SubjectResourcesPage({ subjects }: Props) {
   const [activePdf, setActivePdf] = useState<DbResource | null>(null);
 
   const rawDecoded = decodeURIComponent(subjectName ?? "");
-  const canonicalName = getResourceCanonicalSubject(rawDecoded);
+  const rawBase = rawDecoded
+    .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+    .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+    .trim();
+  const decodedName = getStandardizedBaseName(rawBase);
 
   const subject =
     subjects.find((s) =>
-      areResourceSubjectsMatching(s.name, canonicalName)
+      s.name
+        .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+        .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+        .trim()
+        .toLowerCase() === decodedName.toLowerCase()
     ) ?? {
-      id: "res-" + canonicalName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-      name: canonicalName,
-      code: getKnownSubjectCode(canonicalName) || "CS200",
+      id: "res-" + decodedName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+      name: decodedName,
+      code: "CS200",
       prof: "Faculty",
       room: "AB4",
       category: "Core",
-      description: canonicalName,
+      description: decodedName,
       attendanceCount: 0,
       totalClasses: 0,
     };
@@ -368,7 +375,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     const mainEl = document.querySelector(".custom-scrollbar");
     if (mainEl) mainEl.scrollLeft = 0;
 
-    if (!canonicalName) { setLoading(false); return; }
+    if (!decodedName) { setLoading(false); return; }
 
     (async () => {
       setLoading(true);
@@ -385,10 +392,17 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
         if (!error && data && data.length > 0) {
           const allRows = data as DbResource[];
+          const decStd = getStandardizedBaseName(decodedName);
 
           const matchingRows = allRows.filter((r) => {
-            if (!r.subject) return false;
-            return areResourceSubjectsMatching(r.subject, canonicalName);
+            const rRawBase = (r.subject || "")
+              .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
+              .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
+              .trim();
+            const rStd = getStandardizedBaseName(rRawBase);
+
+            return rRawBase.length > 0 &&
+              rStd.toLowerCase() === decStd.toLowerCase();
           });
 
           if (matchingRows.length > 0) {
@@ -407,7 +421,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
       }
       setLoading(false);
     })();
-  }, [canonicalName]);
+  }, [decodedName]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const syllabusResource = resources.find((r) =>
@@ -440,7 +454,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     }
   }
 
-  const icon = getSubjectIcon(canonicalName);
+  const icon = getSubjectIcon(decodedName);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -474,7 +488,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg sm:text-xl font-bold text-on-surface leading-tight">
-                  {canonicalName}
+                  {decodedName}
                 </h1>
                 {subject?.code && (
                   <span className="text-[10px] font-bold bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">{subject.code}</span>
@@ -574,7 +588,7 @@ export default function SubjectResourcesPage({ subjects }: Props) {
               <p className="text-base font-bold text-on-surface mb-1">No resources yet</p>
               <p className="text-sm max-w-xs mx-auto leading-relaxed">
                 Resources for{" "}
-                <span className="text-primary font-semibold">{canonicalName}</span>{" "}
+                <span className="text-primary font-semibold">{decodedName}</span>{" "}
                 haven't been uploaded yet. Check back soon!
               </p>
             </div>
