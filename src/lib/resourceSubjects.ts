@@ -21,6 +21,19 @@ export function getResourceCanonicalSubject(name: string): string {
   const cleaned = stripTheoryLab(name);
   const lower = cleaned.toLowerCase().trim();
 
+  // Advance data structure (must precede general data structure / DSA)
+  if (lower.includes("advance data structure") || lower.includes("advanced data structure") || lower.includes("ads") || lower.includes("cs315")) {
+    return "Advance Data Structure";
+  }
+
+  // Sem 2 DSA / Data Structure (must precede generic algorithm check so "Data Structures and Algorithms" / "DSA" maps here!)
+  if (
+    (lower.includes("data structure") || lower.includes("data structures") || lower === "dsa" || lower.includes("dsa") || lower.includes("cs201") || lower.includes("co102") || lower.includes("cs102")) &&
+    !lower.includes("advance")
+  ) {
+    return "Data Structure";
+  }
+
   // Sem 3 subjects
   if (lower.includes("object oriented") || lower.includes("oop") || lower.includes("ood")) {
     return "Object Oriented Programming (OOP)";
@@ -28,7 +41,13 @@ export function getResourceCanonicalSubject(name: string): string {
   if (lower.includes("operating system") || lower === "os" || lower === "os design") {
     return "Operating System Design (OS)";
   }
-  if (lower.includes("algorithm") || lower.includes("daa")) {
+  // DAA: strictly verify it does NOT match Data Structure / DSA
+  if (
+    !lower.includes("data structure") &&
+    !lower.includes("data structures") &&
+    !lower.includes("dsa") &&
+    (lower.includes("algorithm") || lower.includes("daa") || lower.includes("cs205") || lower.includes("da201"))
+  ) {
     return "Algorithm Design and Analysis (DAA)";
   }
   if (lower.includes("digital logic") || lower.includes("digital electronics") || lower.includes("dld")) {
@@ -41,9 +60,6 @@ export function getResourceCanonicalSubject(name: string): string {
   // Sem 2 / common subjects
   if (lower.includes("maths ii") || lower.includes("maths 2") || lower.includes("mathematics ii") || lower.includes("mathematics 2")) {
     return "Mathematics II";
-  }
-  if (lower.includes("data structure") && !lower.includes("advance")) {
-    return "Data Structure";
   }
   if (lower.includes("discrete structure") || lower.includes("discrete math")) {
     return "Discrete Structure";
@@ -124,6 +140,7 @@ const KNOWN_CODES: Record<string, string> = {
   "object oriented programming (oop)": "CS203",
   "operating system design (os)": "CS207",
   "algorithm design and analysis (daa)": "CS205",
+  "design & analysis of algorithm": "CS205",
   "digital electronics": "EC201",
   "software engineering (se)": "CS209",
   "mathematics-i": "AM101",
@@ -133,6 +150,8 @@ const KNOWN_CODES: Record<string, string> = {
   "web designing": "CS103",
   "mathematics ii": "AM102",
   "data structure": "CS201",
+  "data structures and algorithms": "CS201",
+  "dsa": "CS201",
   "discrete structure": "CS202",
   "compiler design": "CS301",
   "machine learning": "CS303",

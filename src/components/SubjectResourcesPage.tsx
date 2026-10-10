@@ -8,6 +8,7 @@ import type { DbResource } from "../lib/supabase";
 import PdfViewerModal from "./PdfViewerModal";
 import AdSlot from "./AdSlot";
 import { isPdfDocument, getDriveDownloadUrl } from "../lib/pdfUtils";
+import { getResourceCanonicalSubject, areResourceSubjectsMatching, getKnownSubjectCode } from "../lib/resourceSubjects";
 
 // ── Dynamic color palette — assigned to tabs in appearance order ──────────────
 const TAB_PALETTE = [
@@ -340,19 +341,23 @@ export default function SubjectResourcesPage({ subjects }: Props) {
     .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
     .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
     .trim();
-  const decodedName = getStandardizedBaseName(rawBase);
+
+  // If the parameter refers to DSA, resolve to "Data Structure" to prevent collision with DAA
+  const isDsa = (rawBase.toLowerCase().includes("data structure") || rawBase.toLowerCase().includes("data structures") || rawBase.toLowerCase() === "dsa" || rawBase.toLowerCase().includes("dsa")) && !rawBase.toLowerCase().includes("advance");
+  const decodedName = isDsa ? "Data Structure" : getStandardizedBaseName(rawBase);
 
   const subject =
-    subjects.find((s) =>
-      s.name
+    subjects.find((s) => {
+      const sRawBase = s.name
         .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
         .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
-        .trim()
-        .toLowerCase() === decodedName.toLowerCase()
-    ) ?? {
+        .trim();
+      return areResourceSubjectsMatching(sRawBase, rawBase) ||
+        sRawBase.toLowerCase() === decodedName.toLowerCase();
+    }) ?? {
       id: "res-" + decodedName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
       name: decodedName,
-      code: "CS200",
+      code: getKnownSubjectCode(getResourceCanonicalSubject(rawBase)) || "CS200",
       prof: "Faculty",
       room: "AB4",
       category: "Core",
@@ -392,17 +397,15 @@ export default function SubjectResourcesPage({ subjects }: Props) {
 
         if (!error && data && data.length > 0) {
           const allRows = data as DbResource[];
-          const decStd = getStandardizedBaseName(decodedName);
 
           const matchingRows = allRows.filter((r) => {
             const rRawBase = (r.subject || "")
               .replace(/ - (Theory|Lab|Tutorial|Tut)$/i, "")
               .replace(/ (Theory|Lab|Tutorial|Tut)$/i, "")
               .trim();
-            const rStd = getStandardizedBaseName(rRawBase);
 
             return rRawBase.length > 0 &&
-              rStd.toLowerCase() === decStd.toLowerCase();
+              areResourceSubjectsMatching(rawBase, rRawBase);
           });
 
           if (matchingRows.length > 0) {
